@@ -1,0 +1,344 @@
+#! /bin/sh
+
+set -e
+
+. /usr/share/debconf/confmodule
+db_version 2.0
+
+fix_system_groups() {
+    if ! getent group nav > /dev/null; then
+        addgroup --system nav;
+    fi
+
+    # removing the navcron-user from the navroot-group and try to 
+    # remove the navroot-group
+    if eval getent group navroot > /dev/null; then
+	if eval getent group navroot | grep navcron > /dev/null; then
+	    deluser navcron navroot;
+	fi
+	delgroup --only-if-empty navroot;
+    fi
+}
+
+fix_system_user() {
+    # add navcron if it doesn't already exist
+    if ! getent passwd navcron > /dev/null; then
+	adduser --system --no-create-home --home /usr/share/nav \
+	    --shell /bin/sh --ingroup nav navcron;
+	addgroup navcron dialout;
+    fi
+    
+    # make sure navcron has a valid shell
+    if getent passwd navcron | grep "/bin/false" > /dev/null; then
+	usermod -s /bin/sh navcron
+    fi
+}
+
+fix_perms() {
+    install -d -onavcron -gnav -m755 /var/lib/nav
+    install -d -onavcron -gnav -m755 /var/lib/nav/log
+    install -d -onavcron -gnav -m755 /var/lib/nav/rrd
+    install -d -onavcron -gnav -m755 /var/lib/nav/rrd/activeip
+    install -d -onavcron -gnav -m755 /var/lib/nav/uploads
+    install -d -onavcron -gnav -m755 /var/lib/nav/uploads/images
+    install -d -onavcron -gnav -m755 /var/lib/nav/uploads/images/rooms
+    install -d -onavcron -gnav -m755 /var/log/nav
+    install -d -onavcron -gnav -m755 /var/log/nav/arnold
+}
+
+# Remove a no-longer used conffile
+rm_conffile() {
+    PKGNAME="$1"
+    CONFFILE="$2"
+    if [ -e "$CONFFILE" ]; then
+        md5sum="`md5sum \"$CONFFILE\" | sed -e \"s/ .*//\"`"
+        old_md5sum="`dpkg-query -W -f='${Conffiles}' $PKGNAME | sed -n -e \"\\\\' $CONFFILE '{s/ obsolete$//;s/.* //p}\"`"
+        if [ "$md5sum" != "$old_md5sum" ]; then
+            echo "Obsolete conffile $CONFFILE has been modified by you."
+            echo "Saving as $CONFFILE.dpkg-bak ..."
+            mv -f "$CONFFILE" "$CONFFILE".dpkg-bak
+        else
+            echo "Removing obsolete conffile $CONFFILE ..."
+            rm -f "$CONFFILE"
+        fi
+    fi
+}
+
+disable_RUN_NAV () {
+    systemctl disable nav.service
+}
+
+disable_RUN_NAV_error () {
+    message=$1
+
+    disable_RUN_NAV
+
+    # print an error message
+    (
+	cat <<EOF
+E: Disabling the NAV service in systemd, as something in the postinst-script
+   failed. Please check up on what went wrong before you run 'systemctl enable
+   nav.service' and try to start NAV again.
+
+EOF
+	if [ -n "$message" ]; then
+	    echo "   Result:"
+	    echo "$message"
+	fi
+	echo
+    ) >&2
+}
+
+disable_RUN_NAV_warning () {
+    message=$1
+
+    disable_RUN_NAV
+
+    # print an error message
+    (
+	cat <<EOF
+W: Disabling nav.service in systemd.
+   $message
+EOF
+    ) >&2
+}
+
+check_db_version () {
+    version=$1
+
+    sql="select version from nav_schema_version;"
+    dbversion=`su -c "psql -At -c '$sql' nav" postgres`
+
+    if [ "$dbversion" = "$version" ]; then
+	echo "I: database schema is version $dbversion"
+	return 0
+    else
+	echo "W: database schema is version $dbversion (expected: $version)"
+	return 1
+    fi
+}
+
+run_script () {
+    user=$1
+    script="$2"
+
+    # if no user set, assume root
+    if [ -z $user ]; then
+	user=root
+    fi
+
+    su -c "$script" $user || (
+	echo "E: /usr/lib/nav/$pyscript failed, exiting." >2
+	disable_RUN_NAV_error
+	exit 1
+    )
+}
+
+package_name="nav"
+datadir="/var/lib/${package_name}/"
+pkgdir="/usr/share/${package_name}/"
+docdir="/usr/share/doc/${package_name}/"
+upgradesdir="${docdir}sql/upgrades/"
+configdir="/etc/${package_name}/"
+dbconf="${configdir}db.conf"
+navconf="${configdir}nav.conf"
+
+case "$1" in
+    configure)
+
+	OLDVERSION="$2"
+
+	# do some initial checking and creation of user/group
+        fix_system_groups
+	fix_system_user
+	fix_perms
+
+	# make sure that notifications are sent to the user
+	#db_fset ${package_name}/e_createdb seen false
+	#db_fset ${package_name}/createdbuser_failed seen false
+	#db_fset ${package_name}/upgradedb_navreadwrite seen false
+	#db_fset ${package_name}/upgradedb_failed seen false
+	#db_fset ${package_name}/initdb_failed seen false
+        #db_fset ${package_name}/upgradedb_impossible seen false
+
+	# get debconf seeds
+	db_get ${package_name}/db_generation || true
+	db_generation="$RET"
+	db_get ${package_name}/db_auto_update || true
+	db_auto_update="$RET"
+	db_get ${package_name}/db_purge || true
+	db_purge="$RET"
+	db_get ${package_name}/apache2_restart || true
+	apache2_restart="$RET"
+
+	# some variables are static :)
+	dbserver="localhost"
+	dbname="template1"
+	dbuser="nav"
+	dbadmin="postgres"
+
+	# create database user and initiate database (on fresh installs)
+	if [ -z "$OLDVERSION" -a "$db_generation" = "true" ]; then
+	    # fresh install
+	    createdb="ok"
+	
+	    # ask user for database password
+	    db_get ${package_name}/dbpass || true
+            dbpass="$RET"
+	    
+            # Generate password if none is set
+            if [ -z "$dbpass" ]; then
+                # Random password generation for database access
+                [ -x /usr/bin/makepasswd ] && \
+                    dbpass=`makepasswd --chars 12 --randomseed 0`
+                db_set ${package_name}/dbpass $dbpass
+            fi
+	    
+            # Update config-file
+	    sed -e"s/^userpw_nav=$/userpw_nav=$dbpass/g" \
+		< $dbconf > $dbconf.new
+	    if [ "z`diff $dbconf $dbconf.new | wc -l`" = "z4" ]; then
+		mv $dbconf.new $dbconf
+		echo "I: $dbconf updated" >&2
+	    else
+		result=`diff $dbconf $dbconf.new`
+		db_reset ${package_name}/e_conffile || true
+		db_subst ${package_name}/e_conffile conffile "$dbconf"
+		db_subst ${package_name}/e_conffile result "$result"
+		db_input high ${package_name}/e_conffile || true
+		db_go
+		echo "E: Failed to update $dbconf with database password" >&2
+		createdb="failed"
+	    fi
+	
+	    # create and populate the database,
+	    RET=0
+	    result=`su -c "/usr/lib/nav/navsyncdb -c" postgres 2>&1` || RET=$?
+	    if [ "$RET" != 0 ]; then
+		db_reset ${package_name}/e_initdb || true
+		db_capb escape
+		db_subst ${package_name}/e_initdb result $(echo "$result" | debconf-escape -e)
+		db_input high ${package_name}/e_initdb || true
+		db_go
+		echo "E: Database initialization failed, bailing out." >&2
+		exit 1
+	    fi
+
+	elif [ "$db_generation" != "true" ]; then
+	    msg="Please enable nav.service once you have initialized and configured database manually."
+	    disable_RUN_NAV_warning "$msg"
+	fi
+
+        # After 3.8.0, NAV has it's own script to maintain db-upgrades
+	if [ "$db_auto_update" = "true" ] && [ ! -z "$OLDVERSION" ] && \
+	    dpkg --compare-versions "$OLDVERSION" gt 2+3.8.0 ; then
+	    RET=0
+	    result=`su -c "/usr/lib/nav/navsyncdb -o" postgres 2>&1` || RET=$?
+
+	    if [ "$RET" != 0 ]; then
+		db_reset ${package_name}/e_upgradedb || true
+		db_capb escape
+		db_subst ${package_name}/e_upgradedb result $(echo "$result" | debconf-escape -e)
+		db_input high ${package_name}/e_upgradedb || true
+		db_go
+		echo "E: Database initialization failed, bailing out." >&2
+		exit 1
+	    fi
+
+	    # In 3.14.1592 cricket trees have been consolidated, so we
+	    # run mcc.py as navcron to ensure the Cricket config tree is
+            # updated right away
+	    if [ ! -z "$OLDVERSION" ] && \
+		dpkg --compare-versions "$OLDVERSION" lt 2+3.14.1592-1; then
+		run_script navcron /usr/lib/nav/mcc.py
+
+	    fi
+	fi
+	
+
+	if dpkg --compare-versions "$OLDVERSION" le "2+3.10.1-3"; then
+            rm_conffile nav /etc/nav/cron.d/networkDiscovery
+	fi
+
+	if dpkg --compare-versions "$OLDVERSION" lt "2+3.11.0-1"; then
+            rm_conffile nav /etc/nav/getBoksMacs.conf
+	fi
+
+	if dpkg --compare-versions "$OLDVERSION" lt "2+3.13.0-1"; then
+            rm_conffile nav /etc/nav/alertmsg.conf
+	    rm_conffile nav /etc/nav/eventEngine.conf
+	fi
+
+	if dpkg --compare-versions "$OLDVERSION" lt "2+3.14.1-2"; then
+            rm_conffile nav /etc/nav/rrdviewer/rrdviewer.conf
+	fi
+
+	if dpkg --compare-versions "$OLDVERSION" lt "4.0.1-2"; then
+            rm_conffile nav /etc/nav/cron.d/cricket
+            rm_conffile nav /etc/nav/cron.d/thresholdMon
+	fi
+
+	# Ensure SECRET_KEY is set both on new and upgraded installations
+	if dpkg --compare-versions "$OLDVERSION" lt "2+3.15.2-2"; then
+	    SECRET_KEY=$(makepasswd --chars 51)
+	    # Take of the unchanged default config file
+	    sed -i "s/^SECRET_KEY=YouShouldReallyChangeThis.*/SECRET_KEY=$SECRET_KEY/" ${navconf}
+	    # But in case an old config file without the SECRET_KEY is in place: add the option
+	    if ! grep -q "^\s*SECRET_KEY\s*=" ${navconf}; then
+		cat >> ${navconf} <<EOF
+
+# This secret key is used for cryptographic signing in Django framework.
+# See https://docs.djangoproject.com/en/dev/ref/settings/#std:setting-SECRET_KEY
+# This key was automatically generated during install/upgrade of the
+# Debian package
+SECRET_KEY=$SECRET_KEY
+EOF
+	    fi
+	fi
+
+
+	if [ -n "$OLDVERSION" ] && dpkg --compare-versions "$OLDVERSION" lt "3.99"; then
+	    db_reset ${package_name}/nav3_to_4_upgrade || true
+	    db_input high ${package_name}/nav3_to_4_upgrade || true
+	    db_go || true
+
+	    msg="Upgrading from NAV 3 requires manual steps to migrate time-series data"
+	    disable_RUN_NAV_warning "$msg"
+	fi
+
+	if [ -n "$OLDVERSION" ]; then
+	    rm -rf /tmp/nav_cache  # remove old cache data on upgrade
+	fi
+
+	# Reload apache2 after upgrade if user agreed
+	if [ -n "$OLDVERSION" -a "$apache2_restart" = "true" ]; then
+	    invoke-rc.d apache2 reload
+	fi
+	;;
+    
+    install|upgrade)
+	if dpkg --compare-versions "$OLDVERSION" le "2+3.4.0-1~0test3"; then
+            rm_conffile nav "/etc/nav/cron.d/iptrace"
+	fi
+	;;
+    
+    abort-upgrade|abort-deconfigure|abort-remove)
+        ;;
+    
+    *)
+        echo "Called with unknown argument $1, bailing out."
+        exit 1
+        ;;
+esac
+
+# dh_installdeb will replace this with shell code automatically
+# generated by other debhelper scripts.
+
+#DEBHELPER#
+
+# Call db_stop to make the debconf frontend aware of that we're finished
+# (this will make sure postinst doesn't make frontend wait as some fd's
+# are still open)..
+db_stop
+
+exit 0

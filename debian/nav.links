@@ -1,0 +1,7 @@
+etc/nav var/lib/nav/etc
+usr/lib/nav/nav usr/sbin/nav
+usr/lib/nav/navuser usr/sbin/navuser
+usr/lib/nav/navdf usr/bin/navdf
+usr/lib/nav/navoidverify usr/bin/navoidverify
+usr/lib/nav/naventity usr/bin/naventity
+usr/lib/nav/navsnmp usr/bin/navsnmp

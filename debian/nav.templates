@@ -1,0 +1,157 @@
+Template: nav/db_generation
+Type: boolean
+Default: false
+_Description: Create and populate database?
+ NAV needs access to a database, along with initialized data
+ structures in order to function properly. This can be created
+ automatically by this package for the PostgreSQL database.
+ .
+ Automatically creating the database does not make sense if a NAV
+ database already exists or if no database server has been setup when
+ NAV is installed. This procedure will create a database called
+ 'nav' on the PostgreSQL server on localhost:5432.
+ .
+ If you don't want this, please see the instructions in
+ /usr/share/doc/nav/README.Debian.gz for how to do this manually. If
+ the PostgreSQL server is installed at the same time as you install
+ NAV, this procedure will fail and you can run 'dpkg-reconfigure nav'
+ later to automatically create and populate the database.
+
+Template: nav/dbpass
+Type: password
+_Description: NAV database owner password:
+ On a fresh install; if no password is specified here, a random
+ password will be generated and included in the
+ /etc/nav/db.conf-file. If the nav package already is installed on the
+ system, the package will fetch the password from /etc/nav/db.conf.
+
+Template: nav/db_auto_update
+Type: boolean
+Default: false
+_Description: Automatically update database schema when upgrading NAV?
+ Run NAV's database schema migration utility automatically when this
+ package is upgraded.
+ .
+ If you don't want this, NAV will be disabled on every upgrade, and must be
+ manually enabled after running NAV's `navsyncdb` program.
+
+Template: nav/db_purge
+Type: boolean
+Default: false
+_Description: Delete database on purge?
+ Delete the NAV database from PostgreSQL when this package is purged.
+
+Template: nav/createuser_failed
+Type: note
+_Description: User creation failed
+ Script output:
+ .
+ ${result}
+
+Template: nav/e_conffile
+Type: note
+_Description: Attempt to modify config file ${conffile} failed
+ Script output:
+ .
+ ${result}
+
+Template: nav/e_createdb
+Type: note
+_Description: Database creation failed
+ Script output:
+ .
+ ${result}
+
+Template: nav/e_createdbuser
+Type: note
+_Description: Creation database user failed
+ Script output:
+ .
+ ${result}
+
+Template: nav/e_createplfunc
+Type: note
+_Description: Creation database user failed
+ Script output:
+ .
+ ${result}
+
+Template: nav/e_initdb
+Type: note
+_Description: Database initialization failed
+ Script output:
+ .
+ ${result}
+
+Template: nav/e_upgradedb
+Type: note
+_Description: Automatic database update failed
+ The automatic update script failed to update the database.
+ .
+ Script output:
+ .
+ ${result}
+
+Template: nav/e_dropdb
+Type: note
+_Description: Database removal failed
+ Script output:
+ You have decided to remove the NAV database on purge, but this failed:
+ .
+ ${result}
+
+Template: nav/e_dropdbuser
+Type: note
+_Description: Database removal failed
+ Script output:
+ You have decided to remove the NAV database on purge, but the removal
+ of the database user 'nav':
+ .
+ ${result}
+
+Template: nav/apache2_restart
+Type: boolean
+Default: false
+_Description: Should apache2 be restarted after upgrades of NAV?
+ In order to make new versions of NAV work properly, the apache2
+ webserver have to be restarted. You can also restart apache2 by
+ manually executing 'invoke-rc.d apache2 restart'.
+
+Template: nav/cricket_remove_unused_dirs
+Type: note
+_Description: Remove unused Cricket configuration
+ The Cricket trees `switch-ports` and `router-interfaces` have been
+ consolidated into a single `ports` tree, where all physical ports' traffic
+ stats now also are collected. The debian-package both runs the usual
+ `syncdb.py` command, and also `mcc.py` once manually (as the navcron
+ user) to ensure the Cricket config tree is updated right away.
+ .
+ When everything is up and running again, you can optionally delete the
+ `switch-ports` and `router-interfaces` directories from your
+ `cricket-config` directory (/etc/nav/cricket-config/), as they are no
+ longer used by NAV. If you do not delete these directories they will
+ appear in the cricket-view, but will not contain any data.
+ .
+ NAV now supplies its own `subtree-sets` configuration to Cricket. If you
+ have made manual changes to your Cricket collection setup and/or this
+ file, you may need to update your setup accordingly.
+
+Template: nav/nav3_to_4_upgrade
+Type: note
+_Description: Upgrading to NAV 4 requires manual intervention
+ From NAV 4 and newer, time series data are stored using Graphite rather
+ than RRDtool. Proper migration of your existing time series data is a manual
+ process documented at:
+ .
+ https://nav.uninett.no/doc/4.0/howto/migrate-rrd-to-graphite.html
+ .
+ If you want to migrate existing data, NAV 4 should not be started until 
+ migration is complete. NAV startup will now be automatically _disabled_ in
+ /etc/default/nav and must be enabled again manually.
+
+Template: nav/too_old_to_upgrade
+Type: note
+_Description: Cannot upgrade from versions prior to 3.8
+ This package does not support upgrades from NAV versions older than 3.8.
+ .
+ You will need to reinstall NAV from scratch and migrate your data manually.

@@ -1,0 +1,75 @@
+ Debian README for NAV
+=======================
+
+This is NAV (Network Administration Visualized) for Debian. With a default
+package installation, NAV is not ready to run. You'll first have to finish the
+following steps:
+
+ 1. Create PostgreSQL database
+
+    If you said yes to automatically create and initialize the database during
+    the installation of this package, you can skip this step.
+
+    If you installed the PostgreSQL server locally, you need to pick a
+    password for NAV's database user and put this into /etc/nav/db.conf like
+    so:
+
+      userpw_nav = mypassword
+
+    Then run:
+
+      su -c "/usr/lib/nav/navsyncdb -c" postgres
+
+    Also take a look at /usr/share/nav/sql/README for details, especially if
+    you need to install the schema on a remote PostgreSQL server.
+
+    The default settings of the Debian PostgreSQL packages are good enough for
+    smaller installations of NAV. If you are monitoring a large network,
+    sooner or later you will run into performance problems with the PostgreSQL
+    defaults. Please refer to [1] for tips on how to tune PostgreSQL settings.
+
+    [1] http://wiki.postgresql.org/wiki/Performance_Optimization
+
+ 2. Configure Apache2
+
+    o Run 'a2dissite 000-default && a2ensite nav-default'.
+
+    o Restart Apache2 ('service apache2 restart').
+
+    o We strongly recommend you modify
+      /etc/apache2/sites-available/nav-default.conf to serve the NAV web
+      interface over HTTPS in a production environment.
+
+ 3. Adjust the NAV configuration files in /etc/nav to fit your needs.
+
+ 4. Graphite
+
+    NAV needs to know where Graphite's Carbon backend is listening for data,
+    and on what URL it can reach the the Graphite web interface for metrics
+    discovery and graph rendering. These values are configured in
+    /etc/nav/graphite.conf.
+
+    The Carbon backend's UDP listener must be enabled, and Carbon should be
+    configured with NAV's storage schemas and aggregation rules. Details on
+    how to configure Graphite for use with NAV can be found at [2].
+
+    The recommended `graphite-carbon` package is available in the official
+    Debian Wheezy distribution, but the `graphite-web` package is only
+    officially available in Debian Sid (unstable). We have provided a backport
+    of this package for Wheezy.
+
+    [2] https://nav.uninett.no/doc/latest/intro/install.html#integrating-graphite-with-nav
+
+ 5. Enable nav.service and start NAV:
+
+      systemctl enable nav.service
+      service nav start
+
+ 6. Log into the NAV web interface and change the admin user's password from
+    the insecure default value of 'admin'.
+
+
+Happy NAV-ing! :)
+
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>, Wed, 16 Nov 2016 09:34:09 +0100

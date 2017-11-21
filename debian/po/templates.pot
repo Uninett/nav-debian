@@ -1,0 +1,344 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: nav\n"
+"Report-Msgid-Bugs-To: nav@packages.debian.org\n"
+"POT-Creation-Date: 2014-05-15 13:52+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:1001
+msgid "Create and populate database?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:1001
+msgid ""
+"NAV needs access to a database, along with initialized data structures in "
+"order to function properly. This can be created automatically by this "
+"package for the PostgreSQL database."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:1001
+msgid ""
+"Automatically creating the database does not make sense if a NAV database "
+"already exists or if no database server has been setup when NAV is "
+"installed. This procedure will create a database called 'nav' on the "
+"PostgreSQL server on localhost:5432."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:1001
+msgid ""
+"If you don't want this, please see the instructions in /usr/share/doc/nav/"
+"README.Debian.gz for how to do this manually. If the PostgreSQL server is "
+"installed at the same time as you install NAV, this procedure will fail and "
+"you can run 'dpkg-reconfigure nav' later to automatically create and "
+"populate the database."
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../nav.templates:2001
+msgid "NAV database owner password:"
+msgstr ""
+
+#. Type: password
+#. Description
+#: ../nav.templates:2001
+msgid ""
+"On a fresh install; if no password is specified here, a random password will "
+"be generated and included in the /etc/nav/db.conf-file. If the nav package "
+"already is installed on the system, the package will fetch the password "
+"from /etc/nav/db.conf."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:3001
+msgid "Automatically update database schema when upgrading NAV?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:3001
+msgid ""
+"Run NAV's database schema migration utility automatically when this package "
+"is upgraded."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:3001
+msgid ""
+"If you don't want this, NAV will be disabled on every upgrade, and must be "
+"manually enabled after running NAV's `navsyncdb` program."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:4001
+msgid "Delete database on purge?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:4001
+msgid "Delete the NAV database from PostgreSQL when this package is purged."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:5001
+msgid "User creation failed"
+msgstr ""
+
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#: ../nav.templates:5001 ../nav.templates:6001 ../nav.templates:7001
+#: ../nav.templates:8001 ../nav.templates:9001 ../nav.templates:10001
+#: ../nav.templates:11001
+msgid "Script output:"
+msgstr ""
+
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#: ../nav.templates:5001 ../nav.templates:6001 ../nav.templates:7001
+#: ../nav.templates:8001 ../nav.templates:9001 ../nav.templates:10001
+#: ../nav.templates:11001 ../nav.templates:13001 ../nav.templates:14001
+msgid "${result}"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:6001
+msgid "Attempt to modify config file ${conffile} failed"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:7001
+msgid "Database creation failed"
+msgstr ""
+
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#: ../nav.templates:8001 ../nav.templates:9001
+msgid "Creation database user failed"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:10001
+msgid "Database initialization failed"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:11001
+msgid "Automatic database update failed"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:11001
+msgid "The automatic update script failed to update the database."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:12001
+msgid "Automatic database update not supported"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:12001
+msgid ""
+"This package does not support automatic upgrades when you are using the old "
+"navread and navwrite database users. The NAV package will now be upgraded to "
+"version 3.1.0, and NAV will be disabled in /etc/default/nav."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:12001
+msgid ""
+"To make NAV start again, please follow the upgrade instructions in /usr/"
+"share/doc/nav/NOTES (\"Upgrading from NAV 3.0\" -> \"Database upgrade\") to "
+"upgrade the NAV databases to make them ready for 3.1. When you have "
+"successfully upgraded the databases, set RUN_NAV=1 in /etc/default/nav and "
+"start NAV with /etc/init.d/nav start."
+msgstr ""
+
+#. Type: note
+#. Description
+#. Type: note
+#. Description
+#: ../nav.templates:13001 ../nav.templates:14001
+msgid "Database removal failed"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:13001
+msgid ""
+"Script output: You have decided to remove the NAV database on purge, but "
+"this failed:"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:14001
+msgid ""
+"Script output: You have decided to remove the NAV database on purge, but the "
+"removal of the database user 'nav':"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:15001
+msgid "Should apache2 be restarted after upgrades of NAV?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../nav.templates:15001
+msgid ""
+"In order to make new versions of NAV work properly, the apache2 webserver "
+"have to be restarted. You can also restart apache2 by manually executing "
+"'invoke-rc.d apache2 restart'."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:16001
+msgid "Remove unused Cricket configuration"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:16001
+msgid ""
+"The Cricket trees `switch-ports` and `router-interfaces` have been "
+"consolidated into a single `ports` tree, where all physical ports' traffic "
+"stats now also are collected. The debian-package both runs the usual `syncdb."
+"py` command, and also `mcc.py` once manually (as the navcron user) to ensure "
+"the Cricket config tree is updated right away."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:16001
+msgid ""
+"When everything is up and running again, you can optionally delete the "
+"`switch-ports` and `router-interfaces` directories from your `cricket-"
+"config` directory (/etc/nav/cricket-config/), as they are no longer used by "
+"NAV. If you do not delete these directories they will appear in the cricket-"
+"view, but will not contain any data."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:16001
+msgid ""
+"NAV now supplies its own `subtree-sets` configuration to Cricket. If you "
+"have made manual changes to your Cricket collection setup and/or this file, "
+"you may need to update your setup accordingly."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:17001
+msgid "Upgrading to NAV 4 requires manual intervention"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:17001
+msgid ""
+"From NAV 4 and newer, time series data are stored using Graphite rather than "
+"RRDtool. Proper migration of your existing time series data is a manual "
+"process documented at:"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:17001
+msgid "https://nav.uninett.no/doc/4.0/howto/migrate-rrd-to-graphite.html"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:17001
+msgid ""
+"If you want to migrate existing data, NAV 4 should not be started until  "
+"migration is complete. NAV startup will now be automatically _disabled_ in /"
+"etc/default/nav and must be enabled again manually."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:18001
+msgid "Cannot upgrade from versions prior to 3.8"
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:18001
+msgid ""
+"This package does not support upgrades from NAV versions older than 3.8."
+msgstr ""
+
+#. Type: note
+#. Description
+#: ../nav.templates:18001
+msgid ""
+"You will need to reinstall NAV from scratch and migrate your data manually."
+msgstr ""

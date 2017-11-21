@@ -1,0 +1,1687 @@
+nav (4.7.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 09 Jun 2017 15:19:52 +0200
+
+nav (4.7.0-2) unstable; urgency=medium
+
+  * Hotfix for auditlog installation problem.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 08 Jun 2017 15:54:34 +0200
+
+nav (4.7.0-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Add versions requirements according to release notes.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 08 Jun 2017 15:03:53 +0200
+
+nav (4.6.2-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 16 Mar 2017 10:13:52 +0100
+
+nav (4.6.1-2) unstable; urgency=medium
+
+  * Add nav.service definition
+    - This was omitted from VCS in error, and was missing from all 4.6
+      releases.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 02 Mar 2017 08:03:09 +0100
+
+nav (4.6.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Removed obsolete bug patches.
+  * Add symlink for the navsnmp command.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Jan 2017 11:30:52 +0100
+
+nav (4.6.0-3) unstable; urgency=medium
+
+  * Add system dependency.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 20 Dec 2016 12:44:08 +0100
+
+nav (4.6.0-2) unstable; urgency=medium
+
+  * Patched htdocs/Makefile.am to properly install all JavaScript files.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 02 Dec 2016 08:37:05 +0100
+
+nav (4.6.0-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 01 Dec 2016 14:21:14 +0100
+
+nav (4.5.3-4) unstable; urgency=medium
+
+  * Actually heed the db_auto_update debconf setting.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 17 Nov 2016 08:05:29 +0100
+
+nav (4.5.3-3) unstable; urgency=medium
+
+  * Add proper systemd integration.
+    + Removed the RUN_NAV kludge of /etc/default/nav in favor of
+      disabling/enabling using systemd.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 16 Nov 2016 09:36:24 +0100
+
+nav (4.5.3-2) unstable; urgency=medium
+
+  * Removed ancient and obsolete directories and files related to cricket.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 08 Nov 2016 14:38:52 +0100
+
+nav (4.5.3-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 01 Sep 2016 10:19:59 +0200
+
+nav (4.5.2-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 30 Jun 2016 09:21:58 +0200
+
+nav (4.5.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Remove redundant patches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 16 Jun 2016 14:12:17 +0200
+
+nav (4.5.0-2) unstable; urgency=medium
+
+  * Patch for uninstalled navstats binary (LP#1591973)
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 13 Jun 2016 14:17:19 +0200
+
+nav (4.5.0-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Wheezy releases are now deprecated, so the jessie moniker has been
+      removed from the version number.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 09 Jun 2016 12:36:38 +0200
+
+nav (4.4.4-1+jessie1) unstable; urgency=low
+
+  * New upstream release.
+    - Removed Apache patch, now present in upstream.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 02 Jun 2016 10:50:35 +0200
+
+nav (4.4.3-2+jessie1) unstable; urgency=low
+
+  * Added patch for access issue in Apache config (LP#1569704)
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 14 Apr 2016 14:00:09 +0200
+
+nav (4.4.3-1+jessie1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 31 Mar 2016 10:28:49 +0200
+
+nav (4.4.2-1+jessie1) unstable; urgency=low
+
+  * New upstream release.
+    - Removed obsolete patches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 04 Feb 2016 13:05:09 +0100
+
+nav (4.4.1-2+jessie1) unstable; urgency=low
+
+  * Add patch for ipdevpoll job crash bug.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 03 Feb 2016 11:16:57 +0100
+
+nav (4.4.1-1+jessie2) unstable; urgency=medium
+
+  * Actually remove the ipdevpoll patch, or ipdevpoll will not work.
+    - Seems the changelog of the last release was a lie ;-P
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 22 Jan 2016 10:33:06 +0100
+
+nav (4.4.1-1+jessie1) unstable; urgency=low
+
+  * Preliminary new upstream release
+    - Remove ipdevpoll multiprocess patch, now fixed in upstream
+  * Add missing version requirement for django-filter package
+  * Remove NAV cache files on upgrades
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 21 Jan 2016 13:22:50 +0100
+
+nav (4.4.0-1+jessie2) unstable; urgency=medium
+
+  * Quick fix for ipdevpoll multiprocess startup problem
+    - See https://bugs.launchpad.net/nav/+bug/1535688
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 19 Jan 2016 13:13:41 +0100
+
+nav (4.4.0-1+jessie1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 14 Jan 2016 14:31:49 +0100
+
+nav (4.3.3-1+jessie2) unstable; urgency=medium
+
+  * Changed which graphite-web package to recommend.
+    - The originally published package conflicts with Debian's
+      official version, due to it having a higher version number.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 12 Jan 2016 13:26:23 +0100
+
+nav (4.3.3-1+jessie1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Nov 2015 10:43:34 +0100
+
+nav (4.3.2-1+jessie1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 19 Nov 2015 10:50:28 +0100
+
+nav (4.3.1-2+jessie2) unstable; urgency=medium
+
+  * Patched for issue with Django REST framework 2.4
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 07 Oct 2015 09:59:07 +0200
+
+nav (4.3.1-2+jessie1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 20 Aug 2015 12:37:44 +0200
+
+nav (4.3.0-2+jessie1) unstable; urgency=medium
+
+  * Repackaged for Jessie.
+    + Patched to support newer versions of pynetsnmp.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 18 Jun 2015 11:09:57 +0200
+
+nav (4.3.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 11 Jun 2015 10:00:25 +0200
+
+nav (4.3.0~rc1-1) unstable; urgency=low
+
+  * New upstream release candidate.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 21 May 2015 14:58:48 +0200
+
+nav (4.2.6-1) unstable; urgency=low
+
+  * New upstream release.
+    - Removed patches that are now part of upstrem.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 23 Apr 2015 10:54:48 +0200
+
+nav (4.2.5-2) unstable; urgency=low
+
+  * Added patch for LP#1437318
+    - PostgreSQL load driven up by overzealous pruning of old ipdevpoll_job_log entries
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 07 Apr 2015 14:45:12 +0200
+
+nav (4.2.5-1) unstable; urgency=low
+
+  * New upstream release to replace the broken 4.2.4 release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 20 Mar 2015 13:30:37 +0100
+
+nav (4.2.4-1) unstable; urgency=low
+
+  * New upstream release. This release was retracted from upstream.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 19 Mar 2015 10:36:28 +0100
+
+nav (4.2.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 12 Feb 2015 14:13:01 +0100
+
+nav (4.2.2-1) unstable; urgency=low
+
+  * New upstream release.
+    - Symlink three new utility binaries to /usr/bin: navdf, navoidverify and
+      naventity
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 08 Jan 2015 10:40:39 +0100
+
+nav (4.2.1-1) unstable; urgency=low
+
+  * New upstream release.
+    - Removed obsolete patches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 27 Nov 2014 15:15:27 +0100
+
+nav (4.2.0-3) unstable; urgency=low
+
+  * Patch for more high priority bugfixes
+    - LP#1396531
+    - A yet-unreported issue of display problems in the new status widget
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 26 Nov 2014 11:28:57 +0100
+
+nav (4.2.0-2) unstable; urgency=low
+
+  * Patch for high priority bugfixes
+    - LP#1396516
+    - LP#1396517
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 26 Nov 2014 10:41:37 +0100
+
+nav (4.2.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 20 Nov 2014 12:02:35 +0100
+
+nav (4.1.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 30 Oct 2014 14:43:48 +0100
+
+nav (4.1.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Don't allow newer Django versions than NAV has been tested with.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 14 Aug 2014 13:32:42 +0200
+
+nav (4.1.0-2) unstable; urgency=low
+
+  * Fix outdated dependency on samba-common to samba-common-bin.
+    - Caused parts of Arnold to fail due to lack of the nmblookup command.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 12 Aug 2014 15:40:35 +0200
+
+nav (4.1.0-1) unstable; urgency=low
+
+  * New upstream release.
+    - Run all navsyncdb commands as the postgres user, to ensure privileges to
+      install the hstore extension, among other things.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 27 Jun 2014 12:01:04 +0000
+
+nav (4.0.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Jun 2014 12:11:09 +0000
+
+nav (4.0.2-1) unstable; urgency=low
+
+  * New upstream release.
+    - Removed patches present in the new release. 
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 15 May 2014 13:52:15 +0000
+
+nav (4.0.1-5) unstable; urgency=low
+
+  * Add patch for LP#1316091 to avoid pping crash on carbon restart.
+  * Add patch to improve error message on graphite-web unreachability.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 09 May 2014 09:05:24 +0000
+
+nav (4.0.1-4) unstable; urgency=low
+
+  * Added patch for LP#1314503
+    - migrate_to_whisper.py would crash on mismatches between RRD files and
+      database.
+  * Preserve permissions when updating /etc/default/nav
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 30 Apr 2014 07:58:10 +0000
+
+nav (4.0.1-3) unstable; urgency=low
+
+  * Fix error in db.conf password insertion during new installs.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 10 Apr 2014 07:30:36 +0000
+
+nav (4.0.1-2) unstable; urgency=low
+
+  * Remove cron.d entries from old NAV versions.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 07 Apr 2014 11:34:14 +0000
+
+nav (4.0.1-1) unstable; urgency=low
+
+  * New upstream release.
+    - Removed now obsolete patches.
+  * Always allow out-of-order schema updates under 4.0, as 3.15 and 4.0 are
+    being maintained in parallel.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 03 Apr 2014 10:25:17 +0000
+
+nav (4.0.0-3) unstable; urgency=low
+
+  * Patch for LP#1300117.
+  * Fix broken check for exit codes from navsyncdb program.
+  * Fix broken output of navsyncdb errors to end user.
+  * Run schema updates out-of-order during specific upgrades.
+    - An error with schema update ordering in 4.0.0 interferes with upgrades
+      from 3.15.5-1 and newer.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 31 Mar 2014 13:12:47 +0000
+
+nav (4.0.0-2) unstable; urgency=low
+
+  * Patch for various Debian-related issues.
+    - whisper commands are not suffixed by .py on Debian.
+    - executing /sbin/nav directly did not create /var/run/nav, causing startup
+      failures.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 28 Mar 2014 12:14:43 +0000
+
+nav (4.0.0-1) unstable; urgency=low
+
+  * New upstream release.
+    - NAV 4.0 is now out of beta.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 27 Mar 2014 13:39:34 +0000
+
+nav (3.99+4.0b5-1) unstable; urgency=low
+
+  * New upstream release.
+  * Switch to dpkg-source 3.0 (quilt) format.
+  * Switch from python-support to dh_python2.
+  * Fixed a gajillion lintian warnings and errors.
+  * Upgrades now only support from NAV 3.8 and newer
+    - Tons of ancient upgrade code removed from postinst.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 03 Mar 2014 12:00:20 +0000
+
+nav (3.99+4.0b4-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 20 Feb 2014 12:45:34 +0000
+
+nav (3.99+4.0b3-3) unstable; urgency=low
+
+  * Disable NAV startup when upgrading from NAV 3 to 4, to allow for manual
+    migration of time series data first.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 19 Feb 2014 13:51:01 +0000
+
+nav (3.99+4.0b3-2) unstable; urgency=low
+
+  * Added missing python-feedparser dependency.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 06 Feb 2014 13:34:13 +0000
+
+nav (3.99+4.0b3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 06 Feb 2014 13:15:03 +0000
+
+nav (3.99+4.0b2-1) unstable; urgency=low
+
+  * New upstream release.
+    - Remove obsolete patch for installing graphite config examples.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 09 Jan 2014 13:59:51 +0000
+
+nav (3.99+4.0b1-4) unstable; urgency=low
+
+  * Add upstream patch for installing graphite config examples.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 18 Dec 2013 12:53:36 +0000
+
+nav (3.99+4.0b1-3) unstable; urgency=low
+
+  * Fix broken docdir setting.
+    - install docs in /usr/share/doc/nav/ , not /usr/doc/ .
+  * Remove obsolete TODO.Debian doc file.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 17 Dec 2013 14:24:16 +0000
+
+nav (3.99+4.0b1-2) unstable; urgency=low
+
+  * Add missing dependencies to python-django-crispy-forms and
+    python-crispy-forms-foundation.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 17 Dec 2013 11:55:34 +0000
+
+nav (3.99+4.0b1-1) unstable; urgency=low
+
+  * New upstream beta release.
+    - Removed dependency on cricket
+    - Require Python >= 2.7
+    - Added recommended dependencies to graphite-carbon and graphite-web. The
+      latter is, unfortunately, not available in wheezy, but in sid.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 17 Dec 2013 09:06:17 +0000
+
+nav (2+3.15.6-2) unstable; urgency=low
+
+  * Clean up logrotate postrotate scripts in an attempt to avoid "file size
+    changed" errors from gzip during compress.
+  * Rotate any Cricket logs present in NAV's log directory.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 25 Feb 2014 09:20:59 +0000
+
+nav (2+3.15.6-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 20 Feb 2014 12:35:07 +0000
+
+nav (2+3.15.5-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 06 Feb 2014 12:59:19 +0000
+
+nav (2+3.15.4-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 09 Jan 2014 13:49:10 +0000
+
+nav (2+3.15.3-2) unstable; urgency=low
+
+  * Fix broken docdir setting.
+    - install docs in /usr/share/doc/nav/ , not /usr/doc/ .
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 17 Dec 2013 14:12:03 +0000
+
+nav (2+3.15.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 14 Nov 2013 10:44:44 +0100
+
+nav (2+3.15.2-2) unstable; urgency=low
+
+  * Generate SECRET_KEY if missing from nav.conf (fixes #1)
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 01 Nov 2013 11:09:20 +0100
+
+nav (2+3.15.2-1) unstable; urgency=low
+
+  * New upstream release.
+    - Removed patches included in new release.
+  * Improvements to logrotate config
+    - sleep after HUPing servicemon/pping to ensure they have time to re-open logs
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 31 Oct 2013 13:42:24 +0100
+
+nav (2+3.15.1-6) unstable; urgency=low
+
+  * New maintainer.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 30 Oct 2013 13:03:46 +0100
+
+nav (2+3.15.1-5) unstable; urgency=low
+
+  * More patches from upstream bugfixes.
+    - LP#1244120
+    - LP#1244175
+    - LP#1244191
+  * Send HUP signal to eventengine after rotating its logs.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 24 Oct 2013 14:36:03 +0200
+
+nav (2+3.15.1-4) unstable; urgency=low
+
+  * Added various unreleased upstream patches for serious bugs
+    - LP#1241441
+    - LP#1241611
+    - LP#1241627
+    - LP#1241630
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 24 Oct 2013 10:23:46 +0200
+
+nav (2+3.15.1-3) unstable; urgency=low
+
+  * Fix permissions for all known directories below /var/lib/nav/uploads
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 18 Oct 2013 11:22:17 +0200
+
+nav (2+3.15.1-2) unstable; urgency=low
+
+  * Ensure /var/run/nav exists when NAV starts.
+    - wheezy mounts /var/run as a tmpfs
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 18 Oct 2013 09:55:50 +0200
+
+nav (2+3.15.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Remove unnecessary patches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 17 Oct 2013 11:53:06 +0200
+
+nav (2+3.15.0-1~test2.1) unstable; urgency=low
+
+  * Remove obsolete log directories.
+  * Fix permissions for various subdirs of /var/lib/nav and /var/log/nav/
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Sep 2013 14:37:28 +0200
+
+nav (2+3.15.0-1~test2) unstable; urgency=low
+
+  [ Morten Brekkevold ]
+  * syncdb.py -> navsyncdb
+    - patch to ensure navsyncdb is installed in bindir 
+    - ensure nav modules are available on database schema upgrade
+  * no longer need most of the cricket symlinks and adaptations in htdocs
+  * screwing around with changed install locations and obsolete patches
+
+  [ Morten Werner Forsbring ]
+  * Added Morten Brekkevold to uploaders.
+  
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 25 Sep 2013 16:30:29 +0200
+
+nav (2+3.15.0-1~test1) unstable; urgency=low
+
+  * New upstream release.
+     - added dependency on libapache2-mod-wsgi, python-imaging,
+       python-django-oauth2-provider, python-djangorestframework and
+       python-iso8601
+     - bumped dependency on django to 1.4
+     - bumped dependency on postgres to 9.1
+     - removed dependency on mod_python and python-cheetah
+     - removed debian/patches/100_cricket_conf_directoryindex as it is not
+       needed anymore
+     - not copying cricket.css from doc/ as upstream have moved it to the
+       correct location
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 20 Sep 2013 00:19:32 +0200
+
+nav (2+3.14.1592653-1wheezy1) unstable; urgency=low
+
+  * Bumped debhelper compatibility level from 4 to 5.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 06 Sep 2013 13:49:14 +0200
+
+nav (2+3.14.1592653-1wheezy0) unstable; urgency=low
+
+  * Built for Debian Wheezy.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 03 Sep 2013 11:06:18 +0200
+
+nav (2+3.14.1592653-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 15 Aug 2013 17:04:34 +0200
+
+nav (2+3.14.159265-1) unstable; urgency=low
+
+  * New upstream release
+  * Removed dependency on python-pysnmp-se as it is covered by
+    python-twisted-snmp.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 01 Jul 2013 13:00:04 +0200
+
+nav (2+3.14.15926-1) unstable; urgency=low
+
+  * New upstream release
+  * Changed dependency on python-pysnmp-se to an alternative to
+    python-pynetsnmp.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 21 Jun 2013 12:28:43 +0200
+
+nav (2+3.14.1592-2) unstable; urgency=low
+
+  * Removed instruction to copy cricket subtree sets as this is provided by
+    NAV now.
+  * Added a note on removing
+    /etc/nav/cricket-config/{switch-ports,router-interfaces} after successfully
+    running mcc.py. 
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 18 Jun 2013 06:54:49 +0200
+
+nav (2+3.14.1592-1) unstable; urgency=low
+
+  * New upstream release
+     - two cricket trees have been consolidated, so we run mcc.py as navcron
+       in nav.postinst to ensure the Cricket config tree is updated right away
+  * Do not copy cricket-config from doc, as it is placed in /etc/nav/ by
+    upstream.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 10 Jun 2013 12:48:12 +0200
+
+nav (2+3.14.159-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 15 Apr 2013 08:16:21 +0200
+
+nav (2+3.14.15-1) unstable; urgency=low
+
+  * New upstream release
+     - removing 200_make_rrdviewer_independent_of_configfile
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 22 Mar 2013 11:42:01 +0100
+
+nav (2+3.14.1-3) unstable; urgency=low
+
+  * Added patch from upstream to fix rrdviewer independent of its configfile.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 13 Mar 2013 09:44:28 +0100
+
+nav (2+3.14.1-2) unstable; urgency=low
+
+  * Removing obsolete conffile /etc/nav/rrdviewer/rrdviewer.conf
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 13 Mar 2013 09:13:55 +0100
+
+nav (2+3.14.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 13 Mar 2013 08:48:05 +0100
+
+nav (2+3.13.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 26 Feb 2013 18:36:48 +0100
+
+nav (2+3.13.0-3) unstable; urgency=low
+
+  * Added the /var/lib/nav/rrd/activeip directory.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 15 Feb 2013 13:43:59 +0100
+
+nav (2+3.13.0-2) unstable; urgency=low
+
+  * Added new dependency to nbtscan.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 15 Feb 2013 07:08:42 +0100
+
+nav (2+3.13.0-1) unstable; urgency=low
+
+  * New upstream release
+     - removing build-deps and deps on java-stuff
+     - removing java-stuff from debian/rules
+  * Cricket-config included in package
+     - removing patches/020_cricketdatadir
+     - not copying cricket-config from doc in postinst
+     - ensure correct permissions to cricket-config in postinst
+  * updated logrotate-config to reflect the eventengine-changex
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 14 Feb 2013 05:10:44 +0100
+
+nav (2+3.12.3-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 07 Nov 2012 07:47:44 +0100
+
+nav (2+3.12.2-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 18 Oct 2012 21:06:59 +0200
+
+nav (2+3.12.1-1) unstable; urgency=low
+
+  * New upstream release
+  * Changed docdir to /usr/share/doc/nav in configure-patch (thanks to
+    Morten Brekkevold).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 01 Oct 2012 01:02:57 +0200
+
+nav (2+3.12.0-3) unstable; urgency=low
+
+  * Fixed python-dependency to support 2.6 and 2.7 (debian/pyversions).
+  * Removing python-psyco from recommends.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 14 Sep 2012 11:29:15 +0200
+
+nav (2+3.12.0-1) unstable; urgency=low
+
+  * New upstream release
+  * Added build-dependency to python-sphinx.
+  * Bumped dependencies for python and django to >= 2.6 and >= 1.2.
+  * Copying new Cricket config to make IPv6 statistics work.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 13 Sep 2012 16:08:41 +0200
+
+nav (2+3.11.6-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Sat, 18 Aug 2012 06:39:21 +0200
+
+nav (2+3.11.5-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 28 Jun 2012 06:11:45 +0200
+
+nav (2+3.11.4-2) unstable; urgency=low
+
+  * Fixed typo in new logrotateconfig.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 04 Jun 2012 08:39:03 +0200
+
+nav (2+3.11.4-1) unstable; urgency=low
+
+  * New upstream release
+  * Updated logrotateconfig (thanks to Morten Brekkevold).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 01 Jun 2012 14:52:33 +0200
+
+nav (2+3.11.3-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Sun, 06 May 2012 08:37:53 +0200
+
+nav (2+3.11.2-1) unstable; urgency=low
+
+  * New upstream release
+  * Added dependency on PostgreSQL startup in init-script (thanks to
+    Roger Aas)
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 13 Apr 2012 05:49:32 +0200
+
+nav (2+3.11.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 22 Mar 2012 16:56:45 +0100
+
+nav (2+3.11.0-1) unstable; urgency=low
+
+  * New upstream release
+     - removed dependency and build-dependency to libsnmp1.4-java (also
+       removed CLASSPATH reference in debian/rules)
+     - added python-pynetsnmp as prioritized dependency over python-twisted-snmp
+     - removing obsolete conffile /etc/nav/getBoksMacs.conf
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 12 Mar 2012 09:15:41 +0100
+
+nav (2+3.10.4-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 08 Mar 2012 16:11:22 +0100
+
+nav (2+3.10.3-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 02 Mar 2012 09:44:18 +0100
+
+nav (2+3.10.2-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 15 Feb 2012 09:52:06 +0100
+
+nav (2+3.10.1-3) unstable; urgency=low
+
+  * Now removing /etc/nav/cron.d/networkDiscovery (removed from upstream).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 05 Jan 2012 14:31:58 +0100
+
+nav (2+3.10.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Removed patches/200_networkDiscovery_exit (included upstream)
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 05 Jan 2012 13:01:07 +0100
+
+nav (2+3.10.0-4) unstable; urgency=low
+
+  * Now running update-python-modules -p in postinst to have usable python
+    modules when NAV is started.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 21 Dec 2011 13:28:08 +0100
+
+nav (2+3.10.0-1) unstable; urgency=low
+
+  * New upstream release
+  * Added upstream patch to fix potential permissions error when writing
+    error message to /dev/stderr (debian/patches/200_networkDiscovery_exit)
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 20 Dec 2011 14:21:47 +0100
+
+nav (2+3.9.4-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 20 Dec 2011 07:41:12 +0100
+
+nav (2+3.9.3-1) unstable; urgency=low
+
+  * New upstream release
+  * Changed dependency on postgresql to >= 8.3.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 02 Dec 2011 13:02:43 +0100
+
+nav (2+3.9.2-2) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 21 Nov 2011 07:11:56 +0100
+
+nav (2+3.9.1-1) unstable; urgency=low
+
+  * New upstream release.
+     - remove patches/100_nav_checker_dir (included upstream)
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 01 Sep 2011 16:14:49 +0200
+
+nav (2+3.9.0-1~nav.squeeze.6) unstable; urgency=low
+
+  * New upstream release (for Debian Squeeze)
+     - added dependency to python-networkx >= 1.0
+     - added recommends to python-pynetsnmp
+     - fix update-python-modules in nav.postinst
+     - added patches/100_nav_checker_dir to address different path for
+       pythonlibdir and location of python libraries
+  * Inform user if database purge fails
+  * Fixed an error that prevented syncdb.py to update database on upgrades.
+  * Fixed DirectoryIndex in /etc/nav/apache/subsystems/cricket.conf
+    (thanks to Asbjørn Prøis).
+  * One should fix /etc/apache2/conf.d/cricket (added note to README.Debian).
+ 
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 29 Aug 2011 08:05:35 +0200
+
+nav (2+3.8.6-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 26 May 2011 22:34:52 +0200
+
+nav (2+3.8.5-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 14 Apr 2011 16:05:43 +0200
+
+nav (2+3.8.4-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 04 Apr 2011 08:36:00 +0200
+
+nav (2+3.8.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 15 Mar 2011 15:15:58 +0100
+
+nav (2+3.8.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * Fixed bug in default cricket config (thanks to Milo and
+    Morten Brekkevold).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 07 Mar 2011 07:34:15 +0100
+
+nav (2+3.8.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Removing patches applied by upstream.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 17 Feb 2011 09:48:47 +0100
+
+nav (2+3.8.0-2) unstable; urgency=low
+
+  * Now removing database and database user on purge.
+  * Fixed return value check bug in postinst when running syncdb.py (thanks
+    to Morten Brekkevold).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 15 Feb 2011 09:26:18 +0100
+
+nav (2+3.8.0-1) unstable; urgency=low
+
+  [ Morten Brekkevold ]
+  * Added logrotate configuration for ipdevpoll.
+  
+  [ Morten Werner Forsbring ]
+  * New upstream release.
+  * Fixed patches/*
+  * Removed dependency on python-egenix-mxdatetime.
+  * Added dependency on python-simplejson.
+  * Now using upstreams new apache-config.
+  * Added patches/100_apache_cricket_conf to fix upstream Apache config
+    for /cricket/.
+  * Added all documentation under doc/cricket/ from upstream
+    (patches/030_cricket_doc).
+  * Bumped debconf question apache2_restart to high as the application
+    is not working properly after upgrades if apache is not restarted.
+  * Changed order for debconf question, should not be asked for dbpass
+    unless clean install.
+  * Add upstream patch (patches/110_etc_makefile) to ensure installation of
+    generated config files.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 11 Feb 2011 12:58:58 +0100
+
+nav (2+3.7.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * Removed debian/patches/100_httpchecker_typo (included upstream).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 02 Feb 2011 14:34:28 +0100
+
+nav (2+3.7.3-3) unstable; urgency=low
+
+  * Extend postgres-dependency to also include postgresql-8.4.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 17 Jan 2011 18:04:57 +0100
+
+nav (2+3.7.3-2) unstable; urgency=low
+
+  * Fixed typo in subsystem/statemon/nav/statemon/checker/HttpChecker.py
+    (debian/patches/100_httpchecker_typo).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 14 Jan 2011 10:31:25 +0100
+
+nav (2+3.7.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 13 Jan 2011 17:17:52 +0100
+
+nav (2+3.7.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Remove patches/100_remove_profile_dependency (included upstream).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 08 Dec 2010 09:56:30 +0100
+
+nav (2+3.7.0-3) unstable; urgency=low
+
+  * Fixed pyversions as NAV only supports python >= 2.5.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 18 Nov 2010 07:10:25 +0100
+
+nav (2+3.7.0-2) unstable; urgency=low
+
+  * Added patch from upstream to remove unneeded dependency on the profile
+    module.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 12 Nov 2010 11:17:29 +0100
+
+nav (2+3.7.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Remove dependency on python-pysnmp2.
+  * Added recommends on python-psyco.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 12 Nov 2010 08:53:35 +0100
+
+nav (2+3.6.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 04 Nov 2010 17:20:15 +0100
+
+nav (2+3.6.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 04 Nov 2010 16:12:16 +0100
+
+nav (2+3.6.1-3) unstable; urgency=low
+
+  * Informing about cricket backup.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 25 Oct 2010 21:33:02 +0200
+
+nav (2+3.6.1-2) unstable; urgency=low
+
+  * Added patches/020_configure.ac.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 25 Oct 2010 15:32:43 +0200
+
+nav (2+3.6.1-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 25 Oct 2010 15:19:47 +0200
+
+nav (2+3.6.0-3) unstable; urgency=low
+
+  * Fixed typo in postinst.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 25 Oct 2010 09:07:13 +0200
+
+nav (2+3.6.0-2) unstable; urgency=low
+
+  * Create all temporary files and directories in /tmp/.
+  * Do more cleanups before exiting from postinst.
+  * Only backup database once when upgrading from 3.5.0 (or greater).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 18 Oct 2010 07:09:15 +0200
+
+nav (2+3.6.0-1) unstable; urgency=low
+
+  * New upstream release (finally 3.6.0).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 07 Oct 2010 23:02:53 +0200
+
+nav (2+3.6.0-1~xb6.1) unstable; urgency=low
+
+  * New upstream release (beta 6).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 23 Sep 2010 18:38:19 +0200
+
+nav (2+3.6.0-1~xb5.1) unstable; urgency=low
+
+  * New upstream release (beta 5).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 31 Aug 2010 10:59:08 +0200
+
+nav (2+3.6.0-1~xb4.1) unstable; urgency=low
+
+  * New upstream release (beta 4).
+     - now run 3.6.0b1.sql and 3.6.0b3.sql as the postgres user (not nav).
+  * Running autogen.sh before configure and added build-dependency on automake.
+  * Removed some dependencies no longer valid for NAV 3.6 (all Perl stuff,
+    python-psycopg, python-forgethtml, python-forgetsql).
+  * Added new dependencies (python-pysnmp-se, python-twisted,
+    python-twisted-snmp, rrdtool and rsync).
+  * Now remove database and databaseuser on purge.
+  * Do not install cricket-config from doc/ in /etc/nav/.
+  * Automate cricket-upgrade (to 3.6 from NOTES).
+  * Try to fix password for the nav-user in updated db.conf if not done by
+    the user.
+  * Run update-python-modules as some of the db-upgrade-scripts rely on this.
+  * Disable startup of NAV when any of the db-upgrade-scripts fail.
+  * Remove obsolete conffiles from pre 3.6.
+  * Added conflicts against python-pysnmp4.
+  * Added snmp-patch from upstream for post beta 2 fixes.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 08 Jul 2010 11:45:17 +0200
+
+nav (2+3.5.6-1lenny1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 08 Apr 2010 15:23:06 +0200
+
+nav (2+3.5.5-1lenny2) unstable; urgency=low
+
+  [ Morten Brekkevold ]
+  * Verify that pid files exist before HUPing in logrotate config.
+  
+  [ Morten Werner Forsbring ]
+  * Adjusted init-script to not fail if 'nav stop' fails (happens sometime
+    during configure). Thanks to Morten Brekkevold for reporting this.
+  * Increase some debconfig priorities (those regarding automatic database
+    stuff).
+  * Updated README.Debian (the PostgreSQL-section was outdated). Thanks to
+    Vidar Stokkenes and Morten Brekkevold for comments.
+  
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 11 Mar 2010 07:22:22 +0100
+
+nav (2+3.5.5-1lenny1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 16 Feb 2010 15:30:55 +0100
+
+nav (2+3.5.4-1lenny1) unstable; urgency=low
+
+  * Build for Debian Lenny.
+  * Changed default policy from automatic creating database++ to not.
+  * Replaced build-dep sun-java5-jdk with openjdk-6-jdk and dependency 
+    sun-java5-jre with openjdk-6-jre (also fixed JAVA_HOME's in debian/rules).
+  * Replaced dependency postgresql-8.1 with postgresql-8.3.
+  * Added LSB information to init-script.
+  * Now using python-support for python-libraries and -scripts (update
+    pythonlibdir in patches/010_configure).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 19 Nov 2009 07:02:19 +0100
+
+nav (2+3.5.4-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 14 May 2009 13:31:13 +0200
+
+nav (2+3.5.3-2) unstable; urgency=low
+
+  * Rewrote init.d-script to use NAV's own way of starting stuff.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 14 May 2009 10:03:35 +0200
+
+nav (2+3.5.3-1) unstable; urgency=low
+
+  [ Morten Brekkevold ]
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 14 May 2009 09:03:08 +0200
+
+nav (2+3.5.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 17 Mar 2009 10:40:41 +0100
+
+nav (2+3.5.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Fix bug with and really stop upgrade when the password-line from db.conf
+    is empty.
+  * Fix update-alternatives-typo in README.Debian (thanks to Lars Kulseng).
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 09 Mar 2009 16:12:32 +0100
+
+nav (2+3.5.0-2) unstable; urgency=low
+
+  * Don't use 'su -' when executing stuff as the postgres-user as it messes
+    up the output if the postgres-user e.g. doesn't have a valid $HOME.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 18 Feb 2009 13:22:20 +0100
+
+nav (2+3.5.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added CRICKETDIR=/usr/share/cricket as environment variable to configure.
+  * Removed debian/patches/014_netaddr-ip-perl (file removed from upstream).
+  * Removed cricket.cron-part of debian/patches/030_cricket ("fixed" upstream).
+  
+  Database related fixes:
+  
+  * Runs mergedb.sh from upstream if user wants automatically database
+    schema upgrades. Patched mergedb.sh to use /usr/bin/pg_dump and removed
+    --verbose option to pg_dump.
+  * Now running 3.5.0.sql as postgres with 'SET SESSION AUTHORIZATION nav'
+    as wwwconfig-common's pgsql-exec.sh did not seem to work.
+  * Had to remove function plpgsql_call_handler from public schema in
+    all databases before running mergedb.sh. It is a bug that this function
+    was created in the first place, and it is not in use.
+  * Rewrote some of the database initialization code to use upstreams
+    createdb.sh.
+  
+  Dependency-related fixes (due to new upstream release):
+  
+  * All dependencies on PHP-related packages is removed.
+  * All dependencies on Tomcat-related packages is removed.
+  * All patches on Tomcat-specific stuff is removed.
+  * Added depenency to python-pyrad and python-xmpp.
+  * Dependencies on libnetaddr-ip-perl, libdbd-pg-perl and
+    libsnmp-session-perl is removed.
+  * Updated dependency on python-django to "(>= 1.0)".
+  
+  Other fixes based on feedback from users:
+  
+  * Added /etc/apache2/sites-available/nav-default and removed the Apache
+    configfile in /etc/apache2/conf.d/, also updated README.Debian to
+    reflect this.
+  * Rewrote init.d-script to use init.d-scripts provided by NAV.
+  * Added logrotate-configuration for snmptrapd.log and snmptraps.log.
+  * Fixed a few typos in logrotate-configuration.
+  
+  Other stuff:
+  
+  * Switch from /var/www/nav to /usr/share/nav/htdocs for webroot.
+     - updated configure-script
+     - update dir in /etc/apache2/sites-available/nav-default
+  * Added patch to include *.sh-files in doc/sql.
+  * Added note about upgrading db.conf when upgrading from < 3.5.
+  * Added TODO.Debian which will be updated TODO for the Debian package.
+  * Now asks for and eventually reloads apache2 on upgrades of NAV.
+  * Also remove debconf "answers" when purging.
+  * Some minor bugfixes in the debconf-templates.
+  
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 17 Feb 2009 11:45:08 +0100
+
+nav (2+3.4.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * Run 3.4.2.sql again on upgrades.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 17 Sep 2008 11:33:41 +0200
+
+nav (2+3.4.2-1) unstable; urgency=low
+
+  * New upstream release.
+     - removed 040_manage_sql_order (included upstream).
+  * Updated the nav.apache2-conf.d to one that hopefully works out of the box.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 09 Sep 2008 13:12:49 +0200
+
+nav (2+3.4.1-1) unstable; urgency=low
+
+  * New upstream release.
+     - removed 040_netmap_build_destdir (included upstream)
+     - added 040_manage_sql_order (patch from upstream to fix SF#2023345
+       (Errors in manage.sql)
+  * Run 3.4.2.sql (from upstream) to fix SF#2023345 (Errors in manage.sql).
+  * Added dependency to python-psycopg2, new in 3.4.0.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 25 Jul 2008 16:25:26 +0200
+
+nav (2+3.4.0-1) unstable; urgency=low
+
+  * New upstream release.
+     - adjusted the dependency on java-runtime (requires java5-runtime)
+     - adjusted build-dependency for jdk to sun-java5-jdk (this results in
+       FTBFS, but for etch I cannot see any other solution)
+     - added new dependency on python-django (>=0.97~svn7189-1)
+     - updated debian/patches/010_configure
+  * Added patch to install to DESTDIR in Netmap/build.xml (provided by
+    upstream).
+  * Updated README.Debian with suggestions from Morten Brekkevold.
+  * Remove /etc/nav/cron.d/iptrace as conffile and from init-script.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 05 Jun 2008 01:25:00 +0200
+
+nav (2+3.3.3-2) unstable; urgency=low
+
+  * Changed owner on /var/log/nav/cricket to navcron:nav.
+  * Added another config parameter for cricket to README.Debian.
+  * Updated the example-file for Apache-configuration and added a NEWS-entry
+    to notify the users about new example configuration.
+  * Renamed the example-file for Apache-configuration to nav.apache2.conf
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 01 Apr 2008 15:52:07 +0200
+
+nav (2+3.3.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added execution of doc/sql/upgrades/3.3.3.sql if user did choose to
+    autoupgrade database.
+  * Changed dependency on 'java-virtual-machine' to
+    'sun-java5-jre | java-virtual-machine' as kaffe have not prooved to
+    work well on large installations.
+  * Now creating /var/log/nav/cricket owned by cricket:nav.
+  * Updated README.Debian with some cricket-information from Vidar Stokkenes.
+  * Added a workaround for #472926 where postgres client from version 8
+    doesn't use $HOME to find the .dbpass-file used in wwwconfig-common.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 27 Mar 2008 20:57:11 +0100
+
+nav (2+3.3.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * Had to specify JAVA_HOME=/usr/lib/kaffe/pthreads to make, otherwise
+    it wouldn't build.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Tue, 11 Dec 2007 09:20:08 +0100
+
+nav (2+3.3.1-1) unstable; urgency=low
+
+  * New upstream release.
+     - removing debian/patches/012_missing_arp_manage_sql (included upstream)
+  * Fixed a typo in README.Debian.
+  * Now executing snmpoid.sql for each upgrade, and also for 3.3.1 as this
+    fixes a bug from 3.3.0.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Thu, 08 Nov 2007 11:26:58 +0100
+
+nav (2+3.3.0-4) unstable; urgency=low
+
+  * Found and fixed another typo in the debconf maintainer-script which
+    caused the package to fail during installation.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 31 Oct 2007 17:08:05 +0100
+
+nav (2+3.3.0-3) unstable; urgency=low
+
+  * Fixed a typo in the template for postgres8-upgrade-warning.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Wed, 31 Oct 2007 16:48:48 +0100
+
+nav (2+3.3.0-2) unstable; urgency=low
+
+  * Added patch from upstream to fix SF#1815618 (relation "arp" does not
+    exist in manage.sql").
+  * Added functionality for checking if PostgreSQL 8.1 or newer is used by
+    NAV before package installation, and stop installation if PostgreSQL is
+    too old.
+  * Fixed some outdated stuff in README.Debian. Thanks to Morten Brekkevold
+    for pointing this out.
+  * The dialogbox with information about moving Cricket data from normal- to
+    giga-trees should not be displayed unless you are upgrading to 3.2.2.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Fri, 26 Oct 2007 14:55:41 +0200
+
+nav (2+3.3.0-1) unstable; urgency=low
+
+  * New upstream release.
+     - removed doc/Makefile.in-part of debian/patches/011_dbinit_sql
+     - removed debian/patches/050_close_updateStatement
+  * Changed my name in debian/control.
+
+ -- Morten Werner Forsbring <werner@debian.org>  Mon, 01 Oct 2007 23:05:30 +0200
+
+nav (2+3.3.0-0etch2) unstable; urgency=low
+
+  * Added patch to include doc/sql/upgrades/3.2.0.sql and 3.3.0.sql.
+
+ -- Morten Werner Olsen <werner@debian.org>  Mon, 24 Sep 2007 14:37:03 +0200
+
+nav (2+3.3.0-0etch1) unstable; urgency=low
+
+  * New upstream release candidate (3.3.0_rc1).
+  * Removed the dependency on postgresql-7.4 as it is not supported from
+    version 3.3.0.
+  * Added schema upgrades for 3.3.0 to debian/nav.postinst.
+  * FIXME: Added a check that disables NAV if PostgreSQL 8.1 does not contain
+    any NAV-database and display a dialog with info about the required
+    migration to PostgreSQL 8.1.
+
+ -- Morten Werner Olsen <werner@debian.org>  Fri, 21 Sep 2007 17:28:02 +0200
+
+nav (2+3.2.2-1.etch.3) unstable; urgency=low
+
+  * More fixes on the way to etch.
+     - changing webapps-location from tomcat4 to tomcat5
+     - adding php5-packages as dependencies over php4 (but keep php4
+       as an alternative)
+     - changed dependency on the transitional libpgjava to libpg-java
+  * Add patch from upstream: Do not explicitly close the existing
+    updateStatement associated with the ConnectionDescr instance. Another
+    thread may still be preparing to use the statement. Statements will be
+    automatically closed when garbage collected, anyway.
+
+ -- Morten Werner Olsen <werner@debian.org>  Fri, 21 Sep 2007 16:34:42 +0200
+
+nav (2+3.2.2-1.etch.1) unstable; urgency=low
+
+  * Rebuilt on etch.
+     - removed dependency for tomcat4-webapps as this was a fix for a broken
+     - adjusted dependencies to etch-packages/-versions
+     - adjusted debian/patches/010_configure to python2.4 filestructure
+     - adjusted debian/patches/020_catalina_home to tomcat5.5 filestructure
+     - fixed a typo in debian/nav.templates
+
+ -- Morten Werner Olsen <werner@debian.org>  Tue, 30 Aug 2007 09:20:40 +0200
+
+nav (2+3.2.2-1) unstable; urgency=low
+
+  * New upstream release.
+     - removed debian/patches/040_gammu as it is included upstream
+  * Added fixed logrotate.d-script (thanks to Morten Brekkevold).
+
+ -- Morten Werner Olsen <werner@debian.org>  Tue,  1 May 2007 16:10:40 +0200
+
+nav (2+3.2.1-3) unstable; urgency=low
+
+  * Added a warning about needed diskspace before moving
+    giga-interface.rrd's.
+  * Not running snmpoid.sql when upgrading from 3.1.X to 3.2.X as it
+    is not neccessary and it messes a bit with makecricketconfig that
+    we also run because of the giga-interface-move.
+
+ -- Morten Werner Olsen <werner@debian.org>  Wed,  7 Mar 2007 10:10:49 +0100
+
+nav (2+3.2.1-2) unstable; urgency=low
+
+  * Added 040_gammu from upstream:
+     - Add try-except around gammu.SendSMS() to fetch more errors
+     - Check if returned smsid is an int, not if it is "true". Seems like
+       SE does not have the concept of a smsid reference like previously
+       tested Nokia phones.
+
+ -- Morten Werner Olsen <werner@debian.org>  Mon,  5 Mar 2007 10:47:29 +0100
+
+nav (2+3.2.1-2~rc02) unstable; urgency=low
+
+  * Only copy files from giga-interface-directory, not move. NAV will
+    removed rrd's which is not updated the last 30 days.
+
+ -- Morten Werner Olsen <werner@debian.org>  Fri,  2 Mar 2007 15:00:41 +0100
+
+nav (2+3.2.1-2~rc01) unstable; urgency=low
+
+  * Fixed correct path to collect-subtrees in debian/patches/030_cricket.
+  * Added new debconf question and functionality to move RRD-files for
+    giga-interfaces into the normal-interface location as NAV from version
+    3.2 uses 64-bit traffic counters for SNMPv2-enabled devices.
+
+ -- Morten Werner Olsen <werner@debian.org>  Thu,  1 Mar 2007 16:13:23 +0100
+
+nav (2+3.2.1-1) unstable; urgency=low
+
+  * Tested and approved for pkg-nav.alioth.debian.org's sarge-repository
+    by Mr. Brekkevold @ Uninett. :)
+  * Moved python-gammu into Depends: and removed gammu fron debian/control.
+
+ -- Morten Werner Olsen <werner@debian.org>  Mon, 26 Feb 2007 15:36:07 +0100
+
+nav (2+3.2.1-1~rc03) unstable; urgency=low
+
+  * Removing dependencies that probably aren't dependencies (libsasl2-dev,
+    libcrypt-des-perl, libdigest-hmac-perl, libdigest-sha1-perl,
+    libmd5-perl, librrds-perl, libnet-snmp-perl, libtimedate-perl,
+    libwww-perl, postgresql-dev, rrdtool, snmp).
+  * Removing /usr/share/perl5/NetAddr/IP.pm from package and adding a
+    dependency to libnetaddr-ip-perl.
+
+ -- Morten Werner Olsen <werner@debian.org>  Wed, 21 Feb 2007 09:40:02 +0100
+
+nav (2+3.2.1-1~rc02) unstable; urgency=low
+
+  * New upstream release.
+  * Removing patch that removed the DROP-statements in 3.2.0.sql as the
+    bug that caused problems because of these is fixed in 3.2.1.
+  * Removed backup- and smsd-cronjobs from the init.d-script as they have
+    been removed upstream.
+  
+ -- Morten Werner Olsen <werner@debian.org>  Mon, 19 Feb 2007 14:39:06 +0100
+
+nav (2+3.2.0-1~rc01) unstable; urgency=low
+
+  * New upstream release.
+  * Removing som patches (applied upstream) and modifying others.
+  * Added python-gammu as Reccommends.
+  * Fixed the db-upgrade procedure in debian/nav.postinst.
+  * Added patch to remove some DROP-statements in 3.2.0.sql.
+  * Fixed init-script with new python-rewrite of smsd.
+
+ -- Morten Werner Olsen <werner@debian.org>  Tue, 13 Feb 2007 11:14:54 +0100
+
+nav (2+3.1.1-0+1rc03) unstable; urgency=low
+
+  * New upstream release.
+  * Removing some patches (applied upstream) and modifying others.
+  * Add database upgrade from 3.1.0 to 3.1.1.
+  * Call db_stop to make the debconf frontend aware of that we're finished
+    (this will make sure postinst doesn't make frontend wait as some fd's
+    are still open).
+
+ -- Morten Werner Olsen <werner@debian.org>  Thu,  7 Dec 2006 12:59:32 +0100
+
+nav (2+3.1.0-1+2rc43) unstable; urgency=low
+
+  * Security fix for session state handling.
+  * Try to remove the navroot-group as it is not in use.
+  * New Dependency on php4-gd as this is used by the alertprofiles
+    subsystem.
+  * Applied patch from upstream to install only the neccessary files from
+    subsystem/webFront/ (012_web-makefile).
+  * New Dependency on makepasswd and wwwconfig-common as we will start
+    using some of their features in this version.
+  * Added /var/lib/nav/backups/ to store database dumps during automatic
+    database updates.
+  * Added support for automatical database creation.
+     - debconf templates in debian/nav.templates
+     - debconf config script in debian/nav.config
+     - functionality in debian/nav.postinst
+     - run dh_installdebconf in debian/rules
+     - showing debconf notes in error situations
+  * New dependency on tomcat4-webapps to work around bug in tomcat4.
+  * Added support for automatical database scheme update.
+     - creating and populating the arnold database when upgrading to 3.1
+     - display debconf note and exit if trying to upgrade database scheme
+       if using the old navread/navwrite database users
+     - showing debconf notes in error situations
+  * Not trying to stop NAV if RUN_NAV is set to 0 in /etc/default/nav.
+  * Give the navcron user /bin/sh as shell if it has /bin/false.
+  * Added debian/nav.preinst with #DEBHELPER#.
+  * Rotating all logfiles in /var/log/nav/ now.
+  * New cricketsetup that uses the Debian cricket package.
+     - change symlinks in /var/www/nav/cricket/ to /usr/share/cricket/*
+     - applied patch from upstream on makecricketconfig.py which is more
+       willing to play with Debians cricket package
+     - patched some other cricket related files to make them play with
+       the Debian cricket package
+     - moving /usr/share/doc/nav/cricket/cricket-config to
+       /etc/nav/cricket-config
+  * Applied patch from upstream to make sure pping.py or servicemon.py
+    doesn't hold open terminals (014_pydaemonize).
+  * Removed /etc/apache2/site-available/ from debian/nav.dirs.
+  * Updated debian/README.Debian.
+  * Added /usr/sbin/nav as a symlink to /usr/lib/nav/nav.
+  * Changed dependency on libpysnmp-python2.3 to python-pysnmp2.
+  * Added upstream patch r3740 to make 3.1.0.sql compliant with older
+    PostgreSQL versions.
+  * Included HACKING and NOTES from upstream into /usr/share/doc/nav/.
+  * Added fix for perllibdir in subsystem/arnold/Makefile.in.
+  * Added logdirectory for Arnold.
+  * Added dependency for samba-common as Arnold dies if it doesn't find
+    nmblookup. This bug will be fixed upstream, and we should move
+    samba-common from Depends: to Recommends:.
+  * Added patches from upstream (3.1.1) to make alertdaemon.pl shut up
+    (015_alertdaemon_shutup).
+  * Make alertdaemon fork correct (017_perldaemonize).
+  * Added 'set -e' to some of the bash-startup scripts (018_bash_daemonize).
+  * Added java-virtual-machine to Depends:.
+  * Don't compile python programs in /usr/lib/nav as precompiled modules
+    only are helpful when imported by other programs (these are standalone
+    programs).
+
+ -- Morten Werner Olsen <werner@debian.org>  Wed,  6 Dec 2006 09:57:42 +0100
+
+nav (2+3.1.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Adjusted 050_doc_makefile as some of it is fixed upstream,
+    and a new file missing in new version. :)
+  * Removed 095_script-not-executable as it is fixed upstream.
+  * Add parts to 020_catalina_home which was removed from
+    some build.xml-files for upstream release.
+
+ -- Morten Werner Olsen <werner@debian.org>  Thu, 13 Jul 2006 21:41:33 +0200
+
+nav (2+3.0.1-3) unstable; urgency=low
+
+  * Fixing the PostgreSQL section in README.Debian and starting to
+    recommend the users to use the postgres user 'nav' and not 'navwrite'.
+
+ -- Morten Werner Olsen <werner@debian.org>  Wed, 31 May 2006 09:07:33 +0200
+
+nav (2+3.0.1-2) unstable; urgency=low
+
+  * Placing a symlink from /usr/share/tomcat4/shared/lib/Util.jar til
+    /usr/lib/nav/java/Util.jar to give the navAdmin-servlet access to the
+    needed libraries.
+  * Updated debian/README.Debian with info about the admin password ++.
+
+ -- Morten Werner Olsen <werner@debian.org>  Wed, 10 May 2006 09:25:42 +0200
+
+nav (2+3.0.1-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Olsen <werner@debian.org>  Fri, 28 Apr 2006 23:30:27 +0200
+
+nav (2+3.0final1-2) unstable; urgency=low
+
+  * Updated README.Debian.
+  * Moved gammu from Depends to Recommends.
+  * Changed JAVA_HOME in nav.conf to use kaffe.
+
+ -- Morten Werner Olsen <werner@debian.org>  Fri,  3 Mar 2006 12:41:36 +0100
+
+nav (2+3.0final1-1) unstable; urgency=low
+
+  * New upstream release (3.0.0).
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Thu, 29 Sep 2005 16:58:26 +0200
+
+nav (2+3.0rc2-1) unstable; urgency=low
+
+  * New upstream release.
+  * Now building the NAV package with kaffe!
+     - Changed build-dependency from j2sdk1.4 to kaffe
+     - Added the libsnmp-1.4.jar to CLASSPATH when building in debian/rules.
+  * Fixed some typos in debian/README.Debian. Thanks to Lars Haakedal for
+    bugreports.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Mon,  8 Aug 2005 21:47:38 +0200
+
+nav (2+3.0rc1-3) unstable; urgency=low
+
+  * Updated dependency on python-ipy to python2.3-ipy. Thanks to
+    Elizabeth Bodine for bugreport and Lars Haakedal for clarification
+    (I didn't see the problem). :)
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Thu, 30 Jun 2005 14:01:55 +0200
+
+nav (2+3.0rc1-2) unstable; urgency=low
+
+  * Updated dependency on libsasl-dev to libsasl2-dev. Thanks to
+    Elizabeth Bodine for bugreport.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Thu, 30 Jun 2005 13:31:49 +0200
+
+nav (2+3.0rc1-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Wed, 22 Jun 2005 21:29:50 +0200
+
+nav (2+3.0beta10-2) unstable; urgency=low
+
+  * Patched doc/Makefile.in to include the new sql-upgrade file for beta10.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Wed, 22 Jun 2005 19:55:43 +0200
+
+nav (2+3.0beta10-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Sat, 12 Feb 2005 00:35:22 +0100
+
+nav (2+3.0beta9-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Fri, 28 Jan 2005 19:11:50 +0100
+
+nav (2+3.0beta8-0pre5) unstable; urgency=low
+
+  * Added dependency to librrds-perl.
+  * Moved the webapps from /usr/share/tomcat4/webapps/ to
+    /var/lib/tomcat4/webapps/.
+  * Moved logfiles from /var/lib/nav/log/ to /var/log/nav/ (made symlink from
+    /var/lib/nav/log to /var/log/nav). This might cause trouble when
+    upgrading, but as this is just a beta-package I don't have time to care,
+    sorry.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Thu, 13 Jan 2005 14:36:26 +0100
+
+nav (2+3.0beta8-0pre4) unstable; urgency=low
+
+  * Added links from /usr/share/java/ to /usr/lib/nav/java/ for postgresql.jar
+    and snmp4_13.jar (fixes the not runable getDeviceData and eventEngine).
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Thu, 16 Dec 2004 09:36:13 +0100
+
+nav (2+3.0beta8-0pre3) unstable; urgency=low
+
+  * Initial release.
+
+ -- Morten Werner Olsen <werner@skolelinux.no>  Mon,  6 Sep 2004 21:47:27 +0200
