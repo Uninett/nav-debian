@@ -1,1 +1,8 @@
 nav/*
+debhelper-build-stamp
+files
+nav.debhelper.log
+nav.postinst.debhelper
+nav.postrm.debhelper
+nav.prerm.debhelper
+nav.substvars
