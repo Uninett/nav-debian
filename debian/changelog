@@ -348,7 +348,7 @@ nav (4.0.3-1) unstable; urgency=low
 nav (4.0.2-1) unstable; urgency=low
 
   * New upstream release.
-    - Removed patches present in the new release. 
+    - Removed patches present in the new release.
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 15 May 2014 13:52:15 +0000
 
@@ -601,14 +601,14 @@ nav (2+3.15.0-1~test2) unstable; urgency=low
 
   [ Morten Brekkevold ]
   * syncdb.py -> navsyncdb
-    - patch to ensure navsyncdb is installed in bindir 
+    - patch to ensure navsyncdb is installed in bindir
     - ensure nav modules are available on database schema upgrade
   * no longer need most of the cricket symlinks and adaptations in htdocs
   * screwing around with changed install locations and obsolete patches
 
   [ Morten Werner Forsbring ]
   * Added Morten Brekkevold to uploaders.
-  
+
  -- Morten Werner Forsbring <werner@debian.org>  Wed, 25 Sep 2013 16:30:29 +0200
 
 nav (2+3.15.0-1~test1) unstable; urgency=low
@@ -667,7 +667,7 @@ nav (2+3.14.1592-2) unstable; urgency=low
     NAV now.
   * Added a note on removing
     /etc/nav/cricket-config/{switch-ports,router-interfaces} after successfully
-    running mcc.py. 
+    running mcc.py.
 
  -- Morten Werner Forsbring <werner@debian.org>  Tue, 18 Jun 2013 06:54:49 +0200
 
@@ -919,7 +919,7 @@ nav (2+3.9.0-1~nav.squeeze.6) unstable; urgency=low
   * Fixed DirectoryIndex in /etc/nav/apache/subsystems/cricket.conf
     (thanks to Asbjørn Prøis).
   * One should fix /etc/apache2/conf.d/cricket (added note to README.Debian).
- 
+
  -- Morten Werner Forsbring <werner@debian.org>  Mon, 29 Aug 2011 08:05:35 +0200
 
 nav (2+3.8.6-1) unstable; urgency=low
@@ -973,7 +973,7 @@ nav (2+3.8.0-1) unstable; urgency=low
 
   [ Morten Brekkevold ]
   * Added logrotate configuration for ipdevpoll.
-  
+
   [ Morten Werner Forsbring ]
   * New upstream release.
   * Fixed patches/*
@@ -1141,7 +1141,7 @@ nav (2+3.5.5-1lenny2) unstable; urgency=low
 
   [ Morten Brekkevold ]
   * Verify that pid files exist before HUPing in logrotate config.
-  
+
   [ Morten Werner Forsbring ]
   * Adjusted init-script to not fail if 'nav stop' fails (happens sometime
     during configure). Thanks to Morten Brekkevold for reporting this.
@@ -1149,7 +1149,7 @@ nav (2+3.5.5-1lenny2) unstable; urgency=low
     stuff).
   * Updated README.Debian (the PostgreSQL-section was outdated). Thanks to
     Vidar Stokkenes and Morten Brekkevold for comments.
-  
+
  -- Morten Werner Forsbring <werner@debian.org>  Thu, 11 Mar 2010 07:22:22 +0100
 
 nav (2+3.5.5-1lenny1) unstable; urgency=low
@@ -1162,7 +1162,7 @@ nav (2+3.5.4-1lenny1) unstable; urgency=low
 
   * Build for Debian Lenny.
   * Changed default policy from automatic creating database++ to not.
-  * Replaced build-dep sun-java5-jdk with openjdk-6-jdk and dependency 
+  * Replaced build-dep sun-java5-jdk with openjdk-6-jdk and dependency
     sun-java5-jre with openjdk-6-jre (also fixed JAVA_HOME's in debian/rules).
   * Replaced dependency postgresql-8.1 with postgresql-8.3.
   * Added LSB information to init-script.
@@ -1218,9 +1218,9 @@ nav (2+3.5.0-1) unstable; urgency=low
   * Added CRICKETDIR=/usr/share/cricket as environment variable to configure.
   * Removed debian/patches/014_netaddr-ip-perl (file removed from upstream).
   * Removed cricket.cron-part of debian/patches/030_cricket ("fixed" upstream).
-  
+
   Database related fixes:
-  
+
   * Runs mergedb.sh from upstream if user wants automatically database
     schema upgrades. Patched mergedb.sh to use /usr/bin/pg_dump and removed
     --verbose option to pg_dump.
@@ -1231,9 +1231,9 @@ nav (2+3.5.0-1) unstable; urgency=low
     was created in the first place, and it is not in use.
   * Rewrote some of the database initialization code to use upstreams
     createdb.sh.
-  
+
   Dependency-related fixes (due to new upstream release):
-  
+
   * All dependencies on PHP-related packages is removed.
   * All dependencies on Tomcat-related packages is removed.
   * All patches on Tomcat-specific stuff is removed.
@@ -1241,18 +1241,18 @@ nav (2+3.5.0-1) unstable; urgency=low
   * Dependencies on libnetaddr-ip-perl, libdbd-pg-perl and
     libsnmp-session-perl is removed.
   * Updated dependency on python-django to "(>= 1.0)".
-  
+
   Other fixes based on feedback from users:
-  
+
   * Added /etc/apache2/sites-available/nav-default and removed the Apache
     configfile in /etc/apache2/conf.d/, also updated README.Debian to
     reflect this.
   * Rewrote init.d-script to use init.d-scripts provided by NAV.
   * Added logrotate-configuration for snmptrapd.log and snmptraps.log.
   * Fixed a few typos in logrotate-configuration.
-  
+
   Other stuff:
-  
+
   * Switch from /var/www/nav to /usr/share/nav/htdocs for webroot.
      - updated configure-script
      - update dir in /etc/apache2/sites-available/nav-default
@@ -1262,7 +1262,7 @@ nav (2+3.5.0-1) unstable; urgency=low
   * Now asks for and eventually reloads apache2 on upgrades of NAV.
   * Also remove debconf "answers" when purging.
   * Some minor bugfixes in the debconf-templates.
-  
+
  -- Morten Werner Forsbring <werner@debian.org>  Tue, 17 Feb 2009 11:45:08 +0100
 
 nav (2+3.4.3-1) unstable; urgency=low
@@ -1498,7 +1498,7 @@ nav (2+3.2.1-1~rc02) unstable; urgency=low
     bug that caused problems because of these is fixed in 3.2.1.
   * Removed backup- and smsd-cronjobs from the init.d-script as they have
     been removed upstream.
-  
+
  -- Morten Werner Olsen <werner@debian.org>  Mon, 19 Feb 2007 14:39:06 +0100
 
 nav (2+3.2.0-1~rc01) unstable; urgency=low
