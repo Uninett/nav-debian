@@ -1,7 +1,7 @@
 Source: nav
 Section: net
 Priority: optional
-Maintainer: Morten Brekkevold <morten.brekkevold@uninett.no> 
+Maintainer: Morten Brekkevold <morten.brekkevold@uninett.no>
 Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), quilt, autoconf, automake, python, dh-python, python-sphinx, python-psycopg2 (>= 2.5.4), python-zope.interface, ruby-sass (>= 3.4.7)
 Standards-Version: 3.9.6
 X-Python-Version: 2.7
@@ -10,7 +10,46 @@ Homepage: https://nav.uninett.no/
 Package: nav
 Architecture: all
 Pre-Depends: debconf
-Depends: ${misc:Depends}, systemd, adduser, ${python:Depends}, apache2-mpm-prefork, nbtscan, logrotate, postgresql (>= 9.4), postgresql-contrib (>= 9.4), libapache2-mod-wsgi, django-filter (>= 0.7), python-iso8601, python-django (>= 1.7), python-django (<< 1.8), python-django-crispy-forms, python-crispy-forms-foundation, python-django-oauth2-provider, python-djangorestframework (>= 2.4.0), python-djangorestframework (<< 2.5), python-django-hstore (>= 1.2.4), python-feedparser, python-gammu, python-imaging, python-ipy (>= 1:0.81), python-ldap, python-markdown (>= 2.5.1), python-networkx (>= 1.0), python-psycopg2 (>= 2.5.4), python-pyrad, python-simplejson, python-twisted (>= 14.0.1), python-pynetsnmp | python-twisted-snmp, python-rrdtool, python-xmpp, rrdtool, makepasswd, rsync, wwwconfig-common (>= 0.0.37), samba-common-bin
+Depends:
+  ${misc:Depends},
+  systemd,
+  adduser,
+  ${python:Depends},
+  apache2-mpm-prefork,
+  nbtscan,
+  logrotate,
+  postgresql (>= 9.4),
+  postgresql-contrib (>= 9.4),
+  libapache2-mod-wsgi,
+  django-filter (>= 0.7),
+  python-crispy-forms-foundation,
+  python-django (<< 1.8),
+  python-django (>= 1.7),
+  python-django-crispy-forms,
+  python-django-hstore (>= 1.2.4),
+  python-django-oauth2-provider,
+  python-djangorestframework (<< 2.5),
+  python-djangorestframework (>= 2.4.0),
+  python-feedparser,
+  python-gammu,
+  python-imaging,
+  python-ipy (>= 1:0.81),
+  python-iso8601,
+  python-ldap,
+  python-markdown (>= 2.5.1),
+  python-networkx (>= 1.0),
+  python-psycopg2 (>= 2.5.4),
+  python-pynetsnmp | python-twisted-snmp,
+  python-pyrad,
+  python-rrdtool,
+  python-simplejson,
+  python-twisted (>= 14.0.1),
+  python-xmpp,
+  rrdtool,
+  makepasswd,
+  rsync,
+  wwwconfig-common (>= 0.0.37),
+  samba-common-bin
 Recommends: graphite-carbon, graphite-web
 Conflicts: graphite-web-django14
 Description: Network Administration Visualized
