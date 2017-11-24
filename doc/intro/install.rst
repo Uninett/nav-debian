@@ -21,15 +21,15 @@ To build NAV, you need at least the following:
  * Python >= 2.7.0 < 3
  * Sphinx >= 1.0 (for building this documentation)
  * A `sass` compiler >= 3.2.12, < 3.4 to build the NAV web interface's stylesheets.
-   Installing the rubygem `sass` or using the package `ruby-sass` from the
-   Debian distribution `jessie (testing)` would satisfy this requirement.
+   Installing the rubygem `sass` or using the package `ruby-sass` from Debian
+   8 (Jessie) or newer would satisfy this requirement.
 
 Runtime requirements
 --------------------
 
 To run NAV, these software packages are required:
 
- * Apache2 + mod_wsgi
+ * Apache2 + mod_wsgi (or, really, any web server that supports the WSGI interface)
  * PostgreSQL >= 9.4 (With the ``hstore`` extension available)
  * Graphite_
  * Python >= 2.7.0
@@ -51,15 +51,6 @@ follows:
 
 .. literalinclude:: ../../requirements/base.txt
    :language: text
-
-.. note:: The :mod:`pynetsnmp` module is preferred over :mod:`twistedsnmp` for
-          SNMP communication. The former is a Python binding to the well-known
-          NetSNMP C library, whereas the latter is a pure-Python SNMP
-          implementation. :mod:`pynetsnmp` will give better performance *and*
-          IPv6-support. :mod:`twistedsnmp` also has a known, unfixed bug with
-          table retrievals on slow SNMP agents. If, for some reason, you are
-          forced to resort to using :mod:`twistedsnmp`, the :file:`contrib/patches`
-          directory contains a recommended patch for this problem.
 
 .. _Graphite: http://graphiteapp.org/
 
@@ -90,7 +81,7 @@ To build and install NAV::
 
 If you wish to configure NAV to run from a different location than the default
 :file:`/usr/local/nav` you should specify a new directory using the
-`--prefix=` option of the configure script, e.g. ``./configure
+``--prefix=`` option of the configure script, e.g. ``./configure
 --prefix=/opt/nav``.
 
 If you are building an RPM package (or similar) of NAV, you may wish to have
