@@ -1,8 +1,10 @@
-nav (4.8.0-0~r1) UNRELEASED; urgency=medium
+nav (4.8.0-1) unstable; urgency=medium
 
-  * Pre-release and package testing
+  * New upstream release.
+    - Dependencies updated.
+    - New package build setup, using the upstream Git repo.
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 22 Nov 2017 10:46:30 +0000
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 24 Nov 2017 08:16:06 +0000
 
 nav (4.7.3-1) unstable; urgency=medium
 
