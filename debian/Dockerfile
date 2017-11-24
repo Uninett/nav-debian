@@ -1,6 +1,14 @@
 FROM debian:jessie
 
+# Need a more recent ruby-sass to build the stylesheets
 RUN  echo "deb http://ftp.no.debian.org/debian jessie-backports main contrib non-free" >> /etc/apt/sources.list
+
+# Need some custom packages to the Sphinx documentation built
+RUN apt-get -y update && \
+    apt-get install -y apt-transport-https && \
+    apt-key adv --keyserver keys.gnupg.net --recv-key CE8E05E8 && \
+    echo 'deb https://nav.uninett.no/debian jessie nav' > /etc/apt/sources.list.d/nav.list && \
+    apt-get -y update
 
 RUN  apt-get -y update && \
      apt-get install -y \
@@ -18,6 +26,11 @@ RUN  apt-get -y update && \
        python-zope.interface \
        dh-systemd \
        git-buildpackage \
+       python-django \
+       python-configparser \
+       python-twisted \
+       python-django-crispy-forms \
+       python-crispy-forms-foundation \
      && \
      apt-get clean
 
