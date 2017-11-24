@@ -1,14 +1,15 @@
-FROM debian:jessie
-
-# Need a more recent ruby-sass to build the stylesheets
-RUN  echo "deb http://ftp.no.debian.org/debian jessie-backports main contrib non-free" >> /etc/apt/sources.list
+FROM debian:stretch
 
 # Need some custom packages to the Sphinx documentation built
 RUN apt-get -y update && \
-    apt-get install -y apt-transport-https && \
+    apt-get install -y apt-transport-https ca-certificates dirmngr && \
     apt-key adv --keyserver keys.gnupg.net --recv-key CE8E05E8 && \
-    echo 'deb https://nav.uninett.no/debian jessie nav' > /etc/apt/sources.list.d/nav.list && \
-    apt-get -y update
+    echo 'deb https://nav.uninett.no/debian stretch nav' > /etc/apt/sources.list.d/nav.list && \
+    echo '# Give packages from nav.uninett.no higher priority, at your own risk\n\
+Package: *\n\
+Pin: origin nav.uninett.no\n\
+Pin-Priority: 600\n\
+' > /etc/apt/preferences.d/nav.pref
 
 RUN  apt-get -y update && \
      apt-get install -y \
@@ -18,8 +19,7 @@ RUN  apt-get -y update && \
        autoconf \
        automake \
        python-sphinx \
-       python-support \
-       ruby-sass/jessie-backports \
+       ruby-sass \
        quilt \
        reportbug \
        python-psycopg2 \

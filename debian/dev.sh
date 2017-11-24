@@ -1,5 +1,5 @@
 #!/bin/sh -x
-TAG=debdev:jessie
+TAG=debdev:stretch
 projdir=$(basename $(dirname $PWD))
 
 docker build -t "$TAG" .
