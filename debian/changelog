@@ -1,3 +1,9 @@
+nav (4.8.0-1stretch) stretch; urgency=medium
+
+  * Repackaged for Debian Stretch.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 24 Nov 2017 10:21:38 +0000
+
 nav (4.8.0-1) unstable; urgency=medium
 
   * New upstream release.
