@@ -1,3 +1,10 @@
+nav (4.8.1-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Removed obsolete version number-generating patch.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 30 Nov 2017 12:21:14 +0000
+
 nav (4.8.0-1) unstable; urgency=medium
 
   * New upstream release.
