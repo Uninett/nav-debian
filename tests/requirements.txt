@@ -3,10 +3,11 @@ coverage>=3.6
 lxml==4.0.0
 mock==2.0.0
 pylint==1.7.2
-pytest
-pytest-capturelog
+pytest<3.3.0
+pytest-catchlog
 pytest-cov
 pytest-selenium
+pytest-twisted
 pytidylib==0.2.4
 selenium>=3.0.0,<3.2.0
 whisper>=0.9.9
