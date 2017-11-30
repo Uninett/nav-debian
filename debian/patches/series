@@ -1,4 +1,3 @@
-generate-correct-version
 nav-start-mkdir-var-run
 configure
 apache-wsgi-location
