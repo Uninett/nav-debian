@@ -1,8 +1,14 @@
-nav (4.8.1-1stretch) jessie; urgency=medium
+nav (4.8.2-1stretch) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Stretch.
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 30 Nov 2017 12:29:15 +0000
+
+nav (4.8.2-1) oldstable; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 07 Dec 2017 09:15:16 +0000
 
 nav (4.8.1-1) unstable; urgency=medium
 
