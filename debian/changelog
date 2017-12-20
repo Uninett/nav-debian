@@ -1,3 +1,10 @@
+nav (4.8.2-2) oldstable; urgency=medium
+
+  * Patched for #1642 (Port details page crashes with NoReverseMatch exception
+    for ports with slashes in names)
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 20 Dec 2017 10:53:41 +0000
+
 nav (4.8.2-1) oldstable; urgency=medium
 
   * New upstream release.
