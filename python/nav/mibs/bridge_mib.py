@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2009, 2011, 2012 UNINETT AS
+# Copyright (C) 2009, 2011, 2012, 2017, 2018 UNINETT AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -36,7 +36,7 @@ class BridgeMib(mibretriever.MibRetriever):
 
     @defer.inlineCallbacks
     def get_base_bridge_address(self):
-        addr = yield self.retrieve_column_by_index('dot1dBaseBridgeAddress', (0,))
+        addr = yield self.get_next('dot1dBaseBridgeAddress')
         defer.returnValue(addr)
 
     @defer.inlineCallbacks

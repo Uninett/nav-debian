@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2011-2015 UNINETT AS
+# Copyright (C) 2011-2015, 2017, 2018 UNINETT AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -407,8 +407,20 @@ class VlanTopologyUpdater(object):
         dead.delete()
 
     def _delete_swportvlans_from_untouched_ifcs(self):
-        touched = self.ifc_vlan_map.keys()
-        SwPortVlan.objects.exclude(interface__in=touched).delete()
+        """Deletes old swportvlan entries that weren't touched by this update"""
+        # this can turn into a rather huge, and surprisingly inefficient SQL
+        # statement if we let PostgreSQL do all the work, so we calculate the
+        # set difference using Python instead
+        touched_interfaceids = set(ifc.pk for ifc in self.ifc_vlan_map)
+        existing_interfaceids = set(
+            SwPortVlan.objects.distinct().values_list('interface__id',
+                                                      flat=True)
+        )
+        to_delete = existing_interfaceids.difference(touched_interfaceids)
+        if to_delete:
+            _LOGGER.debug("deleting obsolete swpvlan records for these ifcs: "
+                          "%s", to_delete)
+            SwPortVlan.objects.filter(interface__id__in=to_delete).delete()
 
 
 def build_layer2_graph(related_extra=None):
