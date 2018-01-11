@@ -1,3 +1,10 @@
+nav (4.8.3-1) oldstable; urgency=medium
+
+  * New upstream release.
+    - Removed obsolete patches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 11 Jan 2018 10:25:35 +0000
+
 nav (4.8.2-2) oldstable; urgency=medium
 
   * Patched for #1642 (Port details page crashes with NoReverseMatch exception
