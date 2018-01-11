@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2012 UNINETT AS
+# Copyright (C) 2012-2018 UNINETT AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -117,7 +117,7 @@ urlpatterns += patterns('nav.web.report.views',
     url(r'^topology_candidates\?from_device=(?P<sysname>[^/&]+)$',
         dummy, name='report-topology-candidates-netbox'),
     url(r'^topology_candidates\?from_device=(?P<sysname>[^/&]+)&'
-        r'from_interface=(?P<ifname>[^/&]+)$',
+        r'from_interface=(?P<ifname>[^&]+)$',
         dummy, name='report-topology-candidates-port'),
 
 )
