@@ -18,7 +18,8 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
-from .analyze import AdjacencyReducer, build_candidate_graph_from_db
+from .analyze import (AdjacencyReducer, build_candidate_graph_from_db,
+                      get_aggregate_mapping)
 from .analyze import Box, Port
 
 from nav.models.manage import Interface
@@ -29,7 +30,9 @@ def printdiffs():
     and the currently detected one.
 
     """
-    reducer = AdjacencyReducer(build_candidate_graph_from_db())
+    cand = build_candidate_graph_from_db()
+    aggregates = get_aggregate_mapping(include_stacks=True)
+    reducer = AdjacencyReducer(cand, aggregates)
     reducer.reduce()
 
     connections = reducer.get_single_edges_from_ports()
@@ -47,8 +50,12 @@ def printdiffs():
     new_links = ifcs.filter(id__in=new_link_ids)
     new_links = dict((l.id, l) for l in new_links)
 
+    deleted_link_ids = set(saved_links).difference(found_link_ids)
+    deleted_links = ifcs.filter(id__in=deleted_link_ids)
+    deleted_links = {l.id: l for l in deleted_links}
+
     output = []
-    for port_id in found_link_ids.union(new_links):
+    for port_id in found_link_ids.union(new_links).union(deleted_links):
         if port_id in found_links and port_id in saved_links:
             port = saved_links[port_id]
             found_link = found_links[port_id]
