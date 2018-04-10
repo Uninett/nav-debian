@@ -1,8 +1,15 @@
-nav (4.8.4-2stretch) oldstable; urgency=medium
+nav (4.8.4-3stretch) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Stretch
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 05 Apr 2018 13:43:36 +0000
+
+nav (4.8.4-2) oldstable; urgency=medium
+
+  * Added hotfix patch for password change crash issue
+    - https://github.com/UNINETT/nav/issues/1693
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 10 Apr 2018 11:51:37 +0000
 
 nav (4.8.4-1) oldstable; urgency=medium
 
