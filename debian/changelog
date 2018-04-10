@@ -1,3 +1,10 @@
+nav (4.8.4-2) oldstable; urgency=medium
+
+  * Added hotfix patch for password change crash issue
+    - https://github.com/UNINETT/nav/issues/1693
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 10 Apr 2018 11:51:37 +0000
+
 nav (4.8.4-1) oldstable; urgency=medium
 
   * New upstream release.
