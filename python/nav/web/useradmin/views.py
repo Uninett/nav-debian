@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2008, 2011 UNINETT AS
+# Copyright (C) 2008, 2011 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -569,7 +569,8 @@ def log_account_change(actor, old, new):
         return
 
     attribute_list = ['login', 'name', 'password', 'ext_sync']
-    LogEntry.compare_objects(actor, old, new, attribute_list)
+    LogEntry.compare_objects(actor, old, new, attribute_list,
+                             censored_attributes=['password'])
 
 
 def log_add_account_to_group(request, group, account):

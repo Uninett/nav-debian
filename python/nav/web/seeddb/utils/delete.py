@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2011, 2012 UNINETT AS
+# Copyright (C) 2011, 2012 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -102,11 +102,11 @@ def render_delete(request, model, redirect, whitelist=None, extra_context=None,
             if delete_operation:
                 new_message(request,
                             "Deleted %i rows" % len(objects), Messages.SUCCESS)
-                log_deleted(request.account, objects, template='{actor} deleted {object}')
+                log_deleted(request.account, objects, template=u'{actor} deleted {object}')
             else:
                 new_message(request,
                             "Scheduled %i rows for deletion" % len(objects), Messages.SUCCESS)
-                log_deleted(request.account, objects, template='{actor} scheduled {object} for deletion')
+                log_deleted(request.account, objects, template=u'{actor} scheduled {object} for deletion')
             return HttpResponseRedirect(reverse(redirect))
 
     info_dict = {

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2007-2015 UNINETT AS
+# Copyright (C) 2007-2015 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -814,6 +814,7 @@ class Location(models.Model, TreeMixin):
     class Meta(object):
         db_table = 'location'
         verbose_name = 'location'
+        ordering = ['id']
 
     def __str__(self):
         if self.description:
