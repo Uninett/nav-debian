@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (C) 2017 UNINETT AS
+# Copyright (C) 2017 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -24,6 +24,9 @@ from django.utils.timezone import now as utcnow
 from nav.models.fields import VarcharField, LegacyGenericForeignKey
 
 from . import find_modelname
+
+import logging
+_logger = logging.getLogger(__name__)
 
 
 @python_2_unicode_compatible
@@ -70,7 +73,11 @@ class LogEntry(models.Model):
         dict = {'actor': actor, 'object': object, 'target': target}
         for k, v in dict.items():
             dict[k] = getattr(v, 'audit_logname', u'%s' % v)
-        self.summary = template.format(**dict)
+        try:
+            self.summary = template.format(**dict)
+        except KeyError as error:
+            self.summary = 'Error creating summary - see error log'
+            _logger.error('KeyError when creating summary: %s', error)
         self.verb = verb
         self.actor_model = find_modelname(actor)
         self.object_model = find_modelname(object) if object else None
@@ -123,7 +130,7 @@ class LogEntry(models.Model):
             """
             {"a": "b", "c": "d"} => "a=b, c=d"
             """
-            return ", ".join("{}={}".format(x, y) for x, y in d.items())
+            return u", ".join(u"{}={}".format(x, y) for x, y in d.items())
 
         model = new.__class__.__name__.lower()
         prefix = u'{actor} edited {object}'
@@ -135,10 +142,10 @@ class LogEntry(models.Model):
                 old_value = dict_to_string(old_value)
             if isinstance(new_value, dict):
                 new_value = dict_to_string(new_value)
-            summary = "{} changed from '{}' to '{}'".format(
+            summary = u"{} changed from '{}' to '{}'".format(
                 attribute, old_value, new_value)
         else:
-            summary = "{} changed".format(attribute)
+            summary = u"{} changed".format(attribute)
 
         LogEntry.add_log_entry(
             actor,

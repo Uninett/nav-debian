@@ -1,6 +1,5 @@
 #
-# Copyright (C) 2003, 2004 Norwegian University of Science and Technology
-# Copyright (C) 2007, 2010, 2011, 2014 UNINETT AS
+# Copyright (C) 2007, 2010, 2011, 2014 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -23,6 +22,8 @@ from django.db.models import Q
 from nav.models.manage import Netbox, SwPortVlan, GwPortPrefix, Prefix, Arp, Cam
 import datetime
 from IPy import IP
+
+from nav.util import is_valid_ip
 
 INFINITY = datetime.datetime.max
 PATH_NOT_FOUND = None
@@ -255,11 +256,7 @@ class Host(object):
             self.ip = self.get_host_by_name() or None
 
     def is_ip(self):
-        try:
-            IP(self.host)
-            return True
-        except ValueError:
-            return False
+        return is_valid_ip(self.host, use_socket_lib=True)
 
     def get_host_by_name(self):
         if self.host is not None:

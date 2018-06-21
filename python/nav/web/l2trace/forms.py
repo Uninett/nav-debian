@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013, 2014 UNINETT AS
+# Copyright (C) 2013, 2014 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -59,3 +59,9 @@ class L2TraceForm(forms.Form):
             raise forms.ValidationError(msg)
 
         return cleaned_data
+
+    def clean_host_from(self):
+        return self.cleaned_data['host_from'].strip()
+
+    def clean_host_to(self):
+        return self.cleaned_data['host_to'].strip()
