@@ -1,8 +1,14 @@
-nav (4.8.5-1stretch) stretch; urgency=medium
+nav (4.8.5-2stretch) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Stretch
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 21 Jun 2018 07:41:03 +0000
+
+nav (4.8.5-2) oldstable; urgency=medium
+
+  * Added patch for wrong version number in upstream.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 26 Jun 2018 10:09:31 +0000
 
 nav (4.8.5-1) oldstable; urgency=medium
 
