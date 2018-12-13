@@ -46,8 +46,6 @@ from __future__ import absolute_import, print_function
 import re
 import fcntl
 import sys
-import os
-import os.path
 import errno
 import atexit
 import logging
@@ -61,9 +59,11 @@ import nav
 import nav.logs
 from nav import db
 from nav import daemon
-from nav.buildconf import localstatedir, sysconfdir
+from nav.config import find_configfile
 
-_logger = logging.getLogger("logengine")
+
+PID_FILE = 'logengine.pid'
+_logger = logging.getLogger("nav.logengine")
 
 
 def get_exception_dicts(config):
@@ -243,10 +243,9 @@ def verify_singleton(quiet=False):
     # Create a pidfile and delete it automagically when the process exits.
     # Although we're not a daemon, we do want to prevent multiple simultaineous
     # logengine processes.
-    pidfile = os.path.join(localstatedir, 'run', 'logengine.pid')
 
     try:
-        daemon.justme(pidfile)
+        daemon.justme(PID_FILE)
     except daemon.AlreadyRunningError as err:
         if quiet:
             sys.exit(0)
@@ -254,8 +253,8 @@ def verify_singleton(quiet=False):
             print("logengine is already running (%d)" % err.pid, file=sys.stderr)
             sys.exit(1)
 
-    daemon.writepidfile(pidfile)
-    atexit.register(daemon.daemonexit, pidfile)
+    daemon.writepidfile(PID_FILE)
+    atexit.register(daemon.daemonexit, PID_FILE)
 
 
 def get_categories(cursor):
@@ -500,10 +499,9 @@ def main():
     # Process setup
 
     config = ConfigParser()
-    config.read(os.path.join(sysconfdir, 'logger.conf'))
+    config.read(find_configfile('logger.conf'))
 
-    logging.basicConfig()
-    nav.logs.set_log_config()
+    nav.logs.init_stderr_logging()
 
     if options.delete:
         # get rid of old records

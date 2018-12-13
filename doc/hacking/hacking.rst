@@ -61,9 +61,6 @@ doc/         User and developer documentation.
 etc/         Example/initial configuration files.
 htdocs/      Static media such as CSS stylesheets, images and JavaScript to be
              served by a webserver.
-packages/    Stuff to help packaging NAV for various platforms, such as
-             RedHat, CentOS, FreeBSD, Debian and soforth. **Much of this is
-             outdated today.**
 python/      Python source code.
 sql/         SQL schema definitions and installation/sync tools.
 templates/   Django HTML templates.
@@ -279,10 +276,7 @@ All test suites (except those for Javascript) are located in the
 Running tests
 -------------
 
-We use pytest_ to run the test suite. A bundled version is included as
-:file:`runtests.py` in the :file:`python/` subdirectory, and is used to run
-the unit tests only when a :kbd:`make check` command is issued in the
-:file:`python/` subdirectory.
+We use a combination of pytest_ and tox_ to run the test suite.
 
 There's also a script to produce an entire test environment as a Docker
 image and to run the entire test suite inside a Docker container created
@@ -290,23 +284,33 @@ from that image. This is actually the same method employed by our Jenkins
 build servers to run the test suite. Take a look in the
 :file:`tests/docker/` directory.
 
+For an interactive testing session with tox_, you can utilize the Docker image
+like thus:
+
+.. code-block:: console
+
+   $ cd tests/docker
+   $ make
+   ...
+   $ make shell
+   ...
+   $ tox -e unit-py27-django18
+   ...
+
 
 Javascript testing
 ------------------
 
 Testing javascript in NAV is straightforward. We use Karma_ as a testrunner,
-Mocha_ as testing framework and Chai_ as assertion library.
+Mocha_ as testing framework and Chai_ as assertion library. Assuming you are
+inside the Docker CI image:
 
 .. code-block:: sh
 
-   cd htdocs/static/js
+   tox -e javascript
 
-   # Install required libs, you need npm installed
-   npm install
-
-   # Run tests. This will start browsers. Karma will make sure that tests will
-   # run on changes in js-files.
-   ./node_modules/karma/bin/karma start test/karma.conf.js
+This will take of installing the required JS modules using npm, and running the
+test suite in three different browsers (Chrome, Firefox and PhantomJS).
 
 All tests are located under :file:`htdocs/statis/js/test/`. Create new tests
 there. For syntax, assertions and related stuff take a look at the tests
@@ -317,7 +321,7 @@ already there and the relevant documentation linked above.
 Jenkins
 -------
 
-We use Jenkins_ (formerly *Hudson*) for Continuous Integration testing of
+We use Jenkins_ for Continuous Integration testing of
 NAV. All the automated tests are run each time new changesets are pushed to
 the official NAV repositories. Jenkins also runs pylint_ to create stats on
 code quality.
@@ -375,6 +379,7 @@ Another option for a simple patch is to attach it to a GitHub_ issue report.
 .. _RequireJS: http://requirejs.org/
 .. _Git: https://git-scm.com/
 .. _pytest: http://pytest.org/
+.. _tox: https://tox.readthedocs.io/en/latest/
 .. _Buster.JS: http://busterjs.org/
 .. _the Buster documentation: http://docs.busterjs.org/en/latest/#user-s-guide
 .. _Node.js: http://nodejs.org/

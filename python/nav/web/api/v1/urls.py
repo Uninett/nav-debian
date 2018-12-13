@@ -17,14 +17,18 @@
 """Urlconf for the NAV REST api"""
 
 from nav.web.api.v1 import views
-from django.conf.urls import url, patterns, include
+from django.conf.urls import url, include
 from rest_framework import routers
 
 from nav.auditlog import api as auditlogapi
 
 router = routers.SimpleRouter()
+router.register(r'account', views.AccountViewSet)
+router.register(r'accountgroup', views.AccountGroupViewSet,
+                base_name='accountgroup')
 router.register(r'rack', views.RackViewSet)
 router.register(r'room', views.RoomViewSet)
+router.register(r'location', views.LocationViewSet)
 router.register(r'netbox', views.NetboxViewSet)
 router.register(r'interface', views.InterfaceViewSet)
 router.register(r'prefix', views.PrefixViewSet)
@@ -35,12 +39,13 @@ router.register(r'cam', views.CamViewSet, base_name='cam')
 router.register(r'arp', views.ArpViewSet, base_name='arp')
 router.register(r'servicehandler', views.ServiceHandlerViewSet,
                 base_name='servicehandler')
-router.register(r'alert', views.AlertHistoryViewSet)
-router.register(r'unrecognized-neighbor', views.UnrecognizedNeighborViewSet, base_name='unrecognized-neighbor')
+router.register(r'alert', views.AlertHistoryViewSet, base_name='alert')
+router.register(r'unrecognized-neighbor', views.UnrecognizedNeighborViewSet,
+                base_name='unrecognized-neighbor')
 router.register(r'auditlog', auditlogapi.LogEntryViewSet, base_name='auditlog')
 
-urlpatterns = patterns(
-    "",
+
+urlpatterns = [
     url(r'^$', views.api_root),
     url(r'^token/$', views.get_or_create_token, name="token"),
     url(r"^prefix/routed/?$", views.RoutedPrefixList.as_view(),
@@ -50,4 +55,4 @@ urlpatterns = patterns(
     url(r"^prefix/usage/(?P<prefix>.*)$", views.PrefixUsageDetail.as_view(),
         name="prefix-usage-detail"),
     url(r'^', include(router.urls)),
-)
+]

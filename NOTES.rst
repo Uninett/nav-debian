@@ -9,6 +9,117 @@ To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
 
+NAV 4.9
+========
+
+Dependency changes
+------------------
+
+The NAV team is still working on porting the NAV code to Python 3, which
+includes moving to more current (non-deprecated) versions of the Django
+framework.  This means you will need to upgrade various dependencies when
+moving to NAV 4.9.
+
+Unfortunately, Django releases have a tendency to drop backwards compatibility
+with many features, so expect future releases of NAV to move to even more
+recent versions of Django - we expect to land on Django 1.11, which is the last
+long-term support release of Django 1.
+
+
+Upgraded dependencies
+~~~~~~~~~~~~~~~~~~~~~
+
+The version requirements have changed for these dependencies:
+
+* :mod:`django` must be any version from the *1.8* series.
+* :mod:`djangorestframework` must be any version in either the *3.5* or *3.6* series.
+* :mod:`django-filter` must be any version of the *1.1* series.
+* :mod:`django-crispy-forms` must be any version of the *1.7* series.
+* :mod:`crispy-forms-foundation` must be any version of the *0.6* series.
+* :mod:`python-ldap` must be any version of the *3.0* series.
+
+
+Build system rewrite and source code directory layout
+-----------------------------------------------------
+
+The entire build system has been rewritten, moving from GNU automake to regular
+Python setuptools (since NAV has been mostly Python for years now). This also
+means a lot of files in the source code tree have moved around to suit a more
+Python-centric way of installing things - that is, many "data" files have been
+moved into suitable Python packages:
+
+`templates`
+  The global :file:`templates` directory was moved to
+  :file:`python/nav/web/templates`
+
+`sql`
+  All the SQL related scripts were moved to :file:`python/nav/models/sql`
+
+`htdocs/sass`
+  All SASS source files have moved to :file:`python/nav/web/sass`
+
+`htdocs/static`
+  All static web documents, including JavaScript sources, have
+  been moved to :file:`python/nav/web/static`.
+
+Instead of statically configuring filesystem paths and usernames into the NAV
+code at build time, most of these variables are now configurable from config
+files at runtime. Building and installing NAV now entails a sequence of::
+
+  python ./setup.py build
+  python ./setup.py install
+
+See the updated installation guides for more detailed instructions.
+
+
+Backwards incompatible changes
+------------------------------
+
+Changed command line options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some of the NAV programs have changed their command line interface:
+
+* :program:`alertengine.py`: The nonworking ``--loglevel`` option was removed.
+* :program:`pping.py`: The ``-n/--nofork`` option was renamed to ``-f/--foreground``.
+* :program:`servicemon.py`: The ``-n/--nofork`` option was renamed to ``-f/--foreground``.
+* :program:`smsd.py`: The ``-n/--nofork`` option was renamed to
+  ``-f/--foreground``, while the ``-f/--factor`` option was renamed to
+  ``-D/--delayfactor``.
+* :program:`snmptrapd.py`: The ``-d/--daemon`` option was changed into a
+  ``-f/--foreground``, while daemon mode was made the default.
+
+
+Changed configuration files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These configuration files changed:
+
+* :file:`smsd.conf`: The ``loglevel`` option is no longer supported. Use
+  :file:`logging.conf` to configure log levels.
+* :file:`alertengine.conf`: The ``loglevel`` option is no longer supported. Use
+  :file:`logging.conf` to configure log levels.
+
+
+News
+----
+
+Support for DNOS-SWITCHING MIB in PortAdmin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With great support from Marcus Westin from the Linnaeus University who made
+available equipment for testing, and Ludovic Vinsonnaud from Institut Optique
+Graduate School who requested and supplied documentation from Dell, there is now
+support for the DNOS-SWITCHING-MIB. This means that most Dell-devices now can be
+configured using PortAdmin.
+
+With Dell devices you can specify three modes for an interface - General, Access
+and Trunk. NAV uses by default Q-BRIDGE-MIB to configure interfaces, but this
+does not work for interfaces in Access mode - which is the default mode for the
+interfaces. Thus to properly interact with Access mode support for Dells
+DNOS-SWITCHING-MIB was implemented.
+
+
 NAV 4.8
 ========
 

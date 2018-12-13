@@ -1,0 +1,114 @@
+/* Styling for using datatables plugin on tables */
+
+/* Sorting indicators */
+
+@import '../navsettings';
+
+@mixin common_header_styles() {
+    display: inline-block;
+    padding: .6em;
+}
+
+@mixin datatables_background() {
+    border-radius: 3px;
+    border: 1px solid #dddddd;
+    display: inline-block;
+    table {
+        margin-bottom: 0;
+    }
+}
+
+.dataTables_wrapper {
+    /* Adds background styling to the datatable. This is very specific for
+       seeddb as it also floats around elements based on what is
+       enabled in seeddb */
+    &.dataTables_background, &.dataTables_background_grey {
+        background-color: #eeeeee;
+        @include datatables_background;
+    }
+    &.dataTables_background_white {
+        background-color: white;
+        @include datatables_background;
+    }
+    select {
+        width: auto;
+    }
+    label {
+        display: inline;
+    }
+    &:after {  /* Exciting - what is this? */
+        content: ".";
+        display: block;
+        clear: both;
+        visibility: hidden;
+        line-height: 0;
+        height: 0;
+    }
+    /* Style the table header cells to indicate sort directions */
+    .dataTable {
+        th {
+            padding-right: 1.4em;
+            &.sorting_disabled {
+                background-color: #EEE;
+            }
+            &.sorting_asc {
+                background: url('#{$image-path-partials}/datatables/sort_asc.png') no-repeat right center #EEEEEE;
+            }
+            &.sorting_desc {
+                background: url('#{$image-path-partials}/datatables/sort_desc.png') no-repeat right center #EEEEEE;
+            }
+            &.sorting {
+                background: url('#{$image-path-partials}/datatables/sort_both.png') no-repeat right center #EEEEEE;
+            }
+        }
+    }
+    .dataTables_filter {
+        @include common_header_styles;
+        input {
+            display: inline;
+            margin: 0;
+            width: auto;
+        }
+    }
+    .dataTables_length {
+        @include common_header_styles;
+        select {
+            margin: 0;
+        }
+    }
+    .dataTables_info {
+        @include common_header_styles;
+        font-size: 0.9em;
+        line-height: 1.6em;
+        clear: right;
+    }
+    .dataTables_paginate {
+        @include common_header_styles;
+        float: right;
+        .paginate_button {
+            @include button($padding:$button-tny);
+            &.disabled {
+                @include button-style($disabled:true);
+            }
+            &.current {
+                @include button-style($bg:$secondary-color,
+                                      $bg-hover:$secondary-button-bg-hover,
+                                      $border-color:$secondary-button-border-color);
+            }
+        }
+        .button {
+            margin-bottom: 0;
+        }
+    }
+
+}
+
+
+/* Special styles for overriding global styles */
+.dataTables_scroll table, .DTFC_ScrollWrapper table {
+    border: 0;
+    margin-bottom: 0;
+    th {
+        box-sizing: content-box; /*Override when using scrolling in datatables*/
+    }
+}

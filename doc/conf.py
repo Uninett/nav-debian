@@ -19,6 +19,8 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.abspath('..'), 'python'))
 
 from nav import buildconf
+from nav import bootstrap
+bootstrap.bootstrap_django('doc')
 
 # -- General configuration -----------------------------------------------------
 
@@ -47,7 +49,7 @@ copyright = u'2012-2018, Uninett AS'
 # built documents.
 #
 # The short X.Y version.
-version = '4.8'
+version = 'dev'
 #version = '.'.join(buildconf.VERSION.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = buildconf.VERSION
@@ -261,9 +263,3 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
-
-rst_epilog = """
-.. |bindir| replace:: :file:`%s`
-.. |sysconfdir| replace:: :file:`%s`
-.. |nav_user| replace:: `%s`
-""" % (buildconf.bindir, buildconf.sysconfdir, buildconf.nav_user)

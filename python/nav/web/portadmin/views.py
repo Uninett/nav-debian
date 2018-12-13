@@ -19,6 +19,7 @@ import logging
 import json
 
 from operator import or_ as OR
+from functools import reduce
 
 from django.http import HttpResponse, JsonResponse
 from django.template import RequestContext, Context
@@ -46,7 +47,7 @@ from nav.web.portadmin.utils import (get_and_populate_livedata,
                                      read_config, is_cisco,
                                      add_dot1x_info,
                                      is_restart_interface_enabled,
-                                     is_write_mem_enabled)
+                                     is_write_mem_enabled, get_trunk_edit)
 from nav.Snmp.errors import SnmpError, TimeOutException
 from nav.portadmin.snmputils import SNMPFactory, SNMPHandler
 from .forms import SearchForm
@@ -228,6 +229,7 @@ def populate_infodict(request, netbox, interfaces):
             'allowed_vlans': allowed_vlans,
             'readonly': readonly,
             'aliastemplate': aliastemplate,
+            'trunk_edit': get_trunk_edit(config),
             'auditlog_api_parameters': json.dumps(auditlog_api_parameters)
         }
     )
@@ -490,8 +492,8 @@ def set_admin_status(fac, interface, request):
             if adminstatus == status_up:
                 LogEntry.add_log_entry(
                     account,
-                    u'change-status-to-up',
-                    u'change status to up',
+                    u'enable-interface',
+                    u'{actor} enabled interface {object}',
                     subsystem=u'portadmin',
                     object=interface,
                 )
@@ -501,8 +503,8 @@ def set_admin_status(fac, interface, request):
             elif adminstatus == status_down:
                 LogEntry.add_log_entry(
                     account,
-                    u'change-status-to-down',
-                    u'change status to down',
+                    u'disable-interface',
+                    u'{actor} disabled interface {object}',
                     subsystem=u'portadmin',
                     object=interface,
                 )
@@ -528,6 +530,7 @@ def response_based_on_result(result):
 def render_trunk_edit(request, interfaceid):
     """Controller for rendering trunk edit view"""
 
+    config = read_config()
     interface = Interface.objects.get(pk=interfaceid)
     agent = get_factory(interface.netbox)
     if request.method == 'POST':
@@ -563,7 +566,8 @@ def render_trunk_edit(request, interfaceid):
     context = get_base_context(extra_path)
     context.update({'interface': interface, 'available_vlans': vlans,
                     'native_vlan': native_vlan, 'trunked_vlans': trunked_vlans,
-                    'allowed_vlans': allowed_vlans})
+                    'allowed_vlans': allowed_vlans,
+                    'trunk_edit': get_trunk_edit(config)})
 
     return render_to_response('portadmin/trunk_edit.html',
                               context,
@@ -573,7 +577,7 @@ def render_trunk_edit(request, interfaceid):
 def handle_trunk_edit(request, agent, interface):
     """Edit a trunk"""
 
-    native_vlan = int(request.POST.get('native_vlan'))
+    native_vlan = int(request.POST.get('native_vlan', 1))
     trunked_vlans = [int(vlan) for vlan in request.POST.getlist('trunk_vlans')]
 
     if should_check_access_rights(get_account(request)):

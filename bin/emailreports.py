@@ -21,12 +21,14 @@ import argparse
 import logging
 import os
 
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
+
 from nav.web.business.reportengine import send_reports
 from nav.models.profiles import ReportSubscription
-from nav.buildconf import localstatedir
 from nav.logs import init_generic_logging
 
-LOGFILE = os.path.join(localstatedir, 'log', 'emailreports.log')
+LOGFILE = 'emailreports.log'
 _logger = logging.getLogger('emailreports')
 
 

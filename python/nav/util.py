@@ -32,7 +32,7 @@ except ImportError:
     ifilter = filter
 
 from django.utils import six
-from django.conf import settings
+from django.utils.six.moves import range
 
 import IPy
 
@@ -265,7 +265,7 @@ class IPRange(object):
 
     def __iter__(self):
         count = self.len()
-        for offset in xrange(0, count):
+        for offset in range(0, count):
             yield IPy.IP(self._min.int()+offset)
 
     def __getitem__(self, index):
@@ -459,6 +459,7 @@ def address_to_string(ip, port):
 
 def auth_token():
     """Generates a hash that can be used as an OAuth API token"""
+    from django.conf import settings
     _hash = hashlib.sha1(six.text_type(uuid.uuid4()).encode('utf-8'))
     _hash.update(settings.SECRET_KEY.encode('utf-8'))
     return _hash.hexdigest()

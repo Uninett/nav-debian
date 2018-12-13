@@ -1,0 +1,84 @@
+{% load crispy_forms_tags %}
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NAV Login</title>
+  <link rel="stylesheet" href="/static/css/nav.css"/>
+  <link rel="stylesheet" href="/static/css/nav/login.css"/>
+
+  <script src="{{ STATIC_URL }}js/require_config.js"></script>
+  {% if debug %}
+    <script src="{{ STATIC_URL }}js/require_config_dev.js"></script>
+  {% endif %}
+  <script src="{{ STATIC_URL }}js/libs/require.js" data-main='src/main'></script>
+  <script>
+   require.config({ urlArgs: 'bust={{ nav_version }}' });
+  </script>
+  {% include 'navurls.html' %}
+
+</head>
+
+<body onload="document.getElementById('id_username').focus();">
+
+<div class="row">
+  <div class="small-12 column">
+
+    <div class="panel logincontainer">
+      <div class="logo-wrapper">
+        <a href="/">
+          <img src="{{ STATIC_URL }}images/main/nav-logo-black.svg" alt="NAV"
+               class="navlogo"/>
+        </a>
+      </div>
+
+      {% for e in errors %}
+        <div class="alert-box alert">
+          {{ e }}
+        </div>
+      {% endfor %}
+
+      {% if origin %}
+        <div class="alert-box secondary origin">
+          After successfully logging in, you will be redirected to:<br/>
+          {{ origin }}
+        </div>
+      {% endif %}
+
+      {% crispy form %}
+
+      <small>
+        <a href="#" data-reveal-id="auditlog-information">About audit logging in NAV</a>
+      </small>
+
+      <div id="auditlog-information" class="reveal-modal tiny" data-reveal aria-labelledby="modalTitle" aria-hidden="true" role="dialog">
+        <h2 id="modalTitle">Audit logging</h2>
+
+        <p>
+          To ensure traceability of user initiated changes to the NAV database,
+          some user actions are logged. This log is only available to the NAV
+          administrators for your local installation.
+        </p>
+
+        <p>
+          Typical examples are:
+        </p>
+
+        <ul>
+          <li>a user logs in</li>
+          <li>updating IP Device configuration in SeedDB</li>
+          <li>updating an interface in PortAdmin</li>
+        </ul>
+
+        <a class="close-reveal-modal" aria-label="Close">&#215;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+
+</html>
