@@ -1,6 +1,6 @@
---- a/python/nav/etc/apache/apache.conf.in
-+++ b/python/nav/etc/apache/apache.conf.in
-@@ -57,7 +57,7 @@
+--- new-nav-debian.orig/python/nav/etc/apache/apache.conf.in
++++ new-nav-debian/python/nav/etc/apache/apache.conf.in
+@@ -57,7 +57,7 @@ AliasMatch (^/static/.*) @webrootdir@/$1
  WSGIDaemonProcess NAV user=@nav_user@ processes=2 display-name=%{GROUP}
  WSGIProcessGroup NAV
  WSGIApplicationGroup %{GLOBAL}
