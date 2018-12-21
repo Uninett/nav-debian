@@ -3,7 +3,7 @@ package     := nav
 DEBIAN_ROOT := $(CURDIR)/debian/$(package)
 
 %:
-	dh $@ --with quilt --with python2 --with systemd
+	dh $@ --with quilt --with python-virtualenv --with systemd
 
 override_dh_auto_configure:
 	./autogen.sh

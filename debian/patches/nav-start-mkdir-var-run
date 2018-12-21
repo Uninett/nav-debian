@@ -1,6 +1,6 @@
---- a/bin/nav
-+++ b/bin/nav
-@@ -23,6 +23,9 @@ import os
+--- new-nav-debian.orig/bin/nav
++++ new-nav-debian/bin/nav
+@@ -22,6 +22,9 @@ import os
  import os.path
  import argparse
  import textwrap
@@ -8,20 +8,20 @@
 +import grp
 +from nav import buildconf
  from nav import colors
-
+ 
  try:
-@@ -176,6 +179,7 @@ def c_start(args):
+@@ -212,6 +215,7 @@ def c_start(args):
      """starts services"""
      if not args.nonroot:
          verify_root()
 +        verify_var_run()
      action_iterator(args.service, "start", "Starting", "Failed",
                      verbose=args.verbose)
-
-@@ -188,6 +192,16 @@ def c_stop(args):
+ 
+@@ -224,6 +228,16 @@ def c_stop(args):
                      verbose=args.verbose)
-
-
+ 
+ 
 +def verify_var_run():
 +    """Verifies that /var/run/nav has been created on Debian"""
 +    dir = '/var/run/nav'

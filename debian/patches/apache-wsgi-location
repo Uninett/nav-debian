@@ -1,5 +1,5 @@
---- a/etc/apache/apache.conf.in
-+++ b/etc/apache/apache.conf.in
+--- a/python/nav/etc/apache/apache.conf.in
++++ b/python/nav/etc/apache/apache.conf.in
 @@ -57,7 +57,7 @@
  WSGIDaemonProcess NAV user=@nav_user@ processes=2 display-name=%{GROUP}
  WSGIProcessGroup NAV

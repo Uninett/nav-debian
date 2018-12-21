@@ -9,19 +9,26 @@ Build-Depends:
  autoconf,
  automake,
  python,
+ dh-virtualenv,
  dh-python,
  python-sphinx,
  python-psycopg2 (>= 2.5.4),
  python-zope.interface,
  ruby-sass (>= 3.4.7),
 # The following are only required to build the Sphinx docs properly
- python-django (<< 1.8),
- python-django (>= 1.7),
- python-configparser (>= 3.3.0),
- python-twisted (>= 14.0.1),
- python-django-crispy-forms,
- python-django-crispy-forms,
- python-crispy-forms-foundation
+# python-django (<< 1.8),
+# python-django (>= 1.7),
+# python-configparser (>= 3.3.0),
+# python-twisted (>= 14.0.1),
+# python-django-crispy-forms,
+# python-django-crispy-forms,
+# python-crispy-forms-foundation
+# The following are required to build various Python packages in the virtualenv:
+ libpq-dev (>=9.6.7),
+ libjpeg-dev,
+ libz-dev,
+ libldap2-dev,
+ libsasl2-dev,
 Standards-Version: 3.9.6
 X-Python-Version: 2.7
 Homepage: https://nav.uninett.no/
