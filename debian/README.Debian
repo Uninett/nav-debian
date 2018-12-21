@@ -18,7 +18,7 @@ following steps:
 
     Then run:
 
-      su -c "/usr/lib/nav/navsyncdb -c" postgres
+      su -c "/usr/sbin/navsyncdb -c" postgres
 
     Also take a look at /usr/share/nav/sql/README for details, especially if
     you need to install the schema on a remote PostgreSQL server.
@@ -72,4 +72,4 @@ following steps:
 Happy NAV-ing! :)
 
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>, Wed, 16 Nov 2016 09:34:09 +0100
+ -- Morten Brekkevold <mvold@charlottenlund>, Fri, 14 Dec 2018 14:31:16 +0100
