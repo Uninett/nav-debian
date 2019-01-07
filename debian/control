@@ -31,8 +31,6 @@ Depends:
   python (>= 2.7), python (<< 3.0),
   apache2-mpm-prefork,
   nbtscan,
-  libsnmp30,
-  libldap-2.4-2 (>= 2.4.7),
   logrotate,
   postgresql (>= 9.4),
   postgresql-contrib (>= 9.4),
@@ -42,7 +40,10 @@ Depends:
   makepasswd,
   rsync,
   wwwconfig-common (>= 0.0.37),
-  samba-common-bin
+  samba-common-bin,
+# The following are mostly requirements of the embedded Python libraries of this package:
+  libsnmp30,
+  libldap-2.4-2 (>= 2.4.7),
 Recommends: graphite-carbon, graphite-web
 Conflicts: graphite-web-django14
 Description: Network Administration Visualized
