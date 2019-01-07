@@ -42,8 +42,12 @@ Depends:
   wwwconfig-common (>= 0.0.37),
   samba-common-bin,
 # The following are mostly requirements of the embedded Python libraries of this package:
+  libjpeg62,
+  libsasl2-2,
   libsnmp30,
   libldap-2.4-2 (>= 2.4.7),
+  libpq5,
+  zlib1g
 Recommends: graphite-carbon, graphite-web
 Conflicts: graphite-web-django14
 Description: Network Administration Visualized
