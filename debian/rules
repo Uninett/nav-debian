@@ -14,12 +14,14 @@ override_dh_virtualenv:
 	dh_installdocs NOTES.rst
 	dh_installchangelogs CHANGES
 
-	# apache2 sites-available-file
-	install -m644 debian/nav.apache2-site \
-	  $(DEBIAN_ROOT)/etc/apache2/sites-available/nav-default.conf
-
 	# copy initial set of config files
 	mkdir $(DEBIAN_ROOT)/etc/nav && cp -a $(CURDIR)/python/nav/etc/* $(DEBIAN_ROOT)/etc/nav/
+
+	# apache2 sites-available-file and our own Debian-specific apache config
+	install -m644 debian/nav.apache2-site \
+	  $(DEBIAN_ROOT)/etc/apache2/sites-available/nav-default.conf
+	install -m644 debian/apache.conf \
+	  $(DEBIAN_ROOT)/etc/nav/apache/apache.conf
 
 	# Re-enable global site packages for runtime. We don't want to build
 	# the virtualenv that way, however, since dh-virtualenv/pip will
