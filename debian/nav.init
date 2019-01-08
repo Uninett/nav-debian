@@ -20,7 +20,7 @@ set -e
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 RUNDIR=/var/run/nav
-NAVBIN=/usr/lib/nav/nav
+NAVBIN=/usr/sbin/nav
 if [ ! -x $NAVBIN ]; then
     echo "Error starting/stopping NAV, $NAVBIN does not exist or is not executable." >2
     exit 1
@@ -51,9 +51,7 @@ case "$1" in
 	;;
 
     status)
-	if [ -x /usr/lib/nav/nav ]; then
-	    /usr/lib/nav/nav status
-	fi
+	$NAVBIN status
 	;;
 
     *)
