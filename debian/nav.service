@@ -1,6 +1,6 @@
 [Unit]
 Description=Network Administration Visuzalized
-Documentation=http://nav.uninett.no/doc/latest/
+Documentation=https://nav.uninett.no/doc/latest/
 After=network.target postgresql.service
 
 [Service]
