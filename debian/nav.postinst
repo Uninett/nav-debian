@@ -36,6 +36,7 @@ fix_system_user() {
 
 fix_perms() {
     install -d -onavcron -gnav -m755 /var/lib/nav
+    install -d -onavcron -gnav -m755 /var/lib/nav/www
     install -d -onavcron -gnav -m755 /var/lib/nav/log
     install -d -onavcron -gnav -m755 /var/lib/nav/rrd
     install -d -onavcron -gnav -m755 /var/lib/nav/rrd/activeip

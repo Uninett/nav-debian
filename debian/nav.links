@@ -33,3 +33,4 @@ opt/venvs/nav/bin/t1000.py usr/bin/t1000.py
 opt/venvs/nav/bin/thresholdmon usr/bin/thresholdmon
 opt/venvs/nav/bin/whisper_update_many.py usr/bin/whisper_update_many.py
 var/lib/nav usr/share/nav/var
+var/lib/nav/www usr/share/nav/www
