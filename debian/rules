@@ -11,6 +11,8 @@ override_dh_virtualenv:
 	dh_virtualenv --preinstall 'pip>=18' --preinstall 'setuptools>=40' --setuptools
 	dh_auto_install
 
+	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python setup.py build_sphinx
+	dh_installdocs build/sphinx/html
 	dh_installdocs NOTES.rst
 	dh_installchangelogs CHANGES
 
