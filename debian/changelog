@@ -1,4 +1,4 @@
-nav (4.9.0b1-1) UNRELEASED; urgency=medium
+nav (4.9.0b2-1) UNRELEASED; urgency=medium
 
   * Repackaged using dh-virtualenv
     - Added build dependencies needed to build embedded Python packages.
@@ -6,7 +6,7 @@ nav (4.9.0b1-1) UNRELEASED; urgency=medium
     - Added binary dependencies for some of the embedded Python pacakges.
     - All NAV binaries are now symlinked to either /usr/bin or /usr/sbin .
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 12 Jul 2018 12:34:18 +0200
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 11 Jan 2019 10:26:23 +0000
 
 nav (4.8.6-1) oldstable; urgency=medium
 
