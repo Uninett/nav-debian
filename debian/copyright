@@ -1,20 +1,15 @@
-NAV was downloaded from https://github.com/UNINETT/nav/releases
+NAV was downloaded from https://github.com/Uninett/nav
 
-NAV is licensed under the GNU GPL version 2.  NAV includes software from third
+NAV is licensed under the GNU GPL version 3.  NAV includes software from third
 parties, which are either licensed under the GPL or compatible licenses.
 
-A verbatim copy of the GPL 2 license is found in the file:
+A verbatim copy of the GPL 3 license is found in the file:
 
- `/usr/share/common-licenses/GPL-2'
+ `/usr/share/common-licenses/GPL-3'
 
 on every Debian GNU/Linux system.
 
-There are multiple copyright holders to NAV code.  The major copyright holders
-are:
-
-* Copyright 2002-2017 UNINETT AS
-* Copyright 1999-2010 Norwegian University of Science and Technology
-* Copyright 2007-2010 University of Tromsø
+* Copyright 2002-2019 Uninett AS
 
 Some of the graphics icons come altered and/or unaltered from the Tango Icon
 Library (http://tango.freedesktop.org/) or other public domain collections.
