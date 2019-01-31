@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -406,7 +406,12 @@ def set_ifalias(account, fac, interface, request):
 def set_vlan(account, fac, interface, request):
     """Set vlan on netbox if it is requested"""
     if 'vlan' in request.POST:
-        vlan = int(request.POST.get('vlan'))
+        try:
+            vlan = int(request.POST.get('vlan'))
+        except ValueError:
+            messages.error(request, "Ignoring request to set vlan={}".format(
+                request.POST.get('vlan')))
+            return
 
         try:
             if is_cisco(interface.netbox):

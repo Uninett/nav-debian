@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -123,7 +123,7 @@ class ThresholdForm(forms.ModelForm):
 
 def validate_expression(expression, form):
     """Validate the expression"""
-    target = form.cleaned_data['target']
+    target = form.cleaned_data.get('target', '')
     evaluator = ThresholdEvaluator(target)
     try:
         evaluator.evaluate(expression)

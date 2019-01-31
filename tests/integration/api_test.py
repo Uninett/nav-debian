@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import json
 import pytest
 
+from nav.models.event import AlertHistory
 from nav.models.fields import INFINITY
 from nav.web.api.v1.views import get_endpoints
 
@@ -99,6 +100,14 @@ def test_page_size(db, api_client, token):
     response = api_client.get('/api/1/room/?page_size=1')
     print(response.data)
     assert len(response.data.get('results')) == 1
+
+
+def test_ordering_should_not_crash(db, api_client, token):
+    endpoint = 'room'
+    create_token_endpoint(token, endpoint)
+    response = api_client.get('/api/1/room/?ordering=whatever')
+    print(response.data)
+    assert response.status_code == 200
 
 
 # Account specific tests
@@ -275,6 +284,29 @@ def test_update_prefix_remove_usage(db, api_client, token, serializer_models):
     response = update(api_client, endpoint, prefix.get('id'), testdata)
     json_response = json.loads(response.content.decode('utf-8'))
     assert json_response.get('usages') == ['ans']
+
+# Alert specific tests
+
+
+def test_nonexistent_alert_should_give_404(db, api_client, token):
+    create_token_endpoint(token, 'alert')
+    response = api_client.get('{}9999/'.format(ENDPOINTS['alert']))
+    print(response)
+    assert response.status_code == 404
+
+
+def test_alert_should_be_visible_in_api(db, api_client, token,
+                                        serializer_models):
+    create_token_endpoint(token, 'alert')
+    alert = AlertHistory.objects.all()[0]
+    response = api_client.get('{url}{id}/'.format(
+        url=ENDPOINTS['alert'], id=alert.id))
+    print(response)
+    assert response.status_code == 200
+    content = response.content.decode('utf-8')
+    # Simple string tests, but they might just as well parse the JSON structure
+    assert str(alert.id) in content
+    assert str(alert.netbox.id) in content
 
 
 # Helpers

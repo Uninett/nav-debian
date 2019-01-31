@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -26,21 +26,31 @@ _logger = logging.getLogger(__name__)
 HALF_HOUR = 60 * 30
 
 
+def cached_test(testclass):
+    """Returns cached test results from testclass"""
+    test_name = testclass.__name__
+    cache_key = "watchdog:{}".format(test_name)
+
+    try:
+        test = cache.get(cache_key)
+    except ValueError:  # ignore cache in case of errors
+        test = None
+
+    if test is None:
+        test = testclass()
+        test.run()
+        cache.set(cache_key, test, HALF_HOUR)
+    else:
+        _logger.debug('%s was in cache', test_name)
+    return test
+
+
 def get_statuses():
     """Runs and returns all tests"""
-
-    # Not sure this is kosher
     test_results = []
     for cls in Test.__subclasses__():
         if cls.active:
-            testname = cls.__name__
-            test = cache.get(testname)
-            if test is None:
-                test = cls()
-                test.run()
-                cache.set(testname, test, HALF_HOUR)
-            else:
-                _logger.debug('%s was in cache', testname)
+            test = cached_test(cls)
             test_results.append(test)
 
     return test_results

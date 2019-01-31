@@ -3,7 +3,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -38,7 +38,7 @@ from rest_framework.renderers import (JSONRenderer, BrowsableAPIRenderer,
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, get_object_or_404
 from nav.models.api import APIToken
 from nav.models import manage, event, cabling, rack, profiles
 from nav.models.fields import INFINITY, UNRESOLVED
@@ -171,7 +171,7 @@ class RelatedOrderingFilter(filters.OrderingFilter):
         except FieldDoesNotExist:
             return False
 
-    def remove_invalid_fields(self, queryset, ordering, view):
+    def remove_invalid_fields(self, queryset, ordering, view, request):
         return [term for term in ordering
                 if self.is_valid_field(queryset.model, term.lstrip('-'))]
 
@@ -400,6 +400,11 @@ class InterfaceFilterClass(filters.FilterSet):
                   'ifadminstatus', 'iftype', 'baseport', 'module__name', 'vlan')
 
 
+class InterfaceFragmentRenderer(TemplateHTMLRenderer):
+    media_type = 'text/x-nav-html'
+    template_name = 'ipdevinfo/port-details-api-frag.html'
+
+
 class InterfaceViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     """Lists all interfaces.
 
@@ -441,6 +446,11 @@ class InterfaceViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
             return serializers.InterfaceWithCamSerializer
         else:
             return serializers.InterfaceSerializer
+
+    def get_renderers(self):
+        if self.action == 'retrieve':
+            self.renderer_classes += (InterfaceFragmentRenderer,)
+        return super(InterfaceViewSet, self).get_renderers()
 
     @detail_route()
     def metrics(self, _request, pk=None):
@@ -824,7 +834,7 @@ class PrefixUsageDetail(NAVAPIMixin, APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         starttime, endtime = get_times(request)
-        db_prefix = manage.Prefix.objects.get(net_address=prefix)
+        db_prefix = get_object_or_404(manage.Prefix, net_address=prefix)
         serializer = serializers.PrefixUsageSerializer(
             prefix_collector.fetch_usage(db_prefix, starttime, endtime))
 
@@ -893,7 +903,9 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """Gets an AlertHistory QuerySet"""
-        if not self.request.query_params.get('stateless', False):
+        if self.is_single_alert_by_primary_key():
+            return event.AlertHistory.objects.all().select_related()
+        elif self.request.query_params.get('stateless', False):
             return event.AlertHistory.objects.unresolved().select_related()
         else:
             return self._get_stateless_queryset()
@@ -907,9 +919,6 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         stateless = Q(start_time__gte=threshold) & Q(end_time__isnull=True)
         return event.AlertHistory.objects.filter(
             stateless | UNRESOLVED).select_related()
-
-    def get_object(self, queryset=None):
-        return super(AlertHistoryViewSet, self).get_object(self.model)
 
     def get_template_names(self):
         """Get the template name based on the alerthist object"""
@@ -927,6 +936,10 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
             'alertmsg/base.html'
         ])
         return template_names
+
+    def is_single_alert_by_primary_key(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        return lookup_url_kwarg in self.kwargs
 
 
 class RackViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):

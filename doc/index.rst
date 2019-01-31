@@ -41,6 +41,8 @@ See also :doc:`the release notes <release-notes>` for this version (|version|).
   :doc:`Getting organized <intro/getting-organized>`
 
 * **Howto guides:**
+  :doc:`howto/manual-install-on-debian` |
+  :doc:`howto/installing-graphite-on-debian` |
   :doc:`Troubleshooting topology problems <howto/debugging-topology>` |
   :doc:`faq/graph_gaps` |
   :doc:`Migrating data between NAV installations <howto/migrate-data>` |

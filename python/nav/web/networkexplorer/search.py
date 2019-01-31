@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -334,7 +334,7 @@ def room_search(room, exact=False):
     return router_matches, gwport_matches, swport_matches
 
 
-def mac_search(mac):
+def mac_search(mac, exact=False):
     """
     """
     search = search_expand_mac(mac)

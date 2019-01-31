@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Utils for the image upload views"""
+import errno
 import hashlib
 import time
 import os
@@ -50,8 +51,13 @@ def get_next_priority(obj):
 def create_image_directory(imagedirectory):
     """Create directory and change permissions"""
     if not exists(imagedirectory):
-        os.mkdir(imagedirectory)
-        os.chmod(imagedirectory, 0o0755)
+        try:
+            os.makedirs(imagedirectory, mode=0o0755)
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(imagedirectory):
+                pass
+            else:
+                raise
 
 
 def save_image(image, imagefullpath):

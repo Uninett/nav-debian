@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -117,6 +117,11 @@ class AlertHistoryFilterBackend(filters.BaseFilterBackend):
     }
 
     def filter_queryset(self, request, queryset, view):
+        if view.is_single_alert_by_primary_key():
+            # no really, the client asked for a specific single alert, screw
+            # all the other filters!
+            return queryset
+
         for arg, field in self.MULTIVALUE_FILTERS.items():
             values = request.query_params.getlist(arg, None)
             if values:

@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -61,8 +61,8 @@ AMERICAN_POWER_CONVERSION_CORP = PowerNet-MIB
 EMERSON_COMPUTER_POWER = UPS-MIB
 EATON_CORPORATION = XUPS-MIB
 MERLIN_GERIN = MG-SNMP-UPS-MIB
-IT_WATCHDOGS_INC = IT-WATCHDOGS-MIB-V3 IT-WATCHDOGS-MIB
-GEIST_MANUFACTURING_INC = GEIST-MIB-V3
+IT_WATCHDOGS_INC = IT-WATCHDOGS-MIB-V3 IT-WATCHDOGS-MIB ItWatchDogsMibV4
+GEIST_MANUFACTURING_INC = GEIST-MIB-V3 GeistMibV4
 COMET_SYSTEM_SRO = P8652-MIB COMETMS-MIB
 KCP_INC = SPAGENT-MIB
 ELTEK_ENERGY_AS = ELTEK-DISTRIBUTED-MIB
@@ -71,7 +71,7 @@ RARITAN_COMPUTER_INC = PDU2-MIB
 IBM = IBM-PDU-MIB
 RITTAL_WERK_RUDOLF_LOH_GMBH_COKG = RITTAL-CMC-III-MIB
 JUNIPER_NETWORKS_INC = ENTITY-SENSOR-MIB JUNIPER-DOM-MIB
-
+SUPERIOR_POWER_SOLUTIONS_HK_COLTD = Pwt3PhaseV1Mib
 """
 
 

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -71,6 +71,8 @@ urlpatterns = [
         RedirectView.as_view(url='/static/doc/%(path)s', permanent=True)),
     url(r'^doc/$',
         RedirectView.as_view(url='/static/doc/index.html', permanent=True)),
+    url(r'^uploads/(?P<path>.*)$',
+        RedirectView.as_view(url='/static/uploads/%(path)s', permanent=True)),
     url(r'^toolbox/$',
         views.toolbox,
         name='webfront-toolbox'),

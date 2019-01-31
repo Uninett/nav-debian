@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -162,19 +162,19 @@ def get_layer2_traffic(location_or_room_id=None):
             'netbox', 'to_netbox', 'to_interface__netbox'
         )
     else:
-        room = Room.objects.filter(id=location_or_room_id)
-        if room.exists():
-            location = Room.objects.get(id=location_or_room_id)
-        else:
-            location = Location.objects.get(id=location_or_room_id)
-            # Sanity check: Does the room exist?
-            # Fetch interfaces for devices in that room
         interfaces = Interface.objects.filter(
             to_netbox__isnull=False,
-            netbox__room__location=location
         ).select_related(
             'netbox', 'to_netbox', 'to_interface__netbox'
         )
+
+        try:
+            room = Room.objects.get(id=location_or_room_id)
+        except Room.DoesNotExist:
+            location = Location.objects.get(id=location_or_room_id)
+            interfaces = interfaces.filter(netbox__room__location=location)
+        else:
+            interfaces = interfaces.filter(netbox__room=room)
 
     edges = set([
         (

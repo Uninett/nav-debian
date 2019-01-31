@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -103,7 +103,7 @@ class DaemonService(Service):
     def load_services(cls):
         try:
             with open_configfile(DAEMON_CONFIG) as ymldata:
-                cfg = yaml.load(ymldata)
+                cfg = yaml.safe_load(ymldata)
         except OSError:
             cfg = {'daemons': {}}
 
@@ -316,11 +316,14 @@ class Crontab(object):
             # crontab doesn't have very helpful exit codes. if we get here, it
             # may simply be because the user has no defined crontab yet
             self.content = []
+            _error = True
         except OSError as error:
             if error.errno == errno.ENOENT:
                 raise CrontabError("crontab command was not found")
             else:
                 raise
+        else:
+            _error = False
 
         # cron often inserts three comment lines in the spooled
         # crontab; the following is an attempt to remove those three
@@ -332,7 +335,7 @@ class Crontab(object):
                 del self.content[0]
         self._parse_blocks()
 
-        if '__init__' not in self:
+        if not _error and '__init__' not in self:
             self.update_init()
 
     def save(self):
@@ -360,13 +363,7 @@ class Crontab(object):
                 init_block.append('%s="%s"' % (var, val))
 
         # Set up a default MAILTO directive
-        mailto = 'root@localhost'
-        try:
-            nav_conf = read_flat_config('nav.conf')
-            if 'ADMIN_MAIN' in nav_conf:
-                mailto = nav_conf['ADMIN_MAIL']
-        except IOError:
-            pass
+        mailto = NAV_CONFIG.get('ADMIN_MAIL', 'root@localhost')
 
         init_block.append('MAILTO=' + mailto)
         if '__init__' not in self:

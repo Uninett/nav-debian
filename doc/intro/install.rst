@@ -3,7 +3,16 @@
 ================
 
 .. highlight:: sh
-.. contents::
+
+NAV releases official Debian packages. We recommend using these if you can. If
+you can't, or won't, please read on.
+
+Install from source on
+======================
+
+See :doc:`/howto/manual-install-on-debian` for more complete, Debian-centric
+guide to installation of a full NAV system from source.
+
 
 Dependencies
 ============
@@ -44,11 +53,11 @@ separate step, using the pip_ tool and the provided requirements files::
 *However*, some of the required modules are C extensions that will require the
 presence of some C libraries to be correctly built (unless PyPI provides binary
 wheels for your platform). These include the ``psycopg2`` driver and the
-``python-ldap`` module).
+``python-ldap`` and ``Pillow`` modules).
 
 The current Python requirements are as follows:
 
-.. literalinclude:: ../../requirements/django.txt
+.. literalinclude:: ../../requirements/django18.txt
    :language: text
 
 .. literalinclude:: ../../requirements/base.txt
@@ -74,37 +83,16 @@ is required.
 Installing NAV
 ==============
 
-To build and install NAV::
+To build and install NAV and all its Python dependencies::
 
-  python setup.py install
+  pip install -r requirements.txt .
 
 This will build and install NAV in the default system-wide directories for your
 system. If you wish to customize the install locations, please consult the
 output of ``python setup.py install --help``.
 
-You can also opt to use pip_ instead, to install the source code and
-simultaneously install all the Python package dependencies::
 
-  pip install .
-
-
-On Debian 9 (Stretch)
----------------------
-
-On Debian 9, a full installation of NAV, mostly via PyPi, and with
-configuration files in :file:`/etc/nav/` can be obtained thus::
-
-  apt-get install -y libldap2-dev libsasl2-dev
-  pip install .
-  nav config install /etc/nav
-
-
-Building the documentation
---------------------------
-
-This HTML documentation can be built separately using this step::
-
-  python setup.py build_sphinx
+.. _initializing-the-configuration-files:
 
 Initializing the configuration
 ------------------------------
@@ -123,6 +111,7 @@ To verify that NAV can find its main configuration file, run::
 
   nav config where
 
+
 Initializing the database
 -------------------------
 
@@ -130,16 +119,13 @@ Before NAV can run, the database schema must be installed in your PostgreSQL
 server.  NAV can create a database user and a database schema for you.
 
 Choose a password for your NAV database user and set this in the ``userpw_nav``
-in the :file:`db.conf` config file. As the `postgres` superuser, run the following
+in the :file:`db.conf` config file. As the ``postgres`` superuser, run the following
 command::
 
   navsyncdb -c
 
 This will attempt to create a new database user, a new database and initialize
 it with NAV's schema.
-
-For more details on setting up PostgreSQL and initializing the schema, please
-refer to the :file:`sql/README` file.
 
 
 Configuring the web interface
@@ -161,7 +147,7 @@ config, which needn't contain much more than this:
   ServerName nav.example.org
   ServerAdmin webmaster@example.org
 
-  Include /usr/local/nav/etc/apache/apache.conf
+  Include /path/to/your/nav/apache.conf
 
 .. important:: You should always protect your NAV web site using SSL!
 
@@ -184,39 +170,41 @@ can install all of them by issuing the following command:
 
   Type 'yes' to continue, or 'no' to cancel:
 
-In this example, type :kbd:`yes`, hit Enter, and ensure your web server's
+In this example, type :kbd:`yes`, hit :kbd:`Enter`, and ensure your web server's
 document root points to :file:`/usr/share/nav/www`, because that is where the
 :file:`static` directory is located. If that doesn't suit you, you will at
 least need an Alias to point the ``/static`` URL to the :file:`static`
 directory.
 
+Users and privileges
+--------------------
 
-Create users and groups
------------------------
+Apart from the ``pping`` and ``snmptrapd`` daemons, no NAV processes should
+ever be run as ``root``. You should create a non-privileged system user and
+group, and ensure the ``NAV_USER`` option in :file:`nav.conf` is set
+accordingly. Also make sure this user has permissions to write to your
+configured PID-file and log directories.
 
-NAV processes should run as a non-privileged user, whose name is configurable
-in :file:`nav.conf` (the default value being ``navcron``). Preferably, this
-user should also have a separate system group as well::
+.. note:: The ``pping`` and ``snmptrapd`` daemons must be started as ``root``
+          to be able to create privileged communication sockets. Both daemons
+          will drop privileges and run as the configured non-privileged user as
+          soon as the sockets have been acquired.
 
-  sudo addgroup --system nav
-  sudo adduser --system --no-create-home --home /usr/local/nav \
-               --shell /bin/sh --ingroup nav navcron;
+Building the documentation
+--------------------------
 
-If you want to use NAV's SMS functionality in conjunction with Gammu, you
-should make sure the `navcron` user is allowed to write to the serial device
-you've connected your GSM device to. Often, this device has a group ownership
-set to the `dialout` group, so the easieast route is to add the `navcron` user
-to the dialout group::
+If you wish, this HTML documentation can be built separately using this step::
 
-  sudo addgroup navcron dialout
+  python setup.py build_sphinx
 
-You should also make sure `navcron` has permission to write log files, pid
-files and various other state information. You can configure the log and pid
-file directories in :file:`nav.conf`. Then make sure these directories exist
-and are writable for the ``navcron`` user::
+The resulting files will typically be placed in :file:`build/sphinx/html/`.
 
-  sudo chown -R navcron:nav /path/to/log/directory
-  sudo chown -R navcron:nav /path/to/pid/directory
+If you want to serve this documentation on your NAV web server, you should copy
+the :file:`html` directory to a suitable location and make sure that location is served
+as ``/doc`` on the web server.  If using the example Apache configuration
+(:file:`apache.conf.example`), there is a define named ``documentation_path``,
+which can be set to point to this file system location.
+
 
 .. _integrating-graphite-with-nav:
 
@@ -263,7 +251,7 @@ to configure some options before letting NAV send data to Graphite.
 2. You should add the suggested *storage-schema* configurations for the
    various ``nav`` prefixes listed in :file:`etc/graphite/storage-schemas.conf`:
 
-   .. literalinclude:: ../../etc/graphite/storage-schemas.conf
+   .. literalinclude:: ../../python/nav/etc/graphite/storage-schemas.conf
 
    The highest precision retention archives are the most important ones here,
    as their data point interval must correspond with the collection intervals
@@ -278,7 +266,7 @@ to configure some options before letting NAV send data to Graphite.
 3. You should add the suggested *storage-aggregation* configurations listed in
    the file :file:`etc/graphite/storage-aggregation.conf`:
 
-   .. literalinclude:: ../../etc/graphite/storage-aggregation.conf
+   .. literalinclude:: ../../python/nav/etc/graphite/storage-aggregation.conf
 
    These will ensure that time-series data sent to Graphite by NAV will be
    aggregated properly when Graphite rolls them into lower-precision archives.

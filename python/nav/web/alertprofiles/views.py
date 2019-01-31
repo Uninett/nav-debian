@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -354,8 +354,11 @@ def profile_remove(request):
         )
         return HttpResponseRedirect(reverse('alertprofiles-profile'))
     else:
-        active_profile = AlertPreference.objects.get(
-            account=account).active_profile
+        try:
+            active_profile = AlertPreference.objects.get(
+                account=account).active_profile
+        except AlertPreference.DoesNotExist:
+            active_profile = None
         profiles = AlertProfile.objects.filter(
             pk__in=request.POST.getlist('profile'))
 
