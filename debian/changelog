@@ -1,12 +1,14 @@
-nav (4.9.0b2-1) UNRELEASED; urgency=medium
+nav (4.9.0-1) UNRELEASED; urgency=medium
 
+  * New upstream release
+    - Adapted to new setuptools-based build system.
   * Repackaged using dh-virtualenv
     - Added build dependencies needed to build embedded Python packages.
     - Removed Python dependencies that are now embedded.
-    - Added binary dependencies for some of the embedded Python pacakges.
+    - Added binary dependencies for some of the embedded Python packages.
     - All NAV binaries are now symlinked to either /usr/bin or /usr/sbin .
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 11 Jan 2019 10:26:23 +0000
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 31 Jan 2019 09:36:48 +0000
 
 nav (4.8.6-1) oldstable; urgency=medium
 

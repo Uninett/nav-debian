@@ -1,6 +1,6 @@
---- a/python/nav/etc/nav.conf
-+++ b/python/nav/etc/nav.conf
-@@ -6,10 +6,10 @@
+--- nav-debian.orig/python/nav/etc/nav.conf
++++ nav-debian/python/nav/etc/nav.conf
+@@ -6,15 +6,15 @@
  NAV_USER=navcron
  
  # Where should NAV daemons store their pid files?
@@ -10,6 +10,12 @@
  # Where should NAV daemons store their log files?
 -LOG_DIR=/tmp
 +LOG_DIR=/var/log/nav
+ 
+ # Where should the NAV web ui store image uploads? Your web server needs to
+ # be configure to serve this directory at the /uploads URI, and the directory
+ # needs to have write permission for the web server.
+-#UPLOAD_DIR=/usr/share/nav/var/uploads
++UPLOAD_DIR=/var/lib/nav/uploads
  
  # The e-mail address of the NAV system administrator. All cron error
  # messages will be sent to this address.
