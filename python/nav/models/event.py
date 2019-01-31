@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -111,19 +111,19 @@ class VariableMapBase(object):
 class VariableMap(VariableMapBase):
     def _as_dict(self, obj):
         variables = obj.variables
-        return dict((var.variable, var.value) for var in variables.all())
+        return {var.variable: var.value for var in variables.all()}
 
     def _delete_missing_variables(self, vardict, variables):
         removed = variables.exclude(variable__in=vardict.keys())
         removed.delete()
 
     def _update_variables(self, obj, vardict):
-        varmap = self._as_dict(obj)
+        varmap = {var.variable: var for var in obj.variables.all()}
 
         for key, value in vardict.items():
             if key in varmap:
                 if varmap[key].value != value:
-                    varmap[key] = value
+                    varmap[key].value = value
                     varmap[key].save()
             else:
                 obj.variables.create(
@@ -298,8 +298,7 @@ class ThresholdEvent(object):
             if hasattr(self.subject, 'get_absolute_url'):
                 return self.subject.get_absolute_url()
             elif (hasattr(self.subject, 'netbox') and
-                  hasattr(self.subject.netbox, 'get_absolute_url')
-            ):
+                  hasattr(self.subject.netbox, 'get_absolute_url')):
                 return self.subject.netbox.get_absolute_url()
 
 

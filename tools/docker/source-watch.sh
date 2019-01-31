@@ -3,5 +3,5 @@
 #
 while inotifywait -e modify -e move -e create -e delete -r --exclude \# /source/python
 do
-  touch /source/python/nav/wsgi.py
+  supervisorctl restart web
 done

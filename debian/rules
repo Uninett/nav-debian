@@ -3,41 +3,32 @@ package     := nav
 DEBIAN_ROOT := $(CURDIR)/debian/$(package)
 
 %:
-	dh $@ --with quilt --with python2 --with systemd
+	dh $@ --with quilt --with systemd --with python-virtualenv
 
-override_dh_auto_configure:
-	./autogen.sh
-	./configure \
-	  --prefix=/usr \
-	  --bindir=/usr/lib/nav \
-	  --docdir=/usr/share/doc/nav \
-	  --libdir=/usr/lib/nav \
-	  --libexecdir=/usr/lib \
-	  --sysconfdir=/etc/nav \
-	  --sharedstatedir=/var/lib \
-	  --localstatedir=/var/lib/nav \
-	  --infodir=/usr/share/info \
-	  --mandir=/usr/share/man \
-	  --datadir=/usr/share/nav
+.PHONY: override_dh_auto_install override_dh_auto_test
 
-override_dh_auto_install:
+override_dh_virtualenv:
+	dh_virtualenv --preinstall 'pip>=18' --preinstall 'setuptools>=40' --setuptools
 	dh_auto_install
 
+	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python setup.py build_sphinx
+	dh_installdocs build/sphinx/html
 	dh_installdocs NOTES.rst
 	dh_installchangelogs CHANGES
 
-	# apache2 sites-available-file
+	# copy initial set of config files
+	mkdir $(DEBIAN_ROOT)/etc/nav && cp -a $(CURDIR)/python/nav/etc/* $(DEBIAN_ROOT)/etc/nav/
+
+	# apache2 sites-available-file and our own Debian-specific apache config
 	install -m644 debian/nav.apache2-site \
 	  $(DEBIAN_ROOT)/etc/apache2/sites-available/nav-default.conf
+	install -m644 debian/apache.conf \
+	  $(DEBIAN_ROOT)/etc/nav/apache/apache.conf
 
-	# use /var/run/nav/ for pid-files
-	rmdir $(DEBIAN_ROOT)/var/lib/nav/run && \
-	  ln -s /var/run/nav $(DEBIAN_ROOT)/var/lib/nav/run
-
-	# use /var/log/nav/ for logfiles
-	mv $(DEBIAN_ROOT)/var/lib/nav/log/* $(DEBIAN_ROOT)/var/log/nav/ && \
-	  rmdir $(DEBIAN_ROOT)/var/lib/nav/log && \
-	  ln -s /var/log/nav $(DEBIAN_ROOT)/var/lib/nav/log
-
+	# Re-enable global site packages for runtime. We don't want to build
+	# the virtualenv that way, however, since dh-virtualenv/pip will
+	# consider many of the baser requirements to already be satisfied by
+	# the build system.
+	rm -f $(DEBIAN_ROOT)/opt/venvs/nav/lib/python*/no-global-site-packages.txt
 
 override_dh_auto_test:

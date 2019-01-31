@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,11 +15,15 @@
 #
 """Info netboxgroup url configuration"""
 
-from django.conf.urls import url, patterns
-from nav.web.info.netboxgroup.views import index, group_edit, group_detail
+from django.conf.urls import url
+from nav.web.info.netboxgroup import views
 
-urlpatterns = patterns('',
-    url(r'^$', index, name='netbox-group'),
-    url(r'^(?P<groupid>.+)/edit/', group_edit, name='netbox-group-edit'),
-    url(r'^(?P<groupid>.+)', group_detail, name='netbox-group-detail'),
-)
+
+urlpatterns = [
+    url(r'^$', views.index,
+        name='netbox-group'),
+    url(r'^(?P<groupid>.+)/edit/', views.group_edit,
+        name='netbox-group-edit'),
+    url(r'^(?P<groupid>.+)', views.group_detail,
+        name='netbox-group-detail'),
+]

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -23,7 +23,7 @@ from nav.web.info.views import has_results, has_only_one_result
 from nav.web.info.forms import SearchForm
 
 
-class TestProvider(SearchProvider):
+class MockProvider(SearchProvider):
     def fetch_results(self):
         return []
 
@@ -35,9 +35,9 @@ class ViewsTest(unittest.TestCase):
         """ Test setup """
 
         searchresult = SearchResult('test', None)
-        self.searchprovider0 = TestProvider()
-        self.searchprovider1 = TestProvider()
-        self.searchprovider2 = TestProvider()
+        self.searchprovider0 = MockProvider()
+        self.searchprovider1 = MockProvider()
+        self.searchprovider2 = MockProvider()
 
         self.searchprovider1.results.append(searchresult)
         self.searchprovider2.results.extend([searchresult, searchresult])

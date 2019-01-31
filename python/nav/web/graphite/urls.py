@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,15 +15,13 @@
 #
 """Django URL config for graphite bridging"""
 
-from django.conf.urls import url, patterns
+from django.conf.urls import url
+from nav.web.graphite import views
 
 _dummy = lambda x: None
 
-urlpatterns = patterns(
-    'nav.web.graphite.views',
-
-    url(r'^(?P<uri>.*)$', 'index', name='graphite'),
-
+urlpatterns = [
+    url(r'^(?P<uri>.*)$', views.index, name='graphite'),
     url(r'^render', _dummy, name='graphite-render'),
     url(r'^metrics/find\?query=(?P<path>)$', _dummy, name='graphite-find'),
-)
+]

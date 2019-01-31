@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -19,11 +19,12 @@ from socket import error as SocketError
 
 from django import forms
 from django.db.models import Q
-from django_hstore.forms import DictionaryField
 from crispy_forms.helper import FormHelper
 from crispy_forms_foundation.layout import (Layout, Row, Column, Submit,
                                             Fieldset, Field, Div, HTML)
+from django.utils import six
 
+from nav.django.forms import HStoreField
 from nav.web.crispyforms import LabelSubmit, NavButton
 from nav.models.manage import Room, Category, Organization, Netbox
 from nav.models.manage import NetboxInfo
@@ -35,21 +36,20 @@ _logger = logging.getLogger(__name__)
 
 
 class MyModelMultipleChoiceField(forms.ModelMultipleChoiceField):
-    def __init__(self, queryset, cache_choices=False, required=True,
-                 widget=None, label=None, initial=None, help_text='', *args,
-                 **kwargs):
-        super(MyModelMultipleChoiceField, self).__init__(
-            queryset, cache_choices, required, widget, label, initial,
-            help_text, *args, **kwargs)
-        self.help_text = help_text
+    """
+    This class only exists to override Django's unwanted default help text
+    for ModelMultipleChoiceField
+    """
+    def __init__(self, *args, **kwargs):
+        super(MyModelMultipleChoiceField, self).__init__(*args, **kwargs)
+        self.help_text = kwargs.get('help_text', '')
 
 
 class NetboxModelForm(forms.ModelForm):
     """Modelform for netbox for use in SeedDB"""
     ip = forms.CharField()
     function = forms.CharField(required=False)
-    data = DictionaryField(widget=forms.Textarea(), label='Attributes',
-                           required=False)
+    data = HStoreField(label='Attributes', required=False)
     sysname = forms.CharField(required=False)
     snmp_version = forms.ChoiceField(choices=[('1', '1'), ('2', '2c')],
                                      widget=forms.RadioSelect, initial='2')
@@ -174,7 +174,7 @@ class NetboxModelForm(forms.ModelForm):
             ip, _ = resolve_ip_and_sysname(name)
         except SocketError:
             raise forms.ValidationError("Could not resolve name %s" % name)
-        return unicode(ip)
+        return six.text_type(ip)
 
     def clean_sysname(self):
         """Resolve sysname if not set"""

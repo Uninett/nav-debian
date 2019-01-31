@@ -1,9 +1,6 @@
 # Full integration test image for NAV
 #
-# A more or less identical image exists for Python 3, don't forget to
-# update also that one.
-#
-FROM debian:stretch
+FROM mbrekkevold/debian-gosu:stretch
 
 ENV DISTRO stretch
 ENV DISPLAY :99
@@ -12,9 +9,9 @@ ENV ADMINPASSWORD omicronpersei8
 ### Installing packages
 RUN apt-get update && \
     apt-get -y install --no-install-recommends \
-      curl gnupg dirmngr \
-      git \
-      python python-dev python-pip build-essential
+      curl git \
+      python python-dev python-pip build-essential \
+      python3 python3-dev python3-pip
 
 RUN echo "\n\
 \
@@ -25,7 +22,7 @@ deb-src http://deb.debian.org/debian $DISTRO-updates main contrib non-free\n\
 deb http://dl.google.com/linux/chrome/deb/ stable main\n\
 \
 " > /etc/apt/sources.list.d/pkg-sources.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A040830F7FAC5991 1397BC53640DB551
+RUN apt-key adv --no-tty --keyserver keyserver.ubuntu.com --recv-keys A040830F7FAC5991 1397BC53640DB551
 
 RUN apt-get update && \
     apt-get -y --no-install-recommends build-dep \
@@ -35,18 +32,15 @@ RUN apt-get update && \
     apt-get -y --no-install-recommends install \
 	libsnmp30 \
 	cron \
-	apache2 libapache2-mod-wsgi \
-	rubygems \
 	python-cairo \
 	postgresql postgresql-contrib postgresql-client \
 	libxml2-dev libxslt1-dev \
 	libwww-perl \
-	firefox-esr xvfb curl \
+	firefox-esr xvfb \
 	imagemagick \
 	x11vnc google-chrome-stable cloc \
 	cmake nbtscan python-gammu
 
-RUN gem install --version '3.3.9' sass
 
 # Now install NodeJS and NPM for Javascript testing needs -
 # Which incidentally includes Python2.7, so we need some selection magic
@@ -70,40 +64,26 @@ RUN cd /tmp && \
     mv geckodriver /usr/local/bin/
 
 # Install chromedriver to properly run Selenium tests in Chrome, if need be
+ENV CHROMEDRIVERVERSION=2.35
 RUN cd /tmp && \
     apt-get update && \
     apt-get -y --no-install-recommends install unzip && \
-    wget http://chromedriver.storage.googleapis.com/2.24/chromedriver_linux64.zip && \
+    wget http://chromedriver.storage.googleapis.com/$CHROMEDRIVERVERSION/chromedriver_linux64.zip && \
     unzip chromedriver_linux64.zip && \
     mv chromedriver /usr/local/bin/
 
-# GOSU for our root needs
-ENV GOSU_VERSION 1.10
-RUN set -x \
-	&& apt-get update && apt-get install -y --no-install-recommends ca-certificates \
-	&& dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')" \
-	&& wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch" \
-	&& wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc" \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
-	&& gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu \
-	&& rm -rf "$GNUPGHOME" /usr/local/bin/gosu.asc \
-	&& chmod +sx /usr/local/bin/gosu \
-	&& gosu nobody true
+# Install our primary test runner
+RUN pip install tox
 
 # Add a build user
-RUN adduser --system --group --home=/home/build --shell=/bin/bash build
-
-# Build and install Python requirements
-COPY requirements.txt /runtime-requirements.txt
-COPY requirements/ /requirements
-COPY tests/requirements.txt /test-requirements.txt
-RUN pip install --upgrade 'pip<10' wheel && \
-    pip install -r /runtime-requirements.txt -r /test-requirements.txt
-
+RUN adduser --system --group --home=/source --shell=/bin/bash build && \
+    mkdir -p /usr/share/nav/var/uploads && \
+    chown -R build /usr/share/nav
 
 ENV WORKSPACE /source
-ENV BUILDDIR /opt/nav
-ENV HOME /home/build
+ENV HOME /source
+
 COPY tests/docker/scripts/ /
 WORKDIR /source
+ENTRYPOINT ["/entrypoint.sh"]
+RUN chmod 755 /*.sh

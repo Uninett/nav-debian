@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -16,6 +16,7 @@
 
 """Functions for deleting objects from seeddb.
 """
+
 import logging
 
 from django.db import connection, transaction, IntegrityError
@@ -24,6 +25,7 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.http import HttpResponseRedirect
 
+from nav.django.utils import get_model_and_name, get_all_related_objects
 from nav.web.message import new_message, Messages
 from nav.auditlog.models import LogEntry
 
@@ -48,10 +50,7 @@ def qs_delete(queryset):
         'table': quote_name(table),
         'field': quote_name(primary_key),
     }
-    try:
-        cursor.execute(sql, (pk_list,))
-    finally:
-        transaction.set_dirty()
+    cursor.execute(sql, (pk_list,))
     return cursor.rowcount
 
 
@@ -134,18 +133,17 @@ def dependencies(queryset, whitelist):
     to nothing, which will probably cause the delete statement to fail.
     """
     primary_keys = [obj.pk for obj in queryset]
-    related = queryset.model._meta.get_all_related_objects()
-#    related += queryset.model._meta.get_all_related_many_to_many_objects()
+    related = get_all_related_objects(queryset.model)
 
     related_objects = {}
     for rel in related:
-        if rel.model not in whitelist:
+        model, name = get_model_and_name(rel)
+        if model not in whitelist:
             continue
-        name = rel.var_name
         field = rel.field.name
         lookup = "%s__in" % field
         params = {lookup: primary_keys}
-        objects = rel.model.objects.filter(**params)
+        objects = model.objects.filter(**params)
         for obj in objects:
             obj.object_name = name
             attr = getattr(obj, '%s_id' % field)

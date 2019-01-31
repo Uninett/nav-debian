@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 "ipdevpoll plugin to collect CDP (Cisco Discovery Protocol) information"
+from django.utils import six
 from twisted.internet import defer
 
 from nav.models import manage
@@ -137,6 +138,6 @@ class CDP(Plugin):
             key, shadows.UnrecognizedNeighbor)
         neighbor.netbox = self.netbox
         neighbor.interface = ifc
-        neighbor.remote_id = unicode(record.ip)
+        neighbor.remote_id = six.text_type(record.ip)
         neighbor.remote_name = record.deviceid
         neighbor.source = SOURCE

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -319,7 +319,7 @@ class EntityTable(dict):
                     try:
                         new_value = value.decode(encoding)
                     except UnicodeDecodeError:
-                        new_value = unicode(repr(value))
+                        new_value = six.text_type(repr(value))
                         _logger.debug(
                             "cannot decode %s value as %s, using python "
                             "string repr instead: %s",

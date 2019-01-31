@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -19,14 +19,16 @@
 import sys
 import os
 import logging
+from itertools import chain
+
 import configparser
-import nav.buildconf
+from nav.config import find_configfile, NAV_CONFIG
 
 DEFAULT_LOG_FORMATTER = logging.Formatter('%(asctime)s [%(levelname)s] '
                                           '[%(name)s] %(message)s')
 LOGGING_CONF_VAR = 'NAV_LOGGING_CONF'
-LOGGING_CONF_FILE_DEFAULT = os.path.join(nav.buildconf.sysconfdir,
-                                         'logging.conf')
+LOGGING_CONF_FILE_DEFAULT = find_configfile('logging.conf') or ''
+
 _logger = logging.getLogger(__name__)
 
 
@@ -73,7 +75,6 @@ def translate_log_level(level):
 def set_custom_log_file():
     """Read logging config and add additional file handlers to specified logs"""
 
-    logdir = os.path.join(nav.buildconf.localstatedir, 'log')
     config = get_logging_conf()
     section = 'files'
 
@@ -87,7 +88,7 @@ def set_custom_log_file():
             logger_name = ''
         logger = logging.getLogger(logger_name)
 
-        filehandler = logging.FileHandler(os.path.join(logdir, filename))
+        filehandler = logging.FileHandler(get_logfile_path(filename))
         filehandler.setFormatter(DEFAULT_LOG_FORMATTER)
         logger.addHandler(filehandler)
 
@@ -135,7 +136,7 @@ def reopen_log_files():
     root = logging.getLogger()
     manager = root.manager
     mylog = logging.getLogger('nav.logs')
-    for logger in [root] + manager.loggerDict.values():
+    for logger in chain([root], manager.loggerDict.values()):
         try:
             for hdl in logger.handlers:
                 if isinstance(hdl, logging.FileHandler):
@@ -211,7 +212,7 @@ def init_generic_logging(logfile=None, stderr=True, stdout=False,
 
     if logfile:
         try:
-            filehandler = logging.FileHandler(logfile)
+            filehandler = logging.FileHandler(get_logfile_path(logfile))
         except IOError as err:
             pass
         else:
@@ -223,3 +224,14 @@ def init_generic_logging(logfile=None, stderr=True, stdout=False,
         set_log_config()
     else:
         set_log_levels()
+
+
+def get_logfile_path(logfile):
+    """Returns the fully qualified path to logfile.
+
+    If logfile is an absolute path, it is returned unchanged, otherwise,
+    the LOG_DIR path configured in nav.conf will be prepended.
+    """
+    if not logfile.startswith(os.sep):
+        logfile = os.path.join(NAV_CONFIG['LOG_DIR'], logfile)
+    return logfile

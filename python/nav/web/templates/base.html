@@ -1,0 +1,221 @@
+{% block base_header %}<!DOCTYPE html>
+<html>
+
+{# FIXME Hardcoded urls #}
+
+{% block base_header_head %}
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>{% block base_header_title %}{{ title }}{% endblock %}</title>
+    <link rel="shortcut icon" href="{{ STATIC_URL }}images/main/favicon.ico">
+
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/nav.css" />
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/custom.css" />
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/calendar.css" />
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/treeselect.css" />
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/quickselect.css" />
+    {% comment %} Javascript global variables {% endcomment %}
+    <script src="{{ STATIC_URL }}js/libs/jquery.js"></script>
+    {% include 'navurls.html' %}
+    <script src="{{ STATIC_URL }}js/require_config.js"></script>
+    {% if debug %}
+      <script src="{{ STATIC_URL }}js/require_config_dev.js"></script>
+    {% endif %}
+    <script src="{{ STATIC_URL }}js/libs/require.js" data-main='src/main'></script>
+    <script>
+      require.config({ urlArgs: 'bust={{ nav_version }}' });
+    </script>
+    {% block base_header_additional_head %}
+    {% endblock %}
+</head>
+{% endblock %}
+
+
+{% block base_body_start %}
+<body class='nav-body'>
+{% endblock %}
+
+
+{% comment %} TOP BAR {% endcomment %}
+<nav class="top-bar" data-topbar data-options="is_hover: false">
+  <ul class="title-area">
+    <li class="name">
+      <h1>
+        <a href="/" title="Network Administration Visualized">
+          <img class="nav-logo" src="{{ STATIC_URL }}images/main/nav-logo.svg" alt="NAV">
+        </a>
+      </h1>
+    </li>
+    <li class="toggle-topbar menu-icon">
+      <a href="#"><span>Menu</span></a>
+    </li>
+  </ul>
+
+
+  <section class="top-bar-section">
+    <ul class="left">
+      <li class="has-form search">
+        <form id="navbar-search-form" action="{% url 'info-search' %}" method="get">
+          <div class="row collapse">
+            <div class="small-8 columns">
+              <input id="query" type="text" name="query" maxlength="100"/>
+            </div>
+            <div class="small-4 columns">
+              <input class="button secondary" type="submit" value="Search" />
+            </div>
+          </div>
+        </form>
+      </li>
+    </ul>
+
+    <ul class="right">
+      {% comment %} This dropdown only visible on small screens {% endcomment %}
+      <li class="has-dropdown hide-for-medium-up">
+        <a href="{% url 'webfront-toolbox' %}">
+          Tools
+        </a>
+        <ul id="toolboxdropdown" class="dropdown">
+          {% for tool in current_user_data.tools %}
+            <li>
+              <a href="{{ tool.uri }}">
+                <img src="{{ tool.icon }}" alt="{{ tool.name }}">
+                {{ tool.name }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </li>
+
+      <li class="hide-for-small text-center"><a id="megadroptoggler" href="javascript:void(0);">Tools <i class="fa fa-caret-down"></i></a></li>
+
+      {% if not current_user_data.account.is_default_account %}
+        <li class="has-dropdown">
+          <a href="javascript:void(0);">
+            My stuff
+          </a>
+          <ul class="dropdown">
+            {% for link in current_user_data.my_links %}
+              <li><a href="{{ link.uri }}">{{ link.name }}</a></li>
+            {% endfor %}
+            <li class="divider"><a href="{% url 'webfront-preferences' %}">My account <i class="fa fa-gear"></i></a></li>
+          </ul>
+        </li>
+      {% endif %}
+      {% if current_user_data.account.is_default_account %}
+        <li>
+          <a class="navbar login button secondary" href="/index/login">Login</a>
+        </li>
+      {% else %}
+        <li>
+          <a class="navbar logout button secondary" href="/index/logout">Logout {{ current_user_data.account.login }}</a>
+        </li>
+      {% endif %}
+    </ul>
+  </section>
+</nav>
+
+  {% comment %}
+
+  MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP
+  MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP
+  MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP
+  MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP
+  MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP MEGADROP
+
+  {% endcomment %}
+  <div class="megadropcontainer">
+    <div id="megadrop" class="row hidden">
+      {% comment %} split_tools are split into 3 lists of tools {% endcomment %}
+      <div class="small-12 column">
+
+        <h5>NAV Tools</h5>
+
+        <hr>
+
+        <div class="row">
+          {% for column in current_user_data.split_tools %}
+            <div class="medium-4 column">
+              <ul class="no-bullet">
+                {% for tool in column %}
+                  <li>
+                    <a href="{{ tool.uri }}" title="{{ tool.description }}">
+                      <img src="{{ tool.icon }}" alt="">
+                      {{ tool.name }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="row">
+          <div class="small-12 column">
+            <p><a href="{% url 'webfront-toolbox' %}">Go to toolbox</a></p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div> {# End megadropcontainer #}
+
+
+  {% if current_user_data.sudoer %}
+    <div class="sudoer-bar">
+        <form action="{% url 'webfront-logout' %}" method="post">
+            <img src="{{ STATIC_URL }}images/main/emblem-important.png"
+                 alt="Important information"/>
+            Hi <em>{{ current_user_data.sudoer.name }}</em>, you are currently
+            logged in as <em>{{ current_user_data.account.name }}</em>.
+            <input type="submit" name="submit_desudo" value="Log back in as {{ current_user_data.sudoer.login }}" class="button secondary small"/>
+        </form>
+    </div>
+{% endif %}
+
+{% comment %} BREADCRUMB {% endcomment %}
+<ul id="nav-breadcrumbs" class="breadcrumbs">
+  {% for title, url in navpath %}
+    {% if url %}
+      <li><a href="{{ url }}">{{ title }}</a></li>
+    {% else %}
+      <li class="current"><a href="#">{{ title }}</a></li>
+    {% endif %}
+  {% endfor %}
+</ul>
+
+{% endblock base_header %}
+
+{% comment %} MAIN CONTENT {% endcomment %}
+{% block base_navbody_start %}
+<div class="row">
+    <div class="large-12 columns navbody">
+{% endblock %}
+
+    {% block base_content %}
+    {% endblock %}
+
+{% block base_navbody_end %}
+    </div>
+</div>
+{% endblock %}
+
+{% block base_footer %}
+  {% include 'footer.html' %}
+
+  {% block base_debug %}
+    {% if debug %}
+      {% if not current_user_data.account.is_default_account %}
+        {% include "debug.html" %}
+      {% endif %}
+    {% endif %}
+  {% endblock %}
+
+
+  {% block footer_scripts %}{% endblock %}
+
+  </body>
+</html>
+
+{% endblock base_footer %}

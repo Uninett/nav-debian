@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -17,21 +17,21 @@
 """Sends NAV statistics to the Carbon collector"""
 
 import logging
-import os.path
 import time
 from functools import partial
 import configparser
 
 from django.db import connection, DatabaseError
 
-import nav.models
-from nav.buildconf import localstatedir
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
+
 from nav.config import NAVConfigParser
 from nav.logs import init_generic_logging
 from nav.metrics.carbon import send_metrics
 from nav.metrics.names import escape_metric_name
 
-_logger = logging.getLogger('bin.navstats')
+_logger = logging.getLogger('nav.navstats')
 LOGFILE = 'navstats.log'
 
 
@@ -41,10 +41,7 @@ class NAVStatsConfig(NAVConfigParser):
 
 
 def main():
-    init_generic_logging(
-        logfile=os.path.join(localstatedir, 'log', LOGFILE),
-        stderr=False
-    )
+    init_generic_logging(logfile=LOGFILE, stderr=False)
     config = NAVStatsConfig()
     collect_stats(config)
 

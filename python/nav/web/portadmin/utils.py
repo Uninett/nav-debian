@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -21,14 +21,15 @@ import logging
 import django.template
 
 from django.template.loaders.filesystem import Loader
+
+from nav.config import find_configfile
 from nav.django.utils import is_admin
-from nav.buildconf import sysconfdir
 from nav.portadmin.snmputils import SNMPFactory, FantasyVlan
 from nav.enterprise.ids import VENDOR_ID_CISCOSYSTEMS
 from operator import attrgetter
 from os.path import join
 
-CONFIGFILE = join(sysconfdir, "portadmin", "portadmin.conf")
+CONFIGFILE = find_configfile(join("portadmin", "portadmin.conf")) or ''
 
 _logger = logging.getLogger("nav.web.portadmin")
 
@@ -272,7 +273,7 @@ def get_ifaliasformat(config=None):
 
 def get_aliastemplate():
     """Fetch template for displaying ifalias format as help to user"""
-    templatepath = join(sysconfdir, "portadmin")
+    templatepath = find_configfile("portadmin")
     templatename = "aliasformat.html"
     loader = Loader()
     rawdata, _ = loader.load_template_source(templatename, [templatepath])
@@ -336,3 +337,15 @@ def is_cisco(netbox):
     :type netbox: manage.Netbox
     """
     return netbox.type.get_enterprise_id() == VENDOR_ID_CISCOSYSTEMS
+
+
+def get_trunk_edit(config):
+    """Gets config option for trunk edit
+
+    Default is to allow trunk edit
+    """
+    section = 'general'
+    option = 'trunk_edit'
+    if config.has_section(section) and config.has_option(section, option):
+        return config.getboolean(section, option)
+    return True

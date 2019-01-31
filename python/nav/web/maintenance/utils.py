@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -20,6 +20,7 @@ from time import strftime
 
 from django.core.urlresolvers import reverse
 from django.utils.html import conditional_escape
+from django.utils.six.moves import range
 
 from nav.models.manage import Netbox, Room, Location, NetboxGroup
 from nav.models.service import Service
@@ -346,12 +347,12 @@ class MaintenanceCalendar(HTMLCalendar):
                     grouped[day] = {}
                 if task.pk in task_index:
                     index = task_index[task.pk]
-                    for ii in xrange(index):
+                    for ii in range(index):
                         if ii not in grouped[day]:
                             grouped[day][ii] = None
                 else:
                     index = len(grouped[day])
-                    for ii in xrange(index):
+                    for ii in range(index):
                         if ii not in grouped[day] or not grouped[day][ii]:
                             index = ii
                             break

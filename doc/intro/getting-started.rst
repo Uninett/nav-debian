@@ -12,23 +12,22 @@ this with whatever hostname you have configured for your NAV server.
 Minimal configuration
 =====================
 
-All configuration files are located below |sysconfdir|.  Default configuration
-files are placed here on your first install.  Most of these are documented
-with comments, so if you want to get advanced you can check each config file
-to see if there are any defaults you'd like to change.
+If installing from source, you should have installed a copy of the default set
+of NAV configuration files to a global directory, typically :file:`/etc/nav/`,
+:ref:`as documented in the installation guide
+<initializing-the-configuration-files>`.
 
-We recommend you at least change the following two options in :file:`nav.conf`
+Most of the configuration files are documented with comments, so if you want to
+get advanced you can check each config file to see if there are any defaults
+you'd like to change.
+
+We recommend you **at least** change the following options in :file:`nav.conf`
 before running NAV:
 
 `ADMIN_MAIL`
   Should be set to the NAV administrator's e-mail address.  Any cron
   mail or other administrative e-mails from NAV will be sent to this
   address.
-
-`DOMAIN_SUFFIX`
-  The DNS domain name your devices are in.  Many parts of the web
-  interface will chop off this suffix to display abbreviated device
-  names.
 
 `SECRET_KEY`
   A string of random characters that should be unique to each NAV
@@ -44,14 +43,32 @@ before running NAV:
   https://docs.djangoproject.com/en/1.7/ref/settings/#std:setting-SECRET_KEY
   if you want to know more about this.
 
+`TIME_ZONE`
+  NAV's default time zone setting is ``Europe/Oslo``. You should set this to
+  the appropriate timezone of your location, as NAV will use this for
+  generating and displaying all timestamps. Beware that this *should* match the
+  configured timezones of your PostgreSQL and Graphite-web installations as
+  well.
+  
+`DOMAIN_SUFFIX`
+  The DNS domain name your devices are in.  Many parts of the web
+  interface will chop off this suffix to display abbreviated device
+  names.
+
+
+If you installed from source, and did not use a pre-packaged version of NAV,
+you will also want to change the directory paths used by NAV to store various
+state files, log files and files uploaded through the web interface:
+``PID_DIR``, ``LOG_DIR`` and ``UPLOAD_DIR``.
+
+  
 
 Starting NAV
 ============
 
 NAV has two parts; one web frontend, and a backend consisting of
 multiple processes.  While Apache serves the frontend, the backend
-processes can be controlled using the :program:`nav` command
-(located in |bindir|).
+processes can be controlled using the :program:`nav` command.
 
 The backend processes consist of some daemon processes, and some cron jobs.
 Running :kbd:`nav start` will start all the daemon processes in the
@@ -215,5 +232,5 @@ preview form, unless you go back and fix it before trying again.
 Further reading
 ===============
 
-Now you know how to monitor things. It's time to 
+Now you know how to monitor things. It's time to
 :doc:`get organized <getting-organized>`!

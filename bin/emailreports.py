@@ -6,7 +6,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -21,12 +21,14 @@ import argparse
 import logging
 import os
 
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
+
 from nav.web.business.reportengine import send_reports
 from nav.models.profiles import ReportSubscription
-from nav.buildconf import localstatedir
 from nav.logs import init_generic_logging
 
-LOGFILE = os.path.join(localstatedir, 'log', 'emailreports.log')
+LOGFILE = 'emailreports.log'
 _logger = logging.getLogger('emailreports')
 
 

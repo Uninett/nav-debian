@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -24,18 +24,17 @@ import logging
 logging.raiseExceptions = False
 
 import sys
-from os.path import join
 from datetime import datetime
 import argparse
 
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
+
 # import NAV libraries
-from nav import buildconf
 from nav.event import Event
 from nav.Snmp import Snmp
 from nav.models.manage import PowerSupplyOrFan, Device
 from nav.logs import init_generic_logging
-
-import django
 
 
 VENDOR_CISCO = 9
@@ -135,8 +134,7 @@ VENDOR_PSU_STATES = {
     },
 }
 
-LOGFILE = join(buildconf.localstatedir, "log/powersupplywatch.log")
-LOGFORMAT = "[%(asctime)s] [%(levelname)s] %(message)s"
+LOGFILE = "powersupplywatch.log"
 LOGGER = logging.getLogger('nav.powersupplywatch')
 
 
@@ -145,17 +143,15 @@ def main():
     init_generic_logging(
         logfile=LOGFILE,
         stderr=True,
-        formatter=logging.Formatter(LOGFORMAT),
         read_config=False,
         stderr_level=logging.ERROR if sys.stderr.isatty() else logging.CRITICAL,
     )
-    stderr = logging.getLogger('')
-    django.setup()
 
     opts = parse_args()
 
     if opts.verify:
         LOGGER.info("-v option used, setting log level to DEBUG")
+        stderr = logging.getLogger('')
         stderr.setLevel(logging.DEBUG)
         LOGGER.setLevel(logging.DEBUG)
 

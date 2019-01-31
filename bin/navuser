@@ -6,7 +6,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -23,14 +23,15 @@ import sys
 import argparse
 from getpass import getpass
 
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
+
 from nav.models.profiles import Account, AccountGroup
-import django
 
 
 def main():
     """Main program"""
     args = parse_args()
-    django.setup()
 
     args.func(args)
 

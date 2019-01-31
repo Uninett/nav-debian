@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -17,6 +17,8 @@
 Metric naming templates for various things that NAV sends/retrieves from
 Graphite.
 """
+from django.utils import six
+
 from nav.metrics.names import escape_metric_name
 
 # pylint: disable=C0111
@@ -158,7 +160,7 @@ def metric_prefix_for_system(sysname):
 
 def metric_prefix_for_multicast_group(group):
     tmpl = "nav.multicast.groups.{group}"
-    return tmpl.format(group=escape_metric_name(unicode(group)))
+    return tmpl.format(group=escape_metric_name(six.text_type(group)))
 
 
 def metric_path_for_multicast_usage(group, sysname):

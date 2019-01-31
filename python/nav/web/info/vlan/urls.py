@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -16,16 +16,21 @@
 """Django URL configuration"""
 
 
-from django.conf.urls import url, patterns
-from nav.web.info.vlan.views import (index, vlan_details,
-                                     create_prefix_graph, create_vlan_graph)
+from django.conf.urls import url
+from nav.web.info.vlan import views
 
-urlpatterns = patterns(
-    '',
-    url(r'^$', index, name='vlan-index'),
-    url(r'^(?P<vlanid>\d+)/$', vlan_details, name='vlan-details'),
-    url(r'^graph/prefix/(?P<prefixid>\d+)$', create_prefix_graph,
+
+urlpatterns = [
+    url(r'^$',
+        views.index,
+        name='vlan-index'),
+    url(r'^(?P<vlanid>\d+)/$',
+        views.vlan_details,
+        name='vlan-details'),
+    url(r'^graph/prefix/(?P<prefixid>\d+)$',
+        views.create_prefix_graph,
         name='vlan-graph-prefix'),
-    url(r'^graph/vlan/(?P<vlanid>\d+)/(?P<family>\d)?$', create_vlan_graph,
+    url(r'^graph/vlan/(?P<vlanid>\d+)/(?P<family>\d)?$',
+        views.create_vlan_graph,
         name='vlan-graph-prefix'),
-)
+]

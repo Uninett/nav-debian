@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -27,10 +27,14 @@ some other port and detains that port.
 
 """
 
+import os
 import sys
 import logging
 import getpass
 from datetime import datetime, timedelta
+
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
 
 import nav.buildconf
 from nav.logs import init_generic_logging
@@ -40,23 +44,19 @@ from nav.arnold import (find_computer_info, disable, quarantine,
                         raise_if_detainment_not_allowed,
                         DetainmentNotAllowedError)
 from nav.models.arnold import Identity, DetentionProfile
-import django
 
-
-CONFIGFILE = nav.buildconf.sysconfdir + "/arnold/arnold.conf"
-
-LOGGER = logging.getLogger('t1000')
+LOG_FILE = "arnold/t1000.log"
+LOGGER = logging.getLogger('nav.t1000')
 
 
 def main():
     """Main controller"""
     init_generic_logging(
-        logfile=nav.buildconf.localstatedir + "/log/arnold/t1000.log",
+        logfile=LOG_FILE,
         stderr=False,
         read_config=True,
     )
     LOGGER.info("Starting t1000")
-    django.setup()
 
     # Fetch all mac-addresses that we have detained, check if they are
     # active somewhere else. As NAV collects arp and cam data periodically,

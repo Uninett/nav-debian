@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -29,7 +29,7 @@ from twisted.names.error import DomainError
 
 from nav.ipdevpoll import Plugin, shadows
 
-_resolvers = cycle([client.Resolver('/etc/resolv.conf') for i in range(3)])
+_resolvers = cycle([client.createResolver() for i in range(3)])
 
 
 class DnsName(Plugin):

@@ -6,7 +6,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -42,21 +42,27 @@ from operator import methodcaller
 import argparse
 from os.path import join
 
-import nav.buildconf
+from nav.bootstrap import bootstrap_django
+from nav.config import find_configfile
+
+bootstrap_django(__file__)
+
 from nav.logs import init_generic_logging
+import nav.arnold
 from nav.arnold import (find_computer_info, is_inside_vlans,
                         quarantine, disable, GeneralException)
 from nav.models.arnold import DetentionProfile, Identity
 from nav.models.manage import Prefix
 
-LOGGER = logging.getLogger('start_arnold')
+LOG_FILE = "arnold/start_arnold.log"
+LOGGER = logging.getLogger('nav.start_arnold')
 
 
 def main(args):
     """Main controller"""
 
     init_generic_logging(
-        logfile=nav.buildconf.localstatedir + "/log/arnold/start_arnold.log",
+        logfile=LOG_FILE,
         stderr=False,
         read_config=True,
     )
@@ -193,8 +199,8 @@ def report_detentions(profile, detentions):
     emails = find_contact_addresses(detentions)
 
     try:
-        mailfile = join(nav.buildconf.sysconfdir, "/arnold/mailtemplates/",
-                        profile.mailfile)
+        mailfile = find_configfile(
+            join("arnold", "mailtemplates", profile.mailfile))
         message_template = open(mailfile).read()
     except IOError as error:
         LOGGER.error(error)

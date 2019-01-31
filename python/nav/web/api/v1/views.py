@@ -3,7 +3,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -29,17 +29,18 @@ from django.db.models.fields import FieldDoesNotExist
 from datetime import datetime, timedelta
 import iso8601
 
-from rest_framework import status, filters, viewsets, exceptions
-from rest_framework.decorators import api_view, renderer_classes, list_route
+from rest_framework import status, filters, viewsets, exceptions, pagination
+from rest_framework.decorators import (api_view, renderer_classes, list_route,
+                                       detail_route)
 from rest_framework.reverse import reverse_lazy
 from rest_framework.renderers import (JSONRenderer, BrowsableAPIRenderer,
                                       TemplateHTMLRenderer)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
-from rest_framework.generics import ListAPIView
+from rest_framework.generics import ListAPIView, get_object_or_404
 from nav.models.api import APIToken
-from nav.models import manage, event, cabling, rack
+from nav.models import manage, event, cabling, rack, profiles
 from nav.models.fields import INFINITY, UNRESOLVED
 from nav.web.servicecheckers import load_checker_classes
 from nav.util import auth_token
@@ -119,13 +120,16 @@ def get_endpoints(request=None, version=1):
     kwargs = {'request': request}
 
     return {
-        'alert': reverse_lazy('{}alerthistory-list'.format(prefix), **kwargs),
+        'account': reverse_lazy('{}account-list'.format(prefix), **kwargs),
+        'accountgroup': reverse_lazy('{}accountgroup-list'.format(prefix), **kwargs),
+        'alert': reverse_lazy('{}alert-list'.format(prefix), **kwargs),
         'auditlog': reverse_lazy('{}auditlog-list'.format(prefix), **kwargs),
         'arp': reverse_lazy('{}arp-list'.format(prefix), **kwargs),
         'cabling': reverse_lazy('{}cabling-list'.format(prefix), **kwargs),
         'cam': reverse_lazy('{}cam-list'.format(prefix), **kwargs),
         'interface': reverse_lazy('{}interface-list'.format(prefix),
                                   **kwargs),
+        'location': reverse_lazy('{}location-list'.format(prefix), **kwargs),
         'netbox': reverse_lazy('{}netbox-list'.format(prefix), **kwargs),
         'patch': reverse_lazy('{}patch-list'.format(prefix), **kwargs),
         'prefix': reverse_lazy('{}prefix-list'.format(prefix), **kwargs),
@@ -154,8 +158,7 @@ class RelatedOrderingFilter(filters.OrderingFilter):
         """
         components = field.split('__', 1)
         try:
-            field, _parent_model, _direct, _m2m = \
-                model._meta.get_field_by_name(components[0])
+            field = model._meta.get_field(components[0])
 
             # reverse relation
             if isinstance(field, _RelatedObject):
@@ -168,7 +171,7 @@ class RelatedOrderingFilter(filters.OrderingFilter):
         except FieldDoesNotExist:
             return False
 
-    def remove_invalid_fields(self, queryset, ordering, view):
+    def remove_invalid_fields(self, queryset, ordering, view, request):
         return [term for term in ordering
                 if self.is_valid_field(queryset.model, term.lstrip('-'))]
 
@@ -180,6 +183,7 @@ class NAVAPIMixin(APIView):
     renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
     filter_backends = (filters.SearchFilter, filters.DjangoFilterBackend,
                        RelatedOrderingFilter)
+    ordering_fields = '__all__'
 
 
 class ServiceHandlerViewSet(NAVAPIMixin, ViewSet):
@@ -215,7 +219,7 @@ class LoggerMixin(object):
         """Log POST requests that create new objects"""
         response = super(LoggerMixin, self).create(request, *args, **kwargs)
         if response.status_code == status.HTTP_201_CREATED:
-            _logger.info('Token %s created %r', self.request.auth, self.object)
+            _logger.info('Token %s created', self.request.auth)
         return response
 
     def update(self, request, *args, **kwargs):
@@ -225,8 +229,8 @@ class LoggerMixin(object):
         """
         response = super(LoggerMixin, self).update(request, *args, **kwargs)
         if response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]:
-            _logger.info('Token %s updated %r with %s', self.request.auth,
-                         self.object, dict(self.request.DATA))
+            _logger.info('Token %s updated with %s', self.request.auth,
+                         dict(self.request.data))
         return response
 
     def destroy(self, request, *args, **kwargs):
@@ -236,6 +240,50 @@ class LoggerMixin(object):
         if response.status_code == status.HTTP_204_NO_CONTENT:
             _logger.info('Token %s deleted %r', self.request.auth, obj)
         return response
+
+
+class AccountViewSet(NAVAPIMixin, viewsets.ModelViewSet):
+    """Lists all accounts
+
+    Filters
+    -------
+    - login
+    - ext_sync
+
+    Search
+    ------
+    Searches in *name*
+    """
+
+    queryset = profiles.Account.objects.all()
+    serializer_class = serializers.AccountSerializer
+    filter_fields = ('login', 'ext_sync')
+    search_fields = ('name',)
+
+
+class AccountGroupViewSet(NAVAPIMixin, viewsets.ModelViewSet):
+    """Lists all accountgroups
+
+    Filters
+    -------
+    - account - filter by one or more accounts
+
+    Search
+    ------
+    Searches in *name* and *description*
+
+    Example: `accountgroup?account=abcd&account=bcde`
+    """
+
+    serializer_class = serializers.AccountGroupSerializer
+    search_fields = ('name', 'description')
+
+    def get_queryset(self):
+        queryset = profiles.AccountGroup.objects.all()
+        accounts = self.request.query_params.getlist('account')
+        if accounts:
+            queryset = queryset.filter(accounts__in=accounts).distinct()
+        return queryset
 
 
 class RoomViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
@@ -249,6 +297,24 @@ class RoomViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     queryset = manage.Room.objects.all()
     serializer_class = serializers.RoomSerializer
     filter_fields = ('location', 'description')
+
+
+class LocationViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
+    """Lists all locations
+
+    Search
+    ------
+    Searches in *description*
+
+    Filters
+    -------
+    - id
+    - parent
+    """
+    queryset = manage.Location.objects.all()
+    serializer_class = serializers.LocationSerializer
+    filter_fields = ('id', 'parent')
+    search_fields = ('description',)
 
 
 class UnrecognizedNeighborViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
@@ -283,12 +349,14 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     - organization
     - room
     - sysname
+    - type__name (NB: two underscores): ^ indicates starts_with, otherwise exact match
 
     When the filtered item is an object, it will filter on the id.
     """
     queryset = manage.Netbox.objects.all()
     serializer_class = serializers.NetboxSerializer
-    filter_fields = ('ip', 'sysname', 'room', 'organization', 'category')
+    filter_fields = ('ip', 'sysname', 'room', 'organization', 'category',
+                     'room__location')
     search_fields = ('sysname', )
 
     def destroy(self, request, *args, **kwargs):
@@ -302,6 +370,39 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
         obj.save()
         _logger.info('Token %s set deleted at for %r', self.request.auth, obj)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_queryset(self):
+        """Implement basic filtering on type__name
+
+        If more custom filters are requested create a filterbackend:
+        http://www.django-rest-framework.org/api-guide/filtering/#example
+        """
+        qs = super(NetboxViewSet, self).get_queryset()
+        params = self.request.query_params
+        if 'type__name' in params:
+            value = params.get('type__name')
+            if value.startswith('^'):
+                qs = qs.filter(type__name__istartswith=value[1:])
+            else:
+                qs = qs.filter(type__name=value)
+
+        return qs
+
+
+class InterfaceFilterClass(filters.FilterSet):
+    """Exists only to have a sane implementation of multiple choice filters"""
+    netbox = filters.django_filters.ModelMultipleChoiceFilter(
+        queryset=manage.Netbox.objects.all())
+
+    class Meta(object):
+        model = manage.Interface
+        fields = ('ifname', 'ifindex', 'ifoperstatus', 'netbox', 'trunk',
+                  'ifadminstatus', 'iftype', 'baseport', 'module__name', 'vlan')
+
+
+class InterfaceFragmentRenderer(TemplateHTMLRenderer):
+    media_type = 'text/x-nav-html'
+    template_name = 'ipdevinfo/port-details-api-frag.html'
 
 
 class InterfaceViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
@@ -321,26 +422,58 @@ class InterfaceViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     - iftype
     - netbox
     - trunk
+    - vlan
     - module__name
     - ifclass=[swport, gwport, physicalport, trunk]
-    - last_used (set this to for instance 1 to embed last used cam record)
+
+    Detail routes
+    -------------
+    - last_used: interface/<id\>/last_used/
+    - metrics: interface/<id\>/metrics/
 
     Example: `/api/1/interface/?netbox=91&ifclass=trunk&ifclass=swport`
     """
     queryset = manage.Interface.objects.all()
-    filter_fields = ('ifname', 'ifindex', 'ifoperstatus', 'netbox', 'trunk',
-                     'ifadminstatus', 'iftype', 'baseport', 'module__name')
     search_fields = ('ifalias', 'ifdescr', 'ifname')
 
     # NaturalIfnameFilter returns a list, so IfClassFilter needs to come first
     filter_backends = NAVAPIMixin.filter_backends + (IfClassFilter, NaturalIfnameFilter)
+    filter_class = InterfaceFilterClass
 
     def get_serializer_class(self):
         request = self.request
-        if request.QUERY_PARAMS.get('last_used'):
+        if request.query_params.get('last_used'):
             return serializers.InterfaceWithCamSerializer
         else:
             return serializers.InterfaceSerializer
+
+    def get_renderers(self):
+        if self.action == 'retrieve':
+            self.renderer_classes += (InterfaceFragmentRenderer,)
+        return super(InterfaceViewSet, self).get_renderers()
+
+    @detail_route()
+    def metrics(self, _request, pk=None):
+        """List all metrics for this interface
+
+        We don't want to include this by default as that will spam the Graphite
+        backend with requests.
+        """
+        return Response(self.get_object().get_port_metrics())
+
+    @detail_route()
+    def last_used(self, _request, pk=None):
+        """Return last used timestamp for this interface
+
+        If still in use this will return datetime.max as per
+        DateTimeInfinityField
+        """
+        try:
+            serialized = serializers.CamSerializer(
+                self.get_object().get_last_cam_record())
+            return Response({'last_used': serialized.data.get('end_time')})
+        except manage.Cam.DoesNotExist:
+            return Response({'last_used': None})
 
 
 class PatchViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
@@ -394,7 +527,7 @@ class CablingViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = cabling.Cabling.objects.all()
-        not_patched = self.request.QUERY_PARAMS.get('available', None)
+        not_patched = self.request.query_params.get('available', None)
         if not_patched:
             queryset = queryset.filter(patch=None)
 
@@ -411,7 +544,7 @@ class MachineTrackerViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """Filter on custom parameters"""
         queryset = self.model_class.objects.all()
-        active = self.request.QUERY_PARAMS.get('active', None)
+        active = self.request.query_params.get('active', None)
         starttime, endtime = get_times(self.request)
 
         if active:
@@ -423,7 +556,7 @@ class MachineTrackerViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
                 where=[SQL_OVERLAPS.format(starttime, endtime)])
 
         # Support wildcard filtering on mac
-        mac = self.request.QUERY_PARAMS.get('mac')
+        mac = self.request.query_params.get('mac')
         if mac:
             try:
                 mac = MacPrefix(mac, min_prefix_len=2)
@@ -467,7 +600,7 @@ class CamViewSet(MachineTrackerViewSet):
 
     def list(self, request):
         """Override list so that we can control what is returned"""
-        if not request.QUERY_PARAMS:
+        if not request.query_params:
             return Response("Cam records are numerous - use a filter",
                             status=status.HTTP_400_BAD_REQUEST)
         return super(CamViewSet, self).list(request)
@@ -505,7 +638,7 @@ class ArpViewSet(MachineTrackerViewSet):
 
     def list(self, request):
         """Override list so that we can control what is returned"""
-        if not request.QUERY_PARAMS:
+        if not request.query_params:
             return Response("Arp records are numerous - use a filter",
                             status=status.HTTP_400_BAD_REQUEST)
         return super(ArpViewSet, self).list(request)
@@ -513,7 +646,7 @@ class ArpViewSet(MachineTrackerViewSet):
     def get_queryset(self):
         """Customizes handling of the ip address filter"""
         queryset = super(ArpViewSet, self).get_queryset()
-        ip = self.request.QUERY_PARAMS.get('ip', None)
+        ip = self.request.query_params.get('ip', None)
         if ip:
             try:
                 addr = IP(ip)
@@ -526,7 +659,7 @@ class ArpViewSet(MachineTrackerViewSet):
         return queryset
 
 
-class VlanViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
+class VlanViewSet(NAVAPIMixin, viewsets.ModelViewSet):
     """Lists all vlans.
 
     Search
@@ -549,7 +682,7 @@ class VlanViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     search_fields = ['net_ident', 'description']
 
 
-class PrefixViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
+class PrefixViewSet(NAVAPIMixin, viewsets.ModelViewSet):
     """Lists all prefixes.
 
     Filters
@@ -647,6 +780,9 @@ class PrefixUsageList(NAVAPIMixin, ListAPIView):
     """
     serializer_class = serializers.PrefixUsageSerializer
 
+    # RelatedOrderingFilter does not work with the custom pagination
+    filter_backends = (filters.SearchFilter, filters.DjangoFilterBackend)
+
     def get(self, request, *args, **kwargs):
         """Override get method to verify url parameters"""
         get_times(request)
@@ -671,28 +807,14 @@ class PrefixUsageList(NAVAPIMixin, ListAPIView):
 
         return results
 
-    def list(self, request, *args, **kwargs):
-        """Delivers a list of usage objects as a response
-
-        The queryset contains prefixes, but we use a custom object for
-        representing the usage statistics for the prefix. Thus we need to
-        convert the filtered prefixes to the custom object format.
-
-        Also we need to run the prefix collector after paging to avoid
-        unnecessary usage calculations
-        """
-        page = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
+    def get_serializer(self, data, *args, **kwargs):
+        """Populate the serializer with usages based on the prefix list"""
+        kwargs['context'] = self.get_serializer_context()
         starttime, endtime = get_times(self.request)
-        prefixes = prefix_collector.fetch_usages(
-            page.object_list, starttime, endtime)
-
-        if page is not None:
-            page.object_list = prefixes
-            serializer = self.get_pagination_serializer(page)
-        else:
-            serializer = self.get_serializer(prefixes, many=True)
-
-        return Response(serializer.data)
+        usages = prefix_collector.fetch_usages(data, starttime, endtime)
+        serializer_class = self.get_serializer_class()
+        return serializer_class(
+            usages, *args, context=self.get_serializer_context(), many=True)
 
 
 class PrefixUsageDetail(NAVAPIMixin, APIView):
@@ -712,7 +834,7 @@ class PrefixUsageDetail(NAVAPIMixin, APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         starttime, endtime = get_times(request)
-        db_prefix = manage.Prefix.objects.get(net_address=prefix)
+        db_prefix = get_object_or_404(manage.Prefix, net_address=prefix)
         serializer = serializers.PrefixUsageSerializer(
             prefix_collector.fetch_usage(db_prefix, starttime, endtime))
 
@@ -781,13 +903,15 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """Gets an AlertHistory QuerySet"""
-        if not self.request.QUERY_PARAMS.get('stateless', False):
+        if self.is_single_alert_by_primary_key():
+            return event.AlertHistory.objects.all().select_related()
+        elif self.request.query_params.get('stateless', False):
             return event.AlertHistory.objects.unresolved().select_related()
         else:
             return self._get_stateless_queryset()
 
     def _get_stateless_queryset(self):
-        hours = int(self.request.QUERY_PARAMS.get('stateless_threshold',
+        hours = int(self.request.query_params.get('stateless_threshold',
                                                   STATELESS_THRESHOLD))
         if hours < 1:
             raise ValueError("hours must be at least 1")
@@ -795,9 +919,6 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         stateless = Q(start_time__gte=threshold) & Q(end_time__isnull=True)
         return event.AlertHistory.objects.filter(
             stateless | UNRESOLVED).select_related()
-
-    def get_object(self, queryset=None):
-        return super(AlertHistoryViewSet, self).get_object(self.model)
 
     def get_template_names(self):
         """Get the template name based on the alerthist object"""
@@ -815,6 +936,10 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
             'alertmsg/base.html'
         ])
         return template_names
+
+    def is_single_alert_by_primary_key(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        return lookup_url_kwarg in self.kwargs
 
 
 class RackViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):

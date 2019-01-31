@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -22,8 +22,10 @@ library.
 """
 import math
 from itertools import groupby
+from functools import reduce
 
 from django.utils.six import iteritems
+from django.utils.six.moves import range
 
 
 def identity(obj):
@@ -427,5 +429,5 @@ def chunks(lst, size):
     """
     Yields successive `size`-sized chunks from lst.
     """
-    for i in xrange(0, len(lst), size):
+    for i in range(0, len(lst), size):
         yield lst[i:i+size]

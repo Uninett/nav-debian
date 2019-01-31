@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -20,23 +20,24 @@ import os
 import sys
 import copy
 
+import django
 from django.utils.log import DEFAULT_LOGGING
 
-from nav.config import read_flat_config, getconfig
+from nav.config import (read_flat_config, getconfig, find_config_dir)
 from nav.db import get_connection_parameters
 import nav.buildconf
 
 ALLOWED_HOSTS = ['*']
 
+_config_dir = find_config_dir()
 try:
     nav_config = read_flat_config('nav.conf')
-except IOError:
+except (IOError, OSError):
     nav_config = {'SECRET_KEY': 'Very bad default value'}
 
 try:
-    webfront_config = getconfig('webfront/webfront.conf',
-                                configfolder=nav.buildconf.sysconfdir)
-except IOError:
+    webfront_config = getconfig('webfront/webfront.conf')
+except (IOError, OSError):
     webfront_config = {}
 
 DEBUG = nav_config.get('DJANGO_DEBUG', 'False').upper() in ('TRUE', 'YES', 'ON')
@@ -73,7 +74,7 @@ try:
 
         }
     }
-except IOError:
+except (IOError, OSError):
     pass
 
 # URLs configuration
@@ -86,17 +87,29 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
+# This is a custom NAV setting for upload directory location:
+UPLOAD_DIR = nav_config.get(
+    'UPLOAD_DIR',
+    os.path.join(nav.buildconf.localstatedir, 'uploads'))
+
+STATICFILES_DIRS = [
+    ('uploads', UPLOAD_DIR),
+]
+# Mount the NAV docs if running under the Django development server
+_base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+_doc_dir = os.path.join(_base_dir, 'build/sphinx/html')
+if os.path.isdir(_doc_dir):
+    STATICFILES_DIRS.append(('doc', _doc_dir))
 
 
 # Templates
+_global_template_dir = [
+    os.path.join(_config_dir, 'templates')] if _config_dir else []
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            os.path.join(nav.buildconf.sysconfdir, 'templates'),
-            nav.buildconf.djangotmpldir,
-        ],
+        'DIRS': _global_template_dir + [nav.buildconf.djangotmpldir],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -135,7 +148,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = int(
     webfront_config.get('sessions', {}).get('timeout', 3600))
 SESSION_COOKIE_NAME = 'nav_sessionid'
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = False
 
 # Message storage for the messages framework
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
@@ -204,25 +217,33 @@ NAVLETS = (
     'nav.web.navlets.env_rack.EnvironmentRackWidget',
 )
 
-CRISPY_TEMPLATE_PACK = 'foundation'
+CRISPY_ALLOWED_TEMPLATE_PACKS = ('foundation-5')
+CRISPY_TEMPLATE_PACK = 'foundation-5'
 
 INSTALLED_APPS = (
     'nav.models',
+    'nav.web',
     'nav.django',
     'django.contrib.staticfiles',
     'django.contrib.sessions',
     'django.contrib.humanize',
+    'django_filters',
     'crispy_forms',
     'crispy_forms_foundation',
-    'django_hstore',
     'rest_framework',
     'nav.auditlog',
+    'nav.web.macwatch',
+    'nav.web.geomap',
 )
+
+if tuple(django.VERSION[:2]) == (1, 7):
+    INSTALLED_APPS = INSTALLED_APPS + ('django_hstore',)
+else:
+    INSTALLED_APPS = INSTALLED_APPS + ('django.contrib.postgres',)
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
-    'PAGINATE_BY': 100,
-    'PAGINATE_BY_PARAM': 'page_size',
+    'DEFAULT_PAGINATION_CLASS': 'nav.web.api.v1.NavPageNumberPagination',
 }
 
 # Classes that implement a search engine for the web navbar
@@ -239,7 +260,8 @@ SEARCHPROVIDERS = [
 
 # Hack for hackers to use features like debug_toolbar etc.
 # https://code.djangoproject.com/wiki/SplitSettings (Rob Golding's method)
-sys.path.append(os.path.join(nav.buildconf.sysconfdir, "python"))
+if _config_dir:
+    sys.path.append(os.path.join(_config_dir, "python"))
 try:
     # pylint: disable=E0602
     LOCAL_SETTINGS

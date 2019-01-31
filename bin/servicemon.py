@@ -7,7 +7,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -40,12 +40,14 @@ LOGGER = logging.getLogger('nav.servicemon')
 
 
 class Controller:
-    def __init__(self, **kwargs):
-        signal.signal(signal.SIGHUP, self.signalhandler)
+    def __init__(self, foreground=False):
+        if not foreground:
+            signal.signal(signal.SIGHUP, self.signalhandler)
         signal.signal(signal.SIGTERM, self.signalhandler)
+        signal.signal(signal.SIGINT, self.signalhandler)
+
         self.conf = config.serviceconf()
         init_generic_logging(stderr=True, read_config=True)
-        self._deamon = kwargs.get("fork", 1)
         self._isrunning = 1
         self._checkers = []
         self._looptime = int(self.conf.get("checkinterval", 60))
@@ -107,12 +109,10 @@ class Controller:
                 sleep(pause)
 
             # extensive debugging
-            dbgthreads = []
-            for i in gc.get_objects():
-                if isinstance(i, threading.Thread):
-                    dbgthreads.append(i)
+            objects = gc.get_objects()
+            dbgthreads = [i for i in objects if isinstance(i, threading.Thread)]
             LOGGER.debug("Garbage: %s Objects: %i Threads: %i", gc.garbage,
-                         len(gc.get_objects()), len(dbgthreads))
+                         len(objects), len(dbgthreads))
 
             wait = self._looptime - (time.time() - start)
             LOGGER.debug("Waiting %i seconds.", wait)
@@ -129,44 +129,39 @@ class Controller:
             LOGGER.info("Caught SIGTERM. Exiting.")
             self._runqueue.terminate()
             sys.exit(0)
+        elif signum == signal.SIGINT:
+            LOGGER.info("Caught SIGINT. Exiting.")
+            self._runqueue.terminate()
+            sys.exit(0)
         elif signum == signal.SIGHUP:
             # reopen the logfile
-            logfile_path = self.conf.get("logfile", "servicemon.log")
             LOGGER.info("Caught SIGHUP. Reopening logfile...")
-            logfile = open(logfile_path, 'a')
+            logfile = open(self.conf.logfile, 'a')
             nav.daemon.redirect_std_fds(stdout=logfile, stderr=logfile)
 
-            LOGGER.info("Reopened logfile: %s", logfile_path)
+            LOGGER.info("Reopened logfile: %s", self.conf.logfile)
         else:
             LOGGER.info("Caught %s. Resuming operation.", signum)
 
 
-def main(fork):
+def main(foreground):
     """Daemon main entry point"""
     conf = config.serviceconf()
-    pidfilename = conf.get(
-        "pidfile",
-        os.path.join(buildconf.localstatedir, "run", "servicemon.pid"))
+    pidfilename = conf.get("pidfile", "servicemon.pid")
 
     # Already running?
     try:
         nav.daemon.justme(pidfilename)
-    except nav.daemon.AlreadyRunningError:
-        otherpid = open(pidfilename, "r").read().strip()
-        sys.stderr.write("servicemon is already running (pid: %s)\n" % otherpid)
-        sys.exit(1)
-    except nav.daemon.DaemonError as e:
-        sys.stderr.write("%s\n" % e)
-        sys.exit(1)
+    except nav.daemon.AlreadyRunningError as error:
+        sys.exit("servicemon is already running (pid: %s)" % error.pid)
+    except nav.daemon.DaemonError as error:
+        sys.exit(error)
 
-    if fork:
-        logfile_path = conf.get(
-            'logfile',
-            os.path.join(buildconf.localstatedir, 'log','servicemon.log'))
-        logfile = open(logfile_path, 'a')
+    if not foreground:
+        logfile = open(conf.logfile, 'a')
         nav.daemon.daemonize(pidfilename, stdout=logfile, stderr=logfile)
 
-    my_controller = Controller(fork=fork)
+    my_controller = Controller(foreground=foreground)
     my_controller.main()
 
 
@@ -177,7 +172,7 @@ def parse_args():
     )
     parser.add_argument('--version', action='version',
                         version='NAV ' + buildconf.VERSION)
-    parser.add_argument('-n', '--nofork', action="store_true",
+    parser.add_argument('-f', '--foreground', action="store_true",
                         help="run in foreground")
     return parser.parse_args()
 
@@ -185,4 +180,4 @@ def parse_args():
 if __name__ == '__main__':
     os.umask(0o0002)
     args = parse_args()
-    main(not args.nofork)
+    main(args.foreground)

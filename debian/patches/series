@@ -1,3 +1,4 @@
+setup-py-version-tag-regexp
 nav-start-mkdir-var-run
-configure
-apache-wsgi-location
+config-debian-dirs
+doc-fix-version

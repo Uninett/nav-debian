@@ -7,7 +7,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -36,16 +36,16 @@ import nav.buildconf
 import nav.smsd.navdbqueue
 from nav import buildconf
 from nav.smsd.dispatcher import DispatcherError, PermanentDispatcherError
-from nav.config import getconfig
+from nav.config import getconfig, NAV_CONFIG
 # Dispatchers are imported later according to config
 
 
 #
 #  PATHS
 #
-configfile = os.path.join(nav.buildconf.sysconfdir, 'smsd.conf')
-logfile = os.path.join(nav.buildconf.localstatedir, 'log', 'smsd.log')
-pidfile = os.path.join(nav.buildconf.localstatedir, 'run', 'smsd.pid')
+configfile = 'smsd.conf'
+logfile = os.path.join(NAV_CONFIG['LOG_DIR'], 'smsd.log')
+pidfile = os.path.join(NAV_CONFIG['PID_DIR'], 'smsd.pid')
 
 #
 # Globals
@@ -63,7 +63,7 @@ def main():
     # Set config defaults
     global defaults
     defaults = {
-        'username': buildconf.nav_user,
+        'username': NAV_CONFIG['NAV_USER'],
         'delay': '30',
         'delayfactor': '1.5',
         'maxdelay': '3600',
@@ -71,12 +71,10 @@ def main():
         'retrylimitaction': 'ignore',
         'exit_on_permanent_error': 'yes',
         'autocancel': '0',
-        'loglevel': 'INFO',
         'mailwarnlevel': 'ERROR',
         'mailserver': 'localhost',
-        'mailaddr': nav.config.read_flat_config('nav.conf')['ADMIN_MAIL'],
-        'fromaddr': nav.config.read_flat_config('nav.conf')[
-            'DEFAULT_FROM_EMAIL'],
+        'mailaddr': NAV_CONFIG['ADMIN_MAIL'],
+        'fromaddr': NAV_CONFIG['DEFAULT_FROM_EMAIL'],
     }
 
     # Read config file
@@ -100,19 +98,25 @@ def main():
 
     username = config['main']['username']
     autocancel = config['main']['autocancel']
-    loglevel = logging.getLevelName(config['main']['loglevel'])
     mailwarnlevel = logging.getLevelName(config['main']['mailwarnlevel'])
     mailserver = config['main']['mailserver']
     mailaddr = config['main']['mailaddr']
     fromaddr = config['main']['fromaddr']
 
-    # Initialize logger
+    # Drop privileges if running as root
+    if os.geteuid() == 0:
+        try:
+            nav.daemon.switchuser(username)
+        except nav.daemon.DaemonError as error:
+            print(error, file=sys.stderr)
+            sys.exit(
+                "Run as root or %s. Try `%s --help' for more information." % (
+                 username, sys.argv[0]))
+
+    # Initialize logging
     global logger
-    nav.logs.set_log_levels()
     logger = logging.getLogger('nav.smsd')
-    loginitstderr(loglevel)
-    if not loginitfile(loglevel, logfile):
-        sys.exit('Failed to init file logging.')
+    nav.logs.init_stderr_logging()
     if not loginitsmtp(mailwarnlevel, mailaddr, fromaddr, mailserver):
         sys.exit('Failed to init SMTP logging.')
 
@@ -130,8 +134,8 @@ def main():
         logger.info("All %d unsent messages ignored.", ignored_count)
         sys.exit(0)
 
-    if args.factor:
-        retryvars['delayfactor'] = args.factor
+    if args.delayfactor:
+        retryvars['delayfactor'] = args.delayfactor
     if args.maxdelay:
         retryvars['maxdelay'] = args.maxdelay
     if args.limit:
@@ -171,16 +175,6 @@ def main():
 
         sys.exit(0)
 
-    # Switch user to $NAV_USER (only works if we're root)
-    if os.geteuid() == 0:
-        try:
-            nav.daemon.switchuser(username)
-        except nav.daemon.DaemonError as error:
-            logger.error("%s Run as root or %s to enter daemon mode. "
-                         "Try `%s --help' for more information.",
-                         error, username, sys.argv[0])
-            sys.exit(1)
-
     # Check if already running
     try:
         nav.daemon.justme(pidfile)
@@ -189,24 +183,23 @@ def main():
         sys.exit(1)
 
     # Daemonize
-    if not args.nofork:
+    if not args.foreground:
         try:
-            nav.daemon.daemonize(pidfile,
-                                 stderr=nav.logs.get_logfile_from_logger())
+            nav.daemon.daemonize(pidfile, stderr=open(logfile, "a"))
         except nav.daemon.DaemonError as error:
             logger.error(error)
             sys.exit(1)
 
-        # Daemonized; stop logging explicitly to stderr and reopen log files
-        loguninitstderr()
-        nav.logs.reopen_log_files()
-        logger.debug('Daemonization complete; reopened log files.')
+        logger.info('smsd now running in daemon mode')
+        # Reopen log files on SIGHUP
+        logger.debug('Adding signal handler for reopening log files on SIGHUP.')
+        signal.signal(signal.SIGHUP, signalhandler)
+    else:
+        nav.daemon.writepidfile(pidfile)
 
-    # Reopen log files on SIGHUP
-    logger.debug('Adding signal handler for reopening log files on SIGHUP.')
-    signal.signal(signal.SIGHUP, signalhandler)
-    # Exit on SIGTERM
+    # Exit on SIGTERM/SIGINT
     signal.signal(signal.SIGTERM, signalhandler)
+    signal.signal(signal.SIGINT, signalhandler)
 
     # Initialize queue
     # NOTE: If we're initalizing a queue with a DB connection before
@@ -293,7 +286,7 @@ def parse_args():
         help="cancel (mark as ignored) all unsent messages")
     arg("-d", "--delay", type=int,
         help="set delay (in seconds) between queue checks")
-    arg("-f", "--factor", type=int,
+    arg("-D", "--delayfactor", type=int,
         help="set the factor DELAY will be multiplied with for each attempt")
     arg("-m", "--maxdelay", type=int,
         help="maximum delay (in seconds)")
@@ -314,7 +307,7 @@ def parse_args():
     arg("--message", metavar="MESSAGE",
         help="Used in combination with -t or -T to specify the message content")
     arg("-u", "--uid", type=int, help="NAV user/account id to queue message to")
-    arg("-n", "--nofork", action="store_true",
+    arg("-f", "--foreground", action="store_true",
         help="run process in the foreground")
 
     args = parser.parse_args()
@@ -393,6 +386,7 @@ def backoffaction(error, retrylimitaction):
     queue = nav.smsd.navdbqueue.NAVDBQueue()
     msgs = queue.getmsgs('N')
 
+    # FIXME This needs a look-over for Python3/unicode issues
     if retrylimitaction == "ignore":
         # Queued messages are marked as ignored, logs a critical error with
         # message details, then resumes run.
@@ -433,62 +427,18 @@ def signalhandler(signum, _):
     """
 
     if signum == signal.SIGHUP:
-        global logger
         logger.info("SIGHUP received; reopening log files.")
         nav.logs.reopen_log_files()
-        nav.daemon.redirect_std_fds(
-            stderr=nav.logs.get_logfile_from_logger())
-        logger.info("Log files reopened.")
+        nav.daemon.redirect_std_fds(stderr=open(logfile, "a"))
+        nav.logs.reset_log_levels()
+        nav.logs.set_log_config()
+        logger.info('Log files reopened.')
     elif signum == signal.SIGTERM:
         logger.warning('SIGTERM received: Shutting down.')
         sys.exit(0)
-
-
-def loginitfile(loglevel, filename):
-    """Initalize the logging handler for logfile."""
-
-    try:
-        filehandler = logging.FileHandler(filename, 'a')
-        fileformat = (
-            '[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] '
-            '%(message)s')
-        fileformatter = logging.Formatter(fileformat)
-        filehandler.setFormatter(fileformatter)
-        filehandler.setLevel(loglevel)
-        logger = logging.getLogger()
-        logger.addHandler(filehandler)
-        return True
-    except IOError as error:
-        print("Failed creating file loghandler. Daemon mode disabled. (%s)"
-              % error, file=sys.stderr)
-        return False
-
-
-def loginitstderr(loglevel):
-    """Initalize the logging handler for stderr."""
-
-    try:
-        stderrhandler = logging.StreamHandler(sys.stderr)
-        stderrformat = '[%(levelname)s] [pid=%(process)d %(name)s] %(message)s'
-        stderrformatter = logging.Formatter(stderrformat)
-        stderrhandler.setFormatter(stderrformatter)
-        stderrhandler.setLevel(loglevel)
-        logger = logging.getLogger()
-        logger.addHandler(stderrhandler)
-        return True
-    except IOError as error:
-        print("Failed creating stderr loghandler. Daemon mode disabled. (%s)"
-              % error, file=sys.stderr)
-        return False
-
-
-def loguninitstderr():
-    """Remove the stderr StreamHandler from the root logger."""
-    for hdlr in logging.root.handlers:
-        if (isinstance(hdlr, logging.StreamHandler)
-                and hdlr.stream is sys.stderr):
-            logging.root.removeHandler(hdlr)
-            return True
+    elif signum == signal.SIGINT:
+        logger.warning('SIGINT received: Shutting down.')
+        sys.exit(0)
 
 
 def loginitsmtp(loglevel, mailaddr, fromaddr, mailserver):

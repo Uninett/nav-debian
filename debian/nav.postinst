@@ -36,6 +36,7 @@ fix_system_user() {
 
 fix_perms() {
     install -d -onavcron -gnav -m755 /var/lib/nav
+    install -d -onavcron -gnav -m755 /var/lib/nav/www
     install -d -onavcron -gnav -m755 /var/lib/nav/log
     install -d -onavcron -gnav -m755 /var/lib/nav/rrd
     install -d -onavcron -gnav -m755 /var/lib/nav/rrd/activeip
@@ -213,7 +214,7 @@ case "$1" in
 	
 	    # create and populate the database,
 	    RET=0
-	    result=`su -c "/usr/lib/nav/navsyncdb -c" postgres 2>&1` || RET=$?
+	    result=`su -c "/usr/sbin/navsyncdb -c" postgres 2>&1` || RET=$?
 	    if [ "$RET" != 0 ]; then
 		db_reset ${package_name}/e_initdb || true
 		db_capb escape
@@ -233,7 +234,7 @@ case "$1" in
 	if [ "$db_auto_update" = "true" ] && [ ! -z "$OLDVERSION" ] && \
 	    dpkg --compare-versions "$OLDVERSION" gt 2+3.8.0 ; then
 	    RET=0
-	    result=`su -c "/usr/lib/nav/navsyncdb -o" postgres 2>&1` || RET=$?
+	    result=`su -c "/usr/sbin/navsyncdb -o" postgres 2>&1` || RET=$?
 
 	    if [ "$RET" != 0 ]; then
 		db_reset ${package_name}/e_upgradedb || true
@@ -255,6 +256,9 @@ case "$1" in
 	    fi
 	fi
 	
+	# Collect all static files to serve in the web server into /usr/share/nav/www/static
+	/opt/venvs/nav/bin/django-admin collectstatic --noinput --verbosity=0 --settings=nav.django.settings
+
 
 	if dpkg --compare-versions "$OLDVERSION" le "2+3.10.1-3"; then
             rm_conffile nav /etc/nav/cron.d/networkDiscovery

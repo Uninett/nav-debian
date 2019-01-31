@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -17,7 +17,6 @@
 
 from __future__ import absolute_import
 
-import os
 import logging
 from optparse import OptionParser
 from collections import defaultdict
@@ -32,9 +31,9 @@ from nav.metrics.lookup import lookup
 
 import django
 from django.db import transaction
+from django.utils import six
 
-LOGFILE_NAME = 'thresholdmon.log'
-LOGFILE_PATH = os.path.join(buildconf.localstatedir, 'log', LOGFILE_NAME)
+LOG_FILE = 'thresholdmon.log'
 
 _logger = logging.getLogger('nav.thresholdmon')
 
@@ -45,7 +44,7 @@ def main():
     (_options, _args) = parser.parse_args()
 
     init_generic_logging(
-        logfile=LOGFILE_PATH,
+        logfile=LOG_FILE,
         stderr=False,
         stdout=True,
         read_config=True,
@@ -165,9 +164,10 @@ def make_event(start, rule, metric, value):
     event.subid = "{rule}:{metric}".format(rule=rule.id, metric=metric)
 
     varmap = dict(metric=metric, alert=rule.alert,
-                  ruleid=unicode(rule.id), measured_value=unicode(value))
+                  ruleid=six.text_type(rule.id),
+                  measured_value=six.text_type(value))
     if rule.clear:
-        varmap['clear'] = unicode(rule.clear)
+        varmap['clear'] = six.text_type(rule.clear)
     _add_subject_details(event, metric, varmap)
 
     event.save()

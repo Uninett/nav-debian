@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -21,26 +21,25 @@ schedule in NAVdb.
 """
 
 
-import os.path
 import time
 import logging
 
-import nav.buildconf
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
+
 from nav.logs import init_generic_logging
 from nav.maintengine import check_devices_on_maintenance
 
-
+LOG_FILE = 'maintengine.log'
 LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] %(message)s"
 
 
 def main():
     """Good old main..."""
     before = time.clock()
-    log_file = os.path.join(nav.buildconf.localstatedir,
-                            'log', 'maintengine.log')
     fmt = logging.Formatter(LOG_FORMAT)
     init_generic_logging(
-        logfile=log_file,
+        logfile=LOG_FILE,
         stderr=False,
         formatter=fmt,
         read_config=True,

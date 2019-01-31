@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -20,6 +20,7 @@ from operator import itemgetter
 
 from django.http import HttpResponse, QueryDict, JsonResponse
 from django.test.client import RequestFactory
+from django.utils.dateparse import parse_datetime
 
 from nav.models.profiles import Account
 from nav.models.manage import Netbox
@@ -96,8 +97,9 @@ class Status2Widget(Navlet):
         return [(k, v) for k, v in column_choices if k in chosen_columns]
 
     @staticmethod
-    def format_time(timestamp):
+    def format_time(timestampstring):
         """Format the time based on time back in time"""
+        timestamp = parse_datetime(timestampstring)
         now = datetime.now()
         date_format = '%d.%b %H:%M:%S'
         if now.year != timestamp.year:

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -17,7 +17,6 @@
 """Forms for seeddb pages"""
 
 from django import forms
-from django_hstore.forms import DictionaryField
 from django.utils.safestring import mark_safe
 
 from crispy_forms.helper import FormHelper
@@ -25,6 +24,7 @@ from crispy_forms_foundation.layout import (Layout, Fieldset, Row, Column)
 
 from django.utils import six
 
+from nav.django.forms import HStoreField
 from nav.web.crispyforms import LabelSubmit
 from nav.models.manage import (Location, Room, Organization, NetboxType,
                                Vendor, NetboxGroup, Netbox)
@@ -163,8 +163,7 @@ class RoomFilterForm(forms.Form):
 class RoomForm(forms.ModelForm):
     """Form for editing/adding rooms"""
     location = forms.ChoiceField(choices=())
-    data = DictionaryField(widget=forms.Textarea(), label='Attributes',
-                           required=False)
+    data = HStoreField(label='Attributes', required=False)
 
     def __init__(self, *args, **kwargs):
         super(RoomForm, self).__init__(*args, **kwargs)
@@ -190,8 +189,7 @@ class RoomMoveForm(forms.Form):
 class LocationForm(forms.ModelForm):
     """Form for editing and adding a location"""
     parent = forms.ChoiceField(required=False)
-    data = DictionaryField(widget=forms.Textarea(), label='Attributes',
-                           required=False)
+    data = HStoreField(label='Attributes', required=False)
 
     class Meta(object):
         model = Location
@@ -242,8 +240,7 @@ class OrganizationFilterForm(forms.Form):
 class OrganizationForm(forms.ModelForm):
     """Form for editing an organization"""
     parent = forms.ChoiceField(required=False)
-    data = DictionaryField(widget=forms.Textarea(), label='Attributes',
-                           required=False)
+    data = HStoreField(label='Attributes', required=False)
 
     class Meta(object):
         model = Organization

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -48,6 +48,8 @@ class UsageResult(object):
 
 def fetch_usages(prefixes, starttime, endtime):
     """Fetch usage for a list of prefixes"""
+    if prefixes is None:
+        prefixes = []
     return [fetch_usage(prefix, starttime, endtime) for prefix in prefixes]
 
 

@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -26,13 +26,14 @@ from datetime import datetime
 import re
 import json
 
+from django.utils import six
 from django.views.decorators.debug import sensitive_variables
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
 from django.utils.encoding import python_2_unicode_compatible
-from django_hstore import hstore
 from django.forms.models import model_to_dict
 
+from nav.adapters import HStoreField
 import nav.buildconf
 import nav.pwhash
 from nav.config import getconfig as get_alertengine_config
@@ -46,7 +47,6 @@ from nav.models.manage import Organization, Prefix, Room, NetboxGroup
 from nav.models.manage import Interface, Usage, Vlan, Vendor
 from nav.models.fields import VarcharField, DictAsJsonField
 
-configfile = os.path.join(nav.buildconf.sysconfdir, 'alertengine.conf')
 
 # This should be the authorative source as to which models alertengine
 # supports.  The acctuall mapping from alerts to data in these models is done
@@ -89,19 +89,25 @@ class Account(models.Model):
     login = VarcharField(unique=True)
     name = VarcharField()
     password = VarcharField()
-    ext_sync = VarcharField()
-    preferences = hstore.DictionaryField()
+    ext_sync = VarcharField(blank=True)
+    preferences = HStoreField(default={})
 
-    objects = hstore.HStoreManager()
+    organizations = models.ManyToManyField(Organization, db_table='accountorg',
+                                           blank=True)
 
-    organizations = models.ManyToManyField(Organization, db_table='accountorg')
+    # Set this in order to provide a link to the actual operator when Account
+    # objects are retrieved from session data
+    sudo_operator = None
 
     class Meta(object):
         db_table = u'account'
         ordering = ('login',)
 
     def __str__(self):
-        return self.login
+        if self.sudo_operator and self.sudo_operator != self:
+            return '{} (operated by {})'.format(self.login, self.sudo_operator)
+        else:
+            return self.login
 
     def get_active_profile(self):
         """Returns the account's active alert profile"""
@@ -435,8 +441,7 @@ class AlertSender(models.Model):
     def _load_dispatcher_class(self):
         # Get config
         if not hasattr(AlertSender, 'config'):
-            AlertSender.config = get_alertengine_config(
-                os.path.join(nav.buildconf.sysconfdir, 'alertengine.conf'))
+            AlertSender.config = get_alertengine_config('alertengine.conf')
 
         # Load module
         module = __import__(
@@ -612,7 +617,7 @@ class AlertSubscription(models.Model):
     filter_group = models.ForeignKey('FilterGroup')
     type = models.IntegerField(db_column='subscription_type',
                                choices=SUBSCRIPTION_TYPES, default=NOW)
-    ignore_resolved_alerts = models.BooleanField()
+    ignore_resolved_alerts = models.BooleanField(default=False)
 
     class Meta(object):
         db_table = u'alertsubscription'
@@ -645,8 +650,8 @@ class FilterGroupContent(models.Model):
     # subsystem in an attempt to keep most of the alerteninge code simple and
     # in one place.
 
-    include = models.BooleanField()
-    positive = models.BooleanField()
+    include = models.BooleanField(default=False)
+    positive = models.BooleanField(default=False)
     priority = models.IntegerField()
 
     filter = models.ForeignKey('Filter')
@@ -1079,6 +1084,7 @@ class MatchField(models.Model):
     )
     show_list = models.BooleanField(
         blank=True,
+        default=False,
         help_text=_(u'If unchecked values can be entered into a text input. '
                     u'If checked values must be selected from a list '
                     u'populated by data from the match field selected above.')
@@ -1236,6 +1242,9 @@ class NetmapView(models.Model):
     display_elinks = models.BooleanField(default=False)
     display_orphans = models.BooleanField(default=False)
     location_room_filter = models.CharField(max_length=255, blank=True)
+    categories = models.ManyToManyField(Category,
+                                        through='NetmapViewCategories',
+                                        related_name='netmap_views')
 
     def __str__(self):
         return u'%s (%s)' % (self.viewid, self.title)
@@ -1250,27 +1259,6 @@ class NetmapView(models.Model):
         """URL for admin django view to set a default view"""
         return reverse('netmap-api-netmap-defaultview-global')
 
-    def to_json_dict(self):
-        """Presents a NetmapView as JSON"""
-        categories = [{'name': unicode(x.category.id), 'is_selected': True}
-                      for x in self.categories_set.all()]
-        if self.display_elinks:
-            categories.append({'name': 'ELINK', 'is_selected': True})
-
-        return {
-            'viewid': self.viewid,
-            'owner': self.owner.id,
-            'title': self.title,
-            'description': self.description,
-            'topology': self.topology,
-            'zoom': self.zoom,
-            'last_modified': unicode(self.last_modified),
-            'is_public': self.is_public,
-            'categories': categories,
-            'display_orphans': self.display_orphans,
-            'location_room_filter': self.location_room_filter,
-        }
-
     class Meta(object):
         db_table = u'netmap_view'
 
@@ -1281,18 +1269,14 @@ class NetmapViewDefaultView(models.Model):
     view = models.ForeignKey(NetmapView, db_column='viewid')
     owner = models.ForeignKey(Account, db_column='ownerid')
 
-    def to_json_dict(self):
-        """
-        Convert a default view entry for a netmap to json
-        :return: JSON of a default netmap view entry
-        """
-        return {
-            'viewid': self.view.viewid,
-            'ownerid': self.owner.id
-        }
-
     class Meta(object):
         db_table = u'netmap_view_defaultview'
+
+    def __repr__(self):
+        return "{name}{args!r}".format(
+            name=self.__class__.__name__,
+            args=(self.id, self.view, self.owner)
+        )
 
 
 @python_2_unicode_compatible
@@ -1415,14 +1399,22 @@ class ReportSubscription(models.Model):
     address = models.ForeignKey(AlertAddress)
     period = VarcharField(choices=PERIODS)
     report_type = VarcharField(choices=TYPES)
+    exclude_maintenance = models.BooleanField()
 
     class Meta(object):
         db_table = u'report_subscription'
 
     def __unicode__(self):
-        return u"{} report for {} sent to {}".format(
+        if self.report_type == self.LINK:
+            return u"{} report for {} sent to {}".format(
+                self.get_period_description(self.period),
+                self.get_type_description(self.report_type),
+                self.address.address)
+
+        return u"{} report for {} ({} time in maintenance) sent to {}".format(
             self.get_period_description(self.period),
             self.get_type_description(self.report_type),
+            'excluding' if self.exclude_maintenance else 'including',
             self.address.address)
 
     def serialize(self):

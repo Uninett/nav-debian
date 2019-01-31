@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -14,7 +14,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Retrieval and calculations on raw numbers from Graphite metrics"""
-
+import codecs
 from datetime import datetime
 import json
 import logging
@@ -112,10 +112,10 @@ def get_metric_data(target, start="-5min", end="now"):
     query = urlencode(query, True)
 
     _logger.debug("get_metric_data%r", (target, start, end))
-    req = Request(url, data=query)
+    req = Request(url, data=query.encode('utf-8'))
     try:
         response = urlopen(req)
-        json_data = json.load(response)
+        json_data = json.load(codecs.getreader('utf-8')(response))
         _logger.debug("get_metric_data: returning %d results", len(json_data))
         return json_data
     except HTTPError as err:

@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -22,18 +22,17 @@ from operator import attrgetter
 
 from django.conf import settings
 
+from nav.config import find_configfile
 from nav.django.auth import get_sudoer
 from nav.django.utils import get_account, is_admin
 from nav.web.message import Messages
 from nav.web.webfront.utils import tool_list, quick_read, split_tools
 from nav.models.profiles import NavbarLink
 from nav.buildconf import VERSION
-from nav.buildconf import sysconfdir
 from nav.metrics import CONFIG
 
-WEBCONF_DIR_PATH = os.path.join(sysconfdir, "webfront")
-CONTACT_INFORMATION_PATH = os.path.join(WEBCONF_DIR_PATH,
-                                        "contact-information.txt")
+CONTACT_INFORMATION_PATH = find_configfile(
+    os.path.join("webfront", "contact-information.txt"))
 
 
 def debug(_request):

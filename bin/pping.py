@@ -7,7 +7,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -30,6 +30,7 @@ import logging
 
 import nav.daemon
 from nav import buildconf
+from nav.config import NAV_CONFIG
 from nav.daemon import safesleep as sleep
 from nav.logs import init_generic_logging
 from nav.statemon import statistics
@@ -52,32 +53,34 @@ def main():
         sys.exit(1)
 
     socket = megaping.make_sockets()  # make raw sockets while we have root
-    switch_user()
-    start(args.nofork, socket)
+    nav.daemon.switchuser(NAV_CONFIG['NAV_USER'])
+    start(args.foreground, socket)
 
 
 def make_argparser():
     parser = argparse.ArgumentParser(
         description="Parallel pinger daemon (part of NAV)",
     )
-    parser.add_argument("-n", "--nofork", action="store_true",
+    parser.add_argument("-f", "--foreground", action="store_true",
                         help="run in foreground")
     return parser
 
 
 class Pinger(object):
 
-    def __init__(self, **kwargs):
-        signal.signal(signal.SIGHUP, self.signalhandler)
+    def __init__(self, socket=None, foreground=False):
+        if not foreground:
+            signal.signal(signal.SIGHUP, self.signalhandler)
         signal.signal(signal.SIGTERM, self.signalhandler)
+        signal.signal(signal.SIGINT, self.signalhandler)
+
         self.config = config.pingconf()
         init_generic_logging(stderr=True, read_config=True)
         self._isrunning = 1
         self._looptime = int(self.config.get("checkinterval", 60))
         LOGGER.info("Setting checkinterval=%i", self._looptime)
         self.db = db.db()
-        sock = kwargs.get("socket", None)
-        self.pinger = megaping.MegaPing(sock)
+        self.pinger = megaping.MegaPing(socket)
         self._nrping = int(self.config.get("nrping", 3))
         # To keep status...
         self.netboxmap = {}  # hash netboxid -> netbox
@@ -203,57 +206,50 @@ class Pinger(object):
                                "Delaying next check for %03.3f secs", wait)
             sleep(wait)
 
-    def signalhandler(self, signum, frame):
+    def signalhandler(self, signum, _frame):
         if signum == signal.SIGTERM:
             LOGGER.critical("Caught SIGTERM. Exiting.")
             sys.exit(0)
+        elif signum == signal.SIGINT:
+            LOGGER.critical("Caught SIGINT. Exiting.")
+            sys.exit(0)
         elif signum == signal.SIGHUP:
             # reopen the logfile
-            logfile_path = self.config.get("logfile", "pping.log")
+            conf = config.pingconf()
             LOGGER.info("Caught SIGHUP. Reopening logfile...")
-            logfile = open(logfile_path, 'a')
+            logfile = open(conf.logfile, 'a')
             nav.daemon.redirect_std_fds(stdout=logfile, stderr=logfile)
 
-            LOGGER.info("Reopened logfile: %s", logfile_path)
+            LOGGER.info("Reopened logfile: %s", conf.logfile)
         else:
             LOGGER.critical("Caught %s. Resuming operation.", signum)
 
 
-def start(nofork, socket):
+def start(foreground, socket):
     """
-    Forks a new prosess, letting the service run as
-    a daemon.
+    Starts a new process, letting the service run as a daemon if `foreground`
+    is false.
     """
     conf = config.pingconf()
-    pidfilename = conf.get(
-        "pidfile", os.path.join(buildconf.localstatedir, "run", "pping.pid"))
+    pidfilename = "pping.pid"
 
     # Already running?
     try:
         nav.daemon.justme(pidfilename)
-    except nav.daemon.AlreadyRunningError:
-        otherpid = open(pidfilename, "r").read().strip()
-        sys.stderr.write("pping is already running (pid: %s)\n" % otherpid)
-        sys.exit(1)
+    except nav.daemon.AlreadyRunningError as error:
+        sys.exit("pping is already running (pid: %s)" % error.pid)
     except nav.daemon.DaemonError as error:
-        sys.stderr.write("%s\n" % error)
-        sys.exit(1)
+        sys.exit(error)
 
-    if not nofork:
-        logfile_path = conf.get(
-            'logfile',
-            os.path.join(buildconf.localstatedir, 'log', 'pping.log'))
-        logfile = open(logfile_path, "a")
+    if not foreground:
+        logfile = open(conf.logfile, "a")
         nav.daemon.daemonize(pidfilename, stdout=logfile, stderr=logfile)
+    else:
+        nav.daemon.writepidfile(pidfilename)
 
-    my_pinger = Pinger(socket=socket)
+    my_pinger = Pinger(socket=socket, foreground=foreground)
     my_pinger.main()
 
-
-def switch_user():
-    conf = config.pingconf()
-    username = conf.get("user", "nobody")
-    nav.daemon.switchuser(username)
 
 if __name__ == '__main__':
     main()

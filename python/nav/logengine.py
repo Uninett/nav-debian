@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -46,8 +46,6 @@ from __future__ import absolute_import, print_function
 import re
 import fcntl
 import sys
-import os
-import os.path
 import errno
 import atexit
 import logging
@@ -61,9 +59,11 @@ import nav
 import nav.logs
 from nav import db
 from nav import daemon
-from nav.buildconf import localstatedir, sysconfdir
+from nav.config import find_configfile
 
-_logger = logging.getLogger("logengine")
+
+PID_FILE = 'logengine.pid'
+_logger = logging.getLogger("nav.logengine")
 
 
 def get_exception_dicts(config):
@@ -219,7 +219,7 @@ def find_month(textual):
 
 def delete_old_messages(config):
     """Delete old messages from db, according to config settings."""
-    _logger.info("Deleting old messages from db")
+    _logger.debug("Deleting old messages from db")
 
     conn = db.getConnection('logger', 'logger')
     cursor = conn.cursor()
@@ -243,10 +243,9 @@ def verify_singleton(quiet=False):
     # Create a pidfile and delete it automagically when the process exits.
     # Although we're not a daemon, we do want to prevent multiple simultaineous
     # logengine processes.
-    pidfile = os.path.join(localstatedir, 'run', 'logengine.pid')
 
     try:
-        daemon.justme(pidfile)
+        daemon.justme(PID_FILE)
     except daemon.AlreadyRunningError as err:
         if quiet:
             sys.exit(0)
@@ -254,8 +253,8 @@ def verify_singleton(quiet=False):
             print("logengine is already running (%d)" % err.pid, file=sys.stderr)
             sys.exit(1)
 
-    daemon.writepidfile(pidfile)
-    atexit.register(daemon.daemonexit, pidfile)
+    daemon.writepidfile(PID_FILE)
+    atexit.register(daemon.daemonexit, PID_FILE)
 
 
 def get_categories(cursor):
@@ -458,7 +457,7 @@ def logengine(config, options):
      exceptiontypeorigin) = get_exception_dicts(config)
 
     ## add new records
-    _logger.info("Reading new log entries")
+    _logger.debug("Reading new log entries")
     my_parse_and_insert = swallow_all_but_db_exceptions(parse_and_insert)
     for line in read_log_lines(config):
         my_parse_and_insert(line, database,
@@ -500,10 +499,9 @@ def main():
     # Process setup
 
     config = ConfigParser()
-    config.read(os.path.join(sysconfdir, 'logger.conf'))
+    config.read(find_configfile('logger.conf'))
 
-    logging.basicConfig()
-    nav.logs.set_log_config()
+    nav.logs.init_stderr_logging()
 
     if options.delete:
         # get rid of old records

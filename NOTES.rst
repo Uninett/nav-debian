@@ -9,6 +9,197 @@ To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
 
+NAV 4.9
+========
+
+License changes
+---------------
+
+With the 4.9 release, NAV moves from a **GPL v2-only** license to a **GPL v3**
+license. This is strictly to remain compatible with the free licenses of third
+party libraries we wish to utilize in future releases (in particular, *Apache
+2.0-licensed* libraries).
+
+NAV used to have multiple copyright owners, mainly all from the higher
+education sector of Norway. Uninett was able to negotiate the transfer of these
+rights before initiating a license switch. To avoid similar issues in the
+future, if the need to relicense should arise again, we have adopted a
+contributor license agreement.
+
+Contributor License Agreement
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Uninett has adopted the Free Software Foundation's `Fiduciary License Agreement
+(FLA) <https://fsfe.org/activities/ftf/fla.en.html>`_ for NAV. Anyone who
+contributes code to NAV must sign this license before the contribution can be
+accepted into NAV.
+
+Our preferred method of receiving contributions is via GitHub pull requests.
+Therefore, to reduce the overhead of the CLA signing process, we have
+implemented an *digital CLA signing process* for GitHub pull requests, by the
+help of `CLA assistant <https://cla-assistant.io/>`_. When submitting your
+first PR against NAV, the CLA Assistant will automatically comment on the PR,
+prompting you to sign the FLA digitally using your GitHub account.
+
+We would like to stress that Uninett is a *not-for-profit*, government-owned
+limited company. It is our intent to continue to keep NAV free and open for the
+lifetime of the project. This is why we choose the GPL license, and this is why
+we choose the FLA. The latter stipulates that our right to use your
+contribution is void if we should ever attempt to relicense it to a non-open
+license (ie. one that isn't approved by FSF or OSI).
+
+
+
+Dependency changes
+------------------
+
+The NAV team is still working on porting the NAV code to Python 3, which
+includes moving to more current (non-deprecated) versions of the Django
+framework.  This means you will need to upgrade various dependencies when
+moving to NAV 4.9.
+
+Unfortunately, Django releases have a tendency to drop backwards compatibility
+with many features, so expect future releases of NAV to move to even more
+recent versions of Django - we expect to land on Django 1.11, which is the last
+long-term support release of Django 1. Django 2 drops support for Python 2, as
+will NAV.
+
+
+Upgraded dependencies
+~~~~~~~~~~~~~~~~~~~~~
+
+The version requirements have changed for these dependencies:
+
+* :mod:`django` must be any version from the *1.8* series.
+* :mod:`djangorestframework` must be any version in either the *3.5* or *3.6* series.
+* :mod:`django-filter` must be any version of the *1.0* series.
+* :mod:`django-crispy-forms` must be any version of the *1.7* series.
+* :mod:`crispy-forms-foundation` must be any version of the *0.6* series.
+* :mod:`python-ldap` must be any version of the *3.0* series.
+* :mod:`sphinx` must now be at least *1.8.0*.
+
+Obsolete dependencies
+~~~~~~~~~~~~~~~~~~~~~
+
+* :mod:`django-hstore` is no longer needed, as HStore support is included in
+  newer Django versions.
+
+Build system rewrite and source code directory layout
+-----------------------------------------------------
+
+The entire build system has been rewritten, moving from GNU automake to regular
+Python setuptools (since NAV has been mostly Python for years now). This also
+means a lot of files in the source code tree have moved around to suit a more
+Python-centric way of installing things - that is, many "data" files have been
+moved into suitable Python packages:
+
+`templates`
+  The global :file:`templates` directory was moved to
+  :file:`python/nav/web/templates`
+
+`sql`
+  All the SQL related scripts were moved to :file:`python/nav/models/sql`
+
+`htdocs/sass`
+  All SASS source files have moved to :file:`python/nav/web/sass`
+
+`htdocs/static`
+  All static web documents, including JavaScript sources, have
+  been moved to :file:`python/nav/web/static`.
+
+Instead of statically configuring filesystem paths and usernames into the NAV
+code at build time, most of these variables are now configurable from config
+files at runtime. Building and installing NAV now entails a sequence of::
+
+  python ./setup.py build
+  python ./setup.py install
+
+See the updated installation guides for more detailed instructions.
+
+
+Backwards incompatible changes
+------------------------------
+
+Changed command line options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some of the NAV programs have changed their command line interface:
+
+* :program:`alertengine.py`: The nonworking ``--loglevel`` option was removed.
+* :program:`pping.py`: The ``-n/--nofork`` option was renamed to ``-f/--foreground``.
+* :program:`servicemon.py`: The ``-n/--nofork`` option was renamed to ``-f/--foreground``.
+* :program:`smsd.py`: The ``-n/--nofork`` option was renamed to
+  ``-f/--foreground``, while the ``-f/--factor`` option was renamed to
+  ``-D/--delayfactor``.
+* :program:`snmptrapd.py`: The ``-d/--daemon`` option was changed into a
+  ``-f/--foreground``, while daemon mode was made the default.
+
+
+Changed configuration files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These configuration files changed:
+
+* :file:`smsd.conf`: The ``loglevel`` option is no longer supported. Use
+  :file:`logging.conf` to configure log levels.
+* :file:`alertengine.conf`: The ``loglevel`` option is no longer supported. Use
+  :file:`logging.conf` to configure log levels.
+
+
+News
+----
+
+Interface browser
+~~~~~~~~~~~~~~~~~
+
+A new tool for browsing and searching interface information across all devices
+in NAV has been added to the toolbox. Inspired by the new per-device interface
+tab in IP Device Info, this more or less supplants the existing interface
+reports in the report tool with a more dynamic tool based on NAV's already
+existing REST API.
+
+Interfaces can be filtered by device name, port type, port names and
+descriptions, link status or VLAN. Thec olumns of the paged search results can
+be customized, and can include sparklines of interface traffic counters.
+
+
+Support for DNOS-SWITCHING MIB in PortAdmin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With great support from Marcus Westin from the Linnaeus University who made
+available equipment for testing, and Ludovic Vinsonnaud from Institut Optique
+Graduate School who requested and supplied documentation from Dell, there is now
+support for the DNOS-SWITCHING-MIB. This means that most Dell-devices now can be
+configured using PortAdmin.
+
+With Dell devices you can specify three modes for an interface - General, Access
+and Trunk. NAV uses by default Q-BRIDGE-MIB to configure interfaces, but this
+does not work for interfaces in Access mode - which is the default mode for the
+interfaces. Thus to properly interact with Access mode support for Dells
+DNOS-SWITCHING-MIB was implemented.
+
+Partial support for IT WatchDogs / Geist V4 generation products
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The newest environment probes from IT WatchDogs / Geist have moved to new MIB
+versions. The University of Tromsø has contributed partial support for
+detecting sensors from these MIBs:
+
+* ``IT-WATCHDOGS-V4-MIB``
+* ``GEIST-V4-MIB``
+
+"Partial" here means only internal sensors are supported - external sensors are
+not, thus far.
+
+Partial support for Powertek PDUs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The University of Tromsø has contributed partial support for collecting inlet
+sensor data from Powertek PDUs. The implemented proprietary MIB is:
+
+* ``PWTv1-MIB``
+
+
 NAV 4.8
 ========
 

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -18,54 +18,55 @@
 import sys
 import os
 import logging
-import nav
-from django.conf.urls import patterns, include
+from django.conf.urls import include, url
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+
+from nav.config import find_config_dir
+from nav.web import refresh_session
 from nav.web.webfront.urls import urlpatterns
 from nav.web.styleguide import styleguide_index
 
 _logger = logging.getLogger(__name__)
 
-urlpatterns += patterns(
-    '',
-    (r'^status/', include('nav.web.status2.urls')),
-    (r'^ajax/', include('nav.web.ajax.urls')),
-    (r'^business/', include('nav.web.business.urls')),
-    (r'^alertprofiles/', include('nav.web.alertprofiles.urls')),
-    (r'^api/', include('nav.web.api.urls', namespace='api')),
-    (r'^arnold/', include('nav.web.arnold.urls')),
-    (r'^devicehistory/', include('nav.web.devicehistory.urls')),
-    (r'^geomap/', include('nav.web.geomap.urls')),
-    (r'^search/', include('nav.web.info.urls')),
-    (r'^ipdevinfo/', include('nav.web.ipdevinfo.urls')),
-    (r'^l2trace/', include('nav.web.l2trace.urls')),
-    (r'^machinetracker/', include('nav.web.machinetracker.urls')),
-    (r'^macwatch/', include('nav.web.macwatch.urls')),
-    (r'^maintenance/', include('nav.web.maintenance.urls')),
-    (r'^messages/', include('nav.web.messages.urls')),
-    (r'^neighbors/', include('nav.web.neighbors.urls')),
-    (r'^netmap/', include('nav.web.netmap.urls')),
-    (r'^networkexplorer/', include('nav.web.networkexplorer.urls')),
-    (r'^portadmin/', include('nav.web.portadmin.urls')),
-    (r'^radius/', include('nav.web.radius.urls')),
-    (r'^report/', include('nav.web.report.urls')),
-    (r'^seeddb/', include('nav.web.seeddb.urls')),
-    (r'^stats/', include('nav.web.sortedstats.urls')),
-    (r'^syslogger/', include('nav.web.syslogger.urls')),
-    (r'^ipam/', include('nav.web.ipam.urls')),
-    (r'^threshold/', include('nav.web.threshold.urls')),
-    (r'^graphite/', include('nav.web.graphite.urls')),
-    (r'^navlets/', include('nav.web.navlets.urls')),
-    (r'^watchdog/', include('nav.web.watchdog.urls')),
-
-    (r'^useradmin/', include('nav.web.useradmin.urls')),
-    (r'^styleguide/', styleguide_index),
-
-    (r'^auditlog/', include('nav.auditlog.urls')),
-)
+urlpatterns += [
+    url(r'^status/', include('nav.web.status2.urls')),
+    url(r'^ajax/', include('nav.web.ajax.urls')),
+    url(r'^business/', include('nav.web.business.urls')),
+    url(r'^alertprofiles/', include('nav.web.alertprofiles.urls')),
+    url(r'^api/', include('nav.web.api.urls', namespace='api')),
+    url(r'^arnold/', include('nav.web.arnold.urls')),
+    url(r'^devicehistory/', include('nav.web.devicehistory.urls')),
+    url(r'^geomap/', include('nav.web.geomap.urls')),
+    url(r'^search/', include('nav.web.info.urls')),
+    url(r'^ipdevinfo/', include('nav.web.ipdevinfo.urls')),
+    url(r'^l2trace/', include('nav.web.l2trace.urls')),
+    url(r'^machinetracker/', include('nav.web.machinetracker.urls')),
+    url(r'^macwatch/', include('nav.web.macwatch.urls')),
+    url(r'^maintenance/', include('nav.web.maintenance.urls')),
+    url(r'^messages/', include('nav.web.messages.urls')),
+    url(r'^neighbors/', include('nav.web.neighbors.urls')),
+    url(r'^netmap/', include('nav.web.netmap.urls')),
+    url(r'^networkexplorer/', include('nav.web.networkexplorer.urls')),
+    url(r'^portadmin/', include('nav.web.portadmin.urls')),
+    url(r'^radius/', include('nav.web.radius.urls')),
+    url(r'^report/', include('nav.web.report.urls')),
+    url(r'^seeddb/', include('nav.web.seeddb.urls')),
+    url(r'^stats/', include('nav.web.sortedstats.urls')),
+    url(r'^syslogger/', include('nav.web.syslogger.urls')),
+    url(r'^ipam/', include('nav.web.ipam.urls')),
+    url(r'^threshold/', include('nav.web.threshold.urls')),
+    url(r'^graphite/', include('nav.web.graphite.urls')),
+    url(r'^navlets/', include('nav.web.navlets.urls')),
+    url(r'^watchdog/', include('nav.web.watchdog.urls')),
+    url(r'^useradmin/', include('nav.web.useradmin.urls')),
+    url(r'^styleguide/', styleguide_index),
+    url(r'^refresh_session/', refresh_session, name='refresh-session'),
+    url(r'^auditlog/', include('nav.auditlog.urls')),
+    url(r'^interfaces/', include('nav.web.interface_browser.urls')),
+]
 
 # Load local url-config
-_local_python_dir = os.path.join(nav.buildconf.sysconfdir, 'python')
+_local_python_dir = os.path.join(find_config_dir() or '.', 'python')
 _local_url_filepath = os.path.join(_local_python_dir, 'local_urls.py')
 
 if os.path.isfile(_local_url_filepath):

@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -20,6 +20,7 @@ import hashlib
 import os
 
 from django.db import transaction
+from django.utils import six
 
 import nav.config
 import nav.buildconf
@@ -28,7 +29,7 @@ from nav.models.profiles import Filter, FilterGroup, FilterGroupContent, \
     Account, AlertSubscription, TimePeriod
 
 ADMINGROUP = 1
-CONFIGDIR = 'alertprofiles/'
+CONFIGDIR = 'alertprofiles'
 
 
 def account_owns_filters(account, *filters):
@@ -105,14 +106,14 @@ def order_filter_group_content(filter_group):
 
 def read_time_period_templates():
     templates = {}
-    template_dir = os.path.join(nav.buildconf.sysconfdir, CONFIGDIR)
+    template_dir = nav.config.find_configfile(CONFIGDIR)
     template_configs = os.listdir(template_dir)
 
     for template_file in template_configs:
         if '.conf' in template_file:
-            file = os.path.join(template_dir, template_file)
-            key = hashlib.md5(file.encode('utf-8')).hexdigest()
-            config = nav.config.getconfig(file)
+            filename = os.path.join(template_dir, template_file)
+            key = hashlib.md5(filename.encode('utf-8')).hexdigest()
+            config = nav.config.getconfig(filename)
             templates[key] = config
 
     return templates
@@ -140,7 +141,7 @@ def alert_subscriptions_table(periods):
         # This little snippet magically assigns a class to shared time periods
         # so they appear with the same highlight color.
         if valid_during == TimePeriod.ALL_WEEK:
-            p.css_class = 'shared' + unicode(shared_class_id)
+            p.css_class = 'shared' + six.text_type(shared_class_id)
             shared_class_id += 1
             if shared_class_id > 7:
                 shared_class_id = 0

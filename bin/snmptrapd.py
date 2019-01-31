@@ -6,7 +6,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -25,24 +25,24 @@ import re
 import socket
 import sys
 import argparse
-import configparser
 import signal
 from functools import reduce
 
 # Import NAV libraries
 from nav import daemon
+from nav.config import NAV_CONFIG, NAVConfigParser
 import nav.buildconf
 from nav.snmptrapd.plugin import load_handler_modules, ModuleLoadError
 from nav.util import is_valid_ip, address_to_string
 from nav.db import getConnection
+from nav.bootstrap import bootstrap_django
 import nav.logs
 
 from nav.snmptrapd import agent
 
 # Paths
-configfile = nav.buildconf.sysconfdir + "/snmptrapd.conf"
-logfile_path = nav.buildconf.localstatedir + "/log/snmptrapd.log"
-pidfile = nav.buildconf.localstatedir + "/run/snmptrapd.pid"
+logfile_path = os.path.join(NAV_CONFIG['LOG_DIR'], 'snmptrapd.log')
+pidfile = 'snmptrapd.pid'
 logging.raiseExceptions = False  # don't raise exceptions for logging issues
 logger = logging.getLogger('nav.snmptrapd')
 traplogger = logging.getLogger('nav.snmptrapd.traplog')
@@ -65,14 +65,14 @@ if socket.has_ipv6 and agent.BACKEND == 'pynetsnmp':
 
 
 def main():
+    bootstrap_django('snmptrapd')
 
     # Verify that subsystem exists, if not insert it into database
     verify_subsystem()
 
     # Initialize and read startupconfig
     global config
-    config = configparser.ConfigParser()
-    config.read(configfile)
+    config = SnmptrapdConfig()
 
     # Create parser and define options
     opts = parse_args()
@@ -81,33 +81,30 @@ def main():
     minport = min(port for addr, port in opts.address)
     if minport < 1024:
         if os.geteuid() != 0:
-            print("Must be root to bind to ports < 1024, exiting")
-            sys.exit(-1)
+            sys.exit("Must be root to bind to ports < 1024, exiting")
 
     # Check if already running
     try:
         daemon.justme(pidfile)
     except daemon.DaemonError as why:
-        print(why)
-        sys.exit(-1)
+        sys.exit(why)
 
     # Create SNMP agent object
     server = agent.TrapListener(*opts.address)
     server.open()
 
     # We have bound to a port and can safely drop privileges
-    runninguser = config.get('snmptrapd', 'user')
+    runninguser = NAV_CONFIG['NAV_USER']
     try:
         if os.geteuid() == 0:
             daemon.switchuser(runninguser)
     except daemon.DaemonError as why:
-        print(why)
         server.close()
-        sys.exit(-1)
+        sys.exit(why)
 
     global handlermodules
 
-    nav.logs.init_generic_logging(stderr=True, read_config=True)
+    nav.logs.init_stderr_logging()
 
     logger.debug("using %r as SNMP backend", agent.BACKEND)
 
@@ -122,7 +119,7 @@ def main():
 
     addresses_text = ", ".join(address_to_string(*addr)
                                for addr in opts.address)
-    if opts.daemon:
+    if not opts.foreground:
         # Daemonize and listen for traps
         try:
             logger.debug("Going into daemon mode...")
@@ -133,9 +130,8 @@ def main():
             server.close()
             sys.exit(1)
 
-        # Daemonized; reopen log files
-        nav.logs.reopen_log_files()
-        logger.debug('Daemonization complete; reopened log files.')
+        # Daemonized
+        logger.info('snmptrapd is now running in daemon mode')
 
         # Reopen lost db connection
         # This is a workaround for a double free bug in psycopg 2.0.7
@@ -157,12 +153,13 @@ def main():
             logger.critical("Fatal exception ocurred", exc_info=True)
 
     else:
+        daemon.writepidfile(pidfile)
         # Start listening and exit cleanly if interrupted.
         try:
             logger.info("Listening on %s", addresses_text)
             server.listen(opts.community, trap_handler)
         except KeyboardInterrupt as why:
-            logger.error("Received keyboardinterrupt, exiting.")
+            logger.error("Received keyboard interrupt, exiting.")
             server.close()
 
 
@@ -175,8 +172,8 @@ def parse_args():
                "appears to support IPv6, also [::]:162, which means the daemon "
                "will accept traps on any IPv4/IPv6 interface, UDP port 162."
     )
-    parser.add_argument("-d", "--daemon", action="store_true",
-                        help="Run as daemon")
+    parser.add_argument("-f", "--foreground", action="store_true",
+                        help="Run in foreground")
     parser.add_argument("-c", "--community", default="public",
                         help="Which SNMP community incoming traps must use. "
                              "The default is 'public'")
@@ -252,10 +249,18 @@ def signal_handler(signum, _):
         nav.logs.reopen_log_files()
         logfile = open(logfile_path, 'a')
         daemon.redirect_std_fds(stdout=logfile, stderr=logfile)
-        logger.info("Log files reopened.")
+        nav.logs.reset_log_levels()
+        nav.logs.set_log_config()
+        logger.info('Log files reopened.')
     elif signum == signal.SIGTERM:
         logger.warning('SIGTERM received: Shutting down.')
         sys.exit(0)
+
+
+class SnmptrapdConfig(NAVConfigParser):
+    """Configparser for snmptrapd"""
+    DEFAULT_CONFIG_FILES = ['snmptrapd.conf']
+
 
 if __name__ == '__main__':
     main()

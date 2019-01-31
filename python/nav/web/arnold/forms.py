@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -207,7 +207,7 @@ class DetentionProfileForm(forms.Form):
                     Column('keep_closed', css_class='medium-4'),
                     Column(CheckBox('exponential', css_class='input-align'),
                            css_class='medium-4'),
-                    Column(css_class='medium-4'),
+                    Column('', css_class='medium-4'),
                 ),
                 'mail',
                 'active_on_vlans',

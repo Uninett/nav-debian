@@ -18,22 +18,27 @@ RUN  apt-get -y update && \
        cdbs \
        autoconf \
        automake \
-       python-sphinx \
-       ruby-sass \
+       python-support \
        quilt \
        reportbug \
-       python-psycopg2 \
-       python-zope.interface \
        dh-systemd \
        git-buildpackage \
-       python-django \
-       python-configparser \
-       python-twisted \
-       python-django-crispy-forms \
-       python-crispy-forms-foundation \
+       libpq-dev \
+       libjpeg-dev \
+       libz-dev \
+       libldap2-dev \
+       libsasl2-dev \
+       python-dev \
+       python-all \
      && \
      apt-get clean
 
+RUN  apt-get -y update && \
+     apt-get install -y \
+         dh-virtualenv \
+         python-setuptools
+
+ENV  HOME /home
 ENV  QUILT_PATCHES debian/patches
 ENV  QUILT_NO_DIFF_INDEX 1
 ENV  QUILT_NO_DIFF_TIMESTAMPS 1

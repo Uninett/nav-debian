@@ -18,12 +18,18 @@ from __future__ import print_function
 from collections import namedtuple
 from lxml.html import fromstring
 import os
+try:
+    from http.client import BadStatusLine
+except ImportError:
+    from httplib import BadStatusLine
+
 import pytest
+
 from tidylib import tidy_document
 from django.utils import six
 from django.utils.six.moves.urllib.request import (urlopen, build_opener,
                                                    install_opener,
-                                                   HTTPCookieProcessor)
+                                                   HTTPCookieProcessor, Request)
 from django.utils.six.moves.urllib.error import HTTPError, URLError
 from django.utils.six.moves.urllib.parse import (urlsplit, urlencode,
                                                  urlunparse, urlparse, quote)
@@ -54,6 +60,9 @@ BLACKLISTED_PATHS = [
     '/cricket',
     '/index/logout',
     '/doc',
+    # getting these endpoints without args results in 400 bad request
+    '/api/1/cam',
+    '/api/1/arp',
 ]
 
 #
@@ -106,13 +115,18 @@ class WebCrawler(object):
             page = Page(url, None, error, None)
             self._add_seen(page)
 
+        except BadStatusLine as error:
+            content = 'Server abruptly closed connection'
+            page = Page(url, 500, error, content)
+            self._add_seen(page)
+
         return page
 
     def _visit(self, url):
         if self._is_seen(url):
             return
-
-        resp = urlopen(_quote_url(url), timeout=TIMEOUT)
+        req = Request(_quote_url(url), headers={'Accept': 'text/html'})
+        resp = urlopen(req, timeout=TIMEOUT)
         content_type = resp.info()['Content-type']
 
         if 'html' in content_type.lower():
@@ -162,7 +176,11 @@ class WebCrawler(object):
         return normalize_path(url) in self.seen_pages
 
     def _is_blacklisted(self, url):
-        return normalize_path(url) in self.blacklist
+        path = normalize_path(url)
+        for url in self.blacklist:
+            if path.startswith(url):
+                return True
+        return False
 
 
 def _quote_url(url):

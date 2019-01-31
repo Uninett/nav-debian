@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -25,22 +25,22 @@ from nav import buildconf
 import nav.daemon
 from nav.eventengine.engine import EventEngine
 import nav.logs
+from nav.config import NAV_CONFIG
 
-
-PIDFILE = os.path.join(
-    buildconf.localstatedir, 'run', 'eventengine.pid')
-LOGFILE = os.path.join(
-    buildconf.localstatedir, 'log', 'eventengine.log')
+PIDFILE = 'eventengine.pid'
+LOGFILE = os.path.join(NAV_CONFIG['LOG_DIR'], 'eventengine.log')
 _logger = logging.getLogger(__name__)
 
 
 def main():
     "main execution entry"
     options, _args = parse_options()
-    initialize_logging(options)
+    nav.logs.init_stderr_logging()
     exit_if_already_running()
     if not options.foreground:
         daemonize()
+    else:
+        nav.daemon.writepidfile(PIDFILE)
     start_engine()
 
 
@@ -65,27 +65,6 @@ def make_option_parser():
     return parser
 
 
-def initialize_logging(options=None):
-    "Initializes logging"
-    fmt = logging.Formatter("%(asctime)s [%(levelname)s %(name)s] %(message)s")
-    stderr_handler = logging.StreamHandler(sys.stderr)
-    stderr_handler.setFormatter(fmt)
-
-    root_logger = logging.getLogger('')
-    root_logger.addHandler(stderr_handler)
-
-    nav.logs.set_log_config()
-
-    if not options.foreground:
-        file_handler = logging.FileHandler(LOGFILE, 'a')
-        file_handler.setFormatter(fmt)
-
-        root_logger.addHandler(file_handler)
-        root_logger.removeHandler(stderr_handler)
-        nav.daemon.redirect_std_fds(
-            stderr=nav.logs.get_logfile_from_logger())
-
-
 def exit_if_already_running():
     "Exits the process if another eventengine process is already running"
     try:
@@ -98,8 +77,7 @@ def exit_if_already_running():
 def daemonize():
     "Daemonizes the program"
     try:
-        nav.daemon.daemonize(PIDFILE,
-                             stderr=nav.logs.get_logfile_from_logger())
+        nav.daemon.daemonize(PIDFILE, stderr=open(LOGFILE, "a"))
     except nav.daemon.DaemonError as error:
         _logger.fatal(error)
         sys.exit(1)
@@ -123,8 +101,7 @@ def sighup_handler(_signum, _frame):
     """Reopens log files."""
     _logger.info("SIGHUP received; reopening log files")
     nav.logs.reopen_log_files()
-    nav.daemon.redirect_std_fds(
-        stderr=nav.logs.get_logfile_from_logger())
+    nav.daemon.redirect_std_fds(stderr=open(LOGFILE, "a"))
     nav.logs.reset_log_levels()
     nav.logs.set_log_config()
     _logger.info("Log files reopened, log levels reloaded.")

@@ -19,6 +19,8 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.abspath('..'), 'python'))
 
 from nav import buildconf
+from nav import bootstrap
+bootstrap.bootstrap_django('doc')
 
 # -- General configuration -----------------------------------------------------
 
@@ -40,14 +42,14 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'NAV'
-copyright = u'2012-2018, Uninett AS'
+copyright = u'2012-2019, Uninett AS'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '4.8'
+version = 'dev'
 #version = '.'.join(buildconf.VERSION.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = buildconf.VERSION
@@ -99,7 +101,7 @@ html_theme = 'bootstrap'
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = [os.path.join(os.path.abspath(os.path.dirname(__file__)), "templates")]
 
-html_logo = "nav-logo.svg"
+html_logo = "templates/bootstrap/static/nav-logo.svg"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -185,7 +187,7 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -261,9 +263,3 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
-
-rst_epilog = """
-.. |bindir| replace:: :file:`%s`
-.. |sysconfdir| replace:: :file:`%s`
-.. |nav_user| replace:: `%s`
-""" % (buildconf.bindir, buildconf.sysconfdir, buildconf.nav_user)

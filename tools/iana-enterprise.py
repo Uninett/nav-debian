@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -22,10 +22,7 @@ from __future__ import print_function
 import sys
 import os
 from collections import namedtuple, Counter
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
+from django.utils.six.moves.urllib.request import urlopen
 import re
 import string
 from datetime import datetime

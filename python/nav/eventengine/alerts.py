@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -26,10 +26,10 @@ from nav.models.event import AlertQueue as Alert, EventQueue as Event, AlertType
 from nav.models.event import AlertHistory
 from nav.models.fields import INFINITY
 
-from nav import buildconf
+import nav.config
 from . import unresolved
 
-ALERT_TEMPLATE_DIR = os.path.join(buildconf.sysconfdir, 'alertmsg')
+ALERT_TEMPLATE_DIR = nav.config.find_configfile('alertmsg')
 _logger = logging.getLogger(__name__)
 _template_logger = logging.getLogger(__name__ + '.template')
 
@@ -192,9 +192,18 @@ DEFAULT_LANGUAGE = "en"
 
 def ensure_alert_templates_are_available():
     """Inserts the ALERT_TEMPLATE_DIR into Django's TEMPLATE_DIRS list"""
+    import django
     from django.conf import settings
-    if ALERT_TEMPLATE_DIR not in settings.TEMPLATE_DIRS:
-        settings.TEMPLATE_DIRS += (ALERT_TEMPLATE_DIR,)
+
+    if django.VERSION[:2] == (1, 7):
+        if ALERT_TEMPLATE_DIR not in settings.TEMPLATE_DIRS:
+            settings.TEMPLATE_DIRS += (ALERT_TEMPLATE_DIR,)
+    else:
+        for config in settings.TEMPLATES:
+            if (config.get('BACKEND') ==
+                    'django.template.backends.django.DjangoTemplates'
+                    and ALERT_TEMPLATE_DIR not in config['DIRS']):
+                config['DIRS'] += (ALERT_TEMPLATE_DIR,)
 
 
 def render_templates(alert):

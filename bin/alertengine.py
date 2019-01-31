@@ -6,7 +6,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -37,6 +37,9 @@ import sys
 import time
 from psycopg2 import InterfaceError
 
+from nav.bootstrap import bootstrap_django
+bootstrap_django(__file__)
+
 import nav.buildconf
 import nav.config
 import nav.daemon
@@ -48,13 +51,14 @@ import nav.db
 # These have to be imported after the envrionment is setup
 from django.db import DatabaseError, connection
 from nav.alertengine.base import check_alerts
+from nav.config import NAV_CONFIG
 
 #
 #  PATHS
 #
-configfile = os.path.join(nav.buildconf.sysconfdir, 'alertengine.conf')
-logfile = os.path.join(nav.buildconf.localstatedir, 'log', 'alertengine.log')
-pidfile = os.path.join(nav.buildconf.localstatedir, 'run', 'alertengine.pid')
+configfile = 'alertengine.conf'
+logfile = os.path.join(NAV_CONFIG['LOG_DIR'], 'alertengine.log')
+pidfile = 'alertengine.pid'
 
 logger = None
 
@@ -68,14 +72,12 @@ def main():
 
     # Set config defaults
     defaults = {
-        'username': nav.buildconf.nav_user,
+        'username': nav.config.NAV_CONFIG['NAV_USER'],
         'delay': '30',
-        'loglevel': 'INFO',
         'mailwarnlevel': 'ERROR',
         'mailserver': 'localhost',
-        'mailaddr': nav.config.read_flat_config('nav.conf')['ADMIN_MAIL'],
-        'fromaddr': nav.config.read_flat_config('nav.conf')[
-            'DEFAULT_FROM_EMAIL'],
+        'mailaddr': nav.config.NAV_CONFIG['ADMIN_MAIL'],
+        'fromaddr': nav.config.NAV_CONFIG['DEFAULT_FROM_EMAIL'],
     }
 
     # Read config file
@@ -84,31 +86,27 @@ def main():
     # Set variables based on config
     username = config['main']['username']
     delay = int(config['main']['delay'])
-    loglevel = eval('logging.' + (args.loglevel or config['main']['loglevel']))
     mailwarnlevel = eval('logging.' + config['main']['mailwarnlevel'])
     mailserver = config['main']['mailserver']
     mailaddr = config['main']['mailaddr']
     fromaddr = config['main']['fromaddr']
-
-    # Initialize logger
-    global logger
-    logger = logging.getLogger('nav.alertengine')
-    logger.setLevel(1)  # Let all info through to the root node
-    loginitstderr(loglevel)
 
     # Switch user to $NAV_USER (navcron) (only works if we're root)
     if os.geteuid() == 0 and not args.test:
         try:
             nav.daemon.switchuser(username)
         except nav.daemon.DaemonError as err:
-            logger.error("%s Run as root or %s to enter daemon mode. "
-                         "Try `%s --help' for more information.",
-                         err, username, sys.argv[0])
+            print(err, file=sys.stderr)
+            print("Run as root or %s. Try `%s --help' for more information." % (
+                  username, sys.argv[0]), file=sys.stderr)
             sys.exit(1)
 
-    # Init daemon loggers
-    if not loginitfile(loglevel, logfile):
-        sys.exit(1)
+    # Initialize logger
+    global logger
+    logger = logging.getLogger('nav.alertengine')
+    nav.logs.init_stderr_logging()
+
+    # Init SMTP logging of grave errors
     if not loginitsmtp(mailwarnlevel, mailaddr, fromaddr, mailserver):
         sys.exit(1)
 
@@ -122,18 +120,19 @@ def main():
     # Daemonize
     if not args.test and not args.foreground:
         try:
-            nav.daemon.daemonize(pidfile,
-                                 stderr=nav.logs.get_logfile_from_logger())
+            nav.daemon.daemonize(pidfile, stderr=open(logfile, "a"))
         except nav.daemon.DaemonError as error:
             logger.error(error)
             sys.exit(1)
 
-        # Stop logging explicitly to stderr
-        loguninitstderr()
+        # Reopen log files on SIGHUP
+        signal.signal(signal.SIGHUP, signalhandler)
+    else:
+        nav.daemon.writepidfile(pidfile)
 
-    # Reopen log files on SIGHUP
-    signal.signal(signal.SIGHUP, signalhandler)
+    # Log reception of SIGTERM/SIGINT before quitting
     signal.signal(signal.SIGTERM, signalhandler)
+    signal.signal(signal.SIGINT, signalhandler)
 
     # Loop forever
     logger.info('Starting alertengine loop.')
@@ -183,18 +182,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="The NAV Alert Engine daemon",
         epilog="This background process polls the alert queue for new alerts "
-               "from the event engine and sends put alerts to users based on "
-               "user defined profiles.",
+               "from the event engine and sends notifications to users based "
+               "on user defined profiles.",
     )
     parser.add_argument("-t", "--test", action="store_true",
                         help="process the alert queue once and exit")
     parser.add_argument("-f", "--foreground", action="store_true",
                         help="run in the foreground")
-
-    levels = getattr(logging, '_levelNames', {})
-    levels = [name for lvl, name in sorted(levels.items()) if type(lvl) is int]
-    parser.add_argument("--loglevel", metavar="LEVEL", choices=levels,
-                        help="set the daemon log level")
 
     return parser.parse_args()
 
@@ -205,58 +199,16 @@ def signalhandler(signum, _):
     if signum == signal.SIGHUP:
         logger.info('SIGHUP received; reopening log files.')
         nav.logs.reopen_log_files()
-        nav.daemon.redirect_std_fds(
-            stderr=nav.logs.get_logfile_from_logger())
+        nav.daemon.redirect_std_fds(stderr=open(logfile, "a"))
+        nav.logs.reset_log_levels()
+        nav.logs.set_log_config()
         logger.info('Log files reopened.')
     elif signum == signal.SIGTERM:
         logger.warning('SIGTERM received: Shutting down')
         sys.exit(0)
-
-
-def loginitfile(loglevel, filename):
-    """Initalize the logging handler for logfile."""
-
-    try:
-        filehandler = logging.FileHandler(filename, 'a')
-        fileformat = (
-            '[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] '
-            '%(message)s')
-        fileformatter = logging.Formatter(fileformat)
-        filehandler.setFormatter(fileformatter)
-        filehandler.setLevel(loglevel)
-        logger = logging.getLogger()
-        logger.addHandler(filehandler)
-        return True
-    except IOError as error:
-        print("Failed creating file loghandler. Daemon mode disabled. (%s)"
-              % error, file=sys.stderr)
-        return False
-
-
-def loginitstderr(loglevel):
-    """Initalize the logging handler for stderr."""
-
-    try:
-        stderrhandler = logging.StreamHandler(sys.stderr)
-        stderrformat = '%(levelname)s %(message)s'
-        stderrformatter = logging.Formatter(stderrformat)
-        stderrhandler.setFormatter(stderrformatter)
-        stderrhandler.setLevel(loglevel)
-        logger = logging.getLogger()
-        logger.addHandler(stderrhandler)
-        return True
-    except IOError as error:
-        print("Failed creating stderr loghandler. Daemon mode disabled. (%s)"
-              % error, file=sys.stderr)
-        return False
-
-
-def loguninitstderr():
-    """Remove the stderr StreamHandler from the root logger."""
-    for hdlr in logging.root.handlers:
-        if isinstance(hdlr, logging.StreamHandler) and hdlr.stream is sys.stderr:
-            logging.root.removeHandler(hdlr)
-            return True
+    elif signum == signal.SIGINT:
+        logger.warning('SIGINT received: Shutting down')
+        sys.exit(0)
 
 
 def loginitsmtp(loglevel, mailaddr, fromaddr, mailserver):

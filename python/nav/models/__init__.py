@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -17,14 +17,6 @@
 
 default_app_config = 'nav.models.apps.NavModelsConfig'
 
-import os
-import django
-from django.apps import apps as _apps
-
-# This is here to ensure NAV's models can be used by anyone importing this
-# module while having no interest in Django voodoo.
-if 'DJANGO_SETTINGS_MODULE' not in os.environ:
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'nav.django.settings'
-
-if not _apps.ready:
-    django.setup()
+# from nav.bootstrap import bootstrap_django
+# 
+# bootstrap_django(__file__)

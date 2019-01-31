@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -113,17 +113,6 @@ class MacAddress(object):
         'e4:2f:3d:5'
         >>> ma.__str__()
         'e4:2f:3d:5'
-        """
-        return self.__unicode__()
-
-    def __unicode__(self):
-        """Return the unicode representation of this Object.
-
-        >>> ma = MacAddress('e42f3d5')
-        >>> unicode(ma)
-        u'e4:2f:3d:5'
-        >>> ma.__unicode__()
-        u'e4:2f:3d:5'
         """
         return _int_to_delimited_hexstring(self._addr, self.DEFAULT_DELIM,
                                            DELIMS_AND_STEPS[self.DEFAULT_DELIM])

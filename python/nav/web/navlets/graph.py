@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,7 +15,7 @@
 #
 """Widget for displaying a chart"""
 
-import urlparse
+from django.utils.six.moves.urllib.parse import urlparse, parse_qs
 from django import forms
 from . import Navlet, REFRESH_INTERVAL
 
@@ -88,7 +88,7 @@ class GraphWidget(Navlet):
         """Get title from url"""
         if not url:
             return
-        parsed_url = urlparse.urlparse(url)
-        query = urlparse.parse_qs(parsed_url.query)
+        parsed_url = urlparse(url)
+        query = parse_qs(parsed_url.query)
         if 'title' in query:
             return query['title'][0]

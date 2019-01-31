@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,10 +15,10 @@
 #
 """Django URL configuration"""
 
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from nav.web.info.views import index
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^$', index, name="info-search"),
     url(r'^room/', include('nav.web.info.room.urls')),
     url(r'^location/', include('nav.web.info.location.urls')),
@@ -26,4 +26,5 @@ urlpatterns = patterns('',
     url(r'^prefix/', include('nav.web.info.prefix.urls')),
     url(r'^devicegroup/', include('nav.web.info.netboxgroup.urls')),
     url(r'^image/', include('nav.web.info.images.urls')),
-)
+    url(r'^event/', include('nav.web.info.event.urls')),
+]

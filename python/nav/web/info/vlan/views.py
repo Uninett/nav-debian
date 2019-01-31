@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -93,7 +93,7 @@ def process_searchform(form):
 
 def vlan_details(request, vlanid):
     """Render details for a vlan"""
-    vlan = get_object_or_404(Vlan.objects.select_related('prefix'), pk=vlanid)
+    vlan = get_object_or_404(Vlan, pk=vlanid)
     prefixes = sorted(vlan.prefix_set.all(),
                       key=methodcaller('get_prefix_size'))
 

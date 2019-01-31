@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -44,18 +44,16 @@ from nav.report.generator import Generator, ReportList
 from nav.report.matrixIPv4 import MatrixIPv4
 from nav.report.matrixIPv6 import MatrixIPv6
 from nav.report.metaIP import MetaIP
-import nav.buildconf
+from nav.config import find_configfile
 
 from nav.web.navlets import add_navlet
 
 
 _logger = logging.getLogger(__name__)
 IpGroup = namedtuple('IpGroup', 'private ipv4 ipv6')
-CONFIG_FILE_PACKAGE = os.path.join(nav.buildconf.sysconfdir,
-                                   "report/report.conf")
-CONFIG_FILE_LOCAL = os.path.join(nav.buildconf.sysconfdir,
-                                 "report/report.local.conf")
-FRONT_FILE = os.path.join(nav.buildconf.sysconfdir, "report/front.html")
+CONFIG_FILE_PACKAGE = find_configfile(os.path.join("report", "report.conf"))
+CONFIG_FILE_LOCAL = find_configfile(os.path.join("report", "report.local.conf"))
+FRONT_FILE = find_configfile(os.path.join("report", "front.html"))
 DEFAULT_PAGE_SIZE = 25
 PAGE_SIZES = [25, 50, 100, 500, 1000]
 

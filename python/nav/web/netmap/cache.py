@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -23,6 +23,8 @@ from django.core.cache import cache
 # TODO: This cache should be invalidated only when the topology is
 # changed, which is somewhat rare, so set to a reasonable long time
 # for now
+from django.utils import six
+
 CACHE_TIMEOUT = 60*60
 # Data is collected every 5 minutes by NAV
 TRAFFIC_CACHE_TIMEOUT = 5*60
@@ -114,6 +116,6 @@ def _cache_key(*args):
         if type(thing) is str:
             return thing.decode('utf-8')
         else:
-            return unicode(thing)
+            return six.text_type(thing)
     args = (stringify(a).replace(' ', '-') for a in args)
     return u'netmap:' + u':'.join(args)

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -25,6 +25,10 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.sessions.backends.db import SessionStore
 from django.conf import settings
 from django.utils.encoding import python_2_unicode_compatible
+try:
+    from django.utils.deprecation import MiddlewareMixin
+except ImportError:  # Django <= 1.9
+    MiddlewareMixin = object
 
 
 _logger = getLogger(__name__)
@@ -38,7 +42,7 @@ SUDOER_ID_VAR = 'sudoer'
 LOGIN_URL = '/index/login/'
 
 
-class AuthenticationMiddleware(object):
+class AuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         session = request.session
 
@@ -47,11 +51,14 @@ class AuthenticationMiddleware(object):
         account = Account.objects.get(id=session[ACCOUNT_ID_VAR])
         request.account = account
 
+        if SUDOER_ID_VAR in session:
+            account.sudo_operator = get_sudoer(request)
+
         _logger.debug("Request for %s authenticated as user=%s",
                       request.get_full_path(), account.login)
 
 
-class AuthorizationMiddleware(object):
+class AuthorizationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         account = request.account
 
@@ -89,7 +96,7 @@ def authorization_not_required(fullpath):
     Should the user be able to decide this? Currently not.
 
     """
-    auth_not_required = ['/api/']
+    auth_not_required = ['/api/', '/doc/']
     for url in auth_not_required:
         if fullpath.startswith(url):
             return True

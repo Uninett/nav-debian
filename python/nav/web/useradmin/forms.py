@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -18,6 +18,7 @@
 from datetime import date, timedelta
 
 from django import forms
+from django.utils.encoding import force_text
 
 from nav.models.profiles import Account, AccountGroup, PrivilegeType
 from nav.models.manage import Organization
@@ -261,7 +262,8 @@ class TokenForm(forms.ModelForm):
     def clean_endpoints(self):
         """Convert endpoints from list to dictionary"""
         endpoints = self.cleaned_data.get('endpoints')
-        return {x: str(self.available_endpoints.get(x)) for x in endpoints}
+        return {x: force_text(self.available_endpoints.get(x))
+                for x in endpoints}
 
     class Meta(object):
         model = APIToken

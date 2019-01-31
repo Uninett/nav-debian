@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -18,7 +18,7 @@ import math
 
 from nav.config import read_flat_config
 from nav.web.navlets import Navlet
-from nav.web.webfront.views import NAV_LINKS_PATH
+from nav.web.webfront import NAV_LINKS_PATH
 
 
 class LinkListNavlet(Navlet):

@@ -1,3 +1,14 @@
+# This sets up a live NAV development environment in Docker containers.
+#
+# Defaults NAV to a container with Python 2. If you want to work with NAV in a
+# Python 3 environment, add a `docker-compose.override.yml` that sets the
+# dockerfile to Dockerfile3, like so:
+#
+# version: '2'
+# services:
+#   nav:
+#     build:
+#       dockerfile: Dockerfile3
 version: '2'
 services:
   nav:
@@ -15,5 +26,13 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./etc/graphite/storage-schemas.conf:/opt/graphite/conf/storage-schemas.conf
-      - ./etc/graphite/storage-aggregation.conf:/opt/graphite/conf/storage-aggregation.conf
+      - ./python/nav/etc/graphite/storage-schemas.conf:/opt/graphite/conf/storage-schemas.conf
+      - ./python/nav/etc/graphite/storage-aggregation.conf:/opt/graphite/conf/storage-aggregation.conf
+
+  # Add a service to continuously rebuild the Sphinx documentation if the doc
+  # directory is modified:
+  docbuild:
+    build: .
+    volumes_from:
+      - nav
+    command: sudo -u nav /source/tools/docker/doc-watch.sh

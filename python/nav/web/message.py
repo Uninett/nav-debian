@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -70,12 +70,11 @@ class Messages(list):
         messages = self.session.get('messages', [])
         messages.extend(self)
         self.session['messages'] = messages
-        self.session.save()
 
     def get_and_delete(self):
-        """Copies messages from this users session and purges the originals.
+        """Copies messages from this user's session and purges the originals.
         """
         messages = copy(self.session.get('messages', None))
-        self.session['messages'] = []
-        self.session.save()
+        if messages:
+            self.session['messages'] = []
         return messages

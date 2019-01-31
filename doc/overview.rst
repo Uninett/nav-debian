@@ -36,7 +36,7 @@ A brief history of NAV
 The first version of Network Administration Visualized was written by the IT
 department of the Norwegian University of Science and Technology in 1999 to
 cover their network monitoring needs, after HP OpenView had failed to meet
-their requirements.  At the time, NTNU's campus network had some 20.000 users.
+their requirements.  At the time, NTNU's campus network had some 20,000 users.
 
 Uninett, the Norwegian National Research and Education Network became
 interested in NTNU's work on NAV in 2001 and began sponsoring 50% of its
@@ -44,7 +44,7 @@ development costs in exchange for licensing the software to all universities
 and university colleges in Norway.
 
 In 2004, both parties agreed to release NAV to the world under the GPL
-license, version 2, effectively freeing the software.
+license, effectively freeing the software.
 
 In 2006, Uninett assumed the main responsibility of maintaining and developing
 the software further, and is continually doing so on behalf of its customers,

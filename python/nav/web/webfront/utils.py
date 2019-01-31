@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -22,6 +22,7 @@ import logging
 from django.db.models import Q
 from django.utils.encoding import python_2_unicode_compatible
 
+from nav.config import CONFIG_LOCATIONS
 from nav.web import webfrontConfig
 from nav.models.msgmaint import Message
 from nav.models.event import AlertHistory
@@ -101,11 +102,9 @@ def tool_list(account):
         return Tool(**dict(
             [[y.strip() for y in x.split('=')] for x in lines if x]))
 
-    paths = {}
+    paths = [os.path.join(path, 'toolbox') for path in CONFIG_LOCATIONS]
     if webfrontConfig.has_option('toolbox', 'path'):
         paths = webfrontConfig.get('toolbox', 'path').split(os.pathsep)
-    else:
-        return None
 
     _tool_list = []
     for path in paths:

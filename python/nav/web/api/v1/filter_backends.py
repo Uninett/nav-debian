@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -52,8 +52,8 @@ class IfClassFilter(filters.BaseFilterBackend):
             'trunk': Q(trunk=True)
         }
 
-        if 'ifclass' in request.QUERY_PARAMS:
-            matching_filters = (set(request.QUERY_PARAMS.getlist('ifclass'))
+        if 'ifclass' in request.query_params:
+            matching_filters = (set(request.query_params.getlist('ifclass'))
                                 & set(filters))
             if matching_filters:
                 q = reduce3(operator.or_, [filters[f] for f in matching_filters])
@@ -70,7 +70,7 @@ class NaturalIfnameFilter(filters.OrderingFilter):
 
         interface_ifnames = ['interface__ifname', '-interface__ifname']
         ifnames = ['ifname', '-ifname']
-        ordering = self.get_ordering(request)
+        ordering = self.get_ordering(request, queryset, view)
         if not ordering:
             return queryset
 
@@ -117,8 +117,13 @@ class AlertHistoryFilterBackend(filters.BaseFilterBackend):
     }
 
     def filter_queryset(self, request, queryset, view):
+        if view.is_single_alert_by_primary_key():
+            # no really, the client asked for a specific single alert, screw
+            # all the other filters!
+            return queryset
+
         for arg, field in self.MULTIVALUE_FILTERS.items():
-            values = request.QUERY_PARAMS.getlist(arg, None)
+            values = request.query_params.getlist(arg, None)
             if values:
                 # Locations are hierarchial - must include descendants
                 if arg == 'location':
@@ -127,7 +132,7 @@ class AlertHistoryFilterBackend(filters.BaseFilterBackend):
                 queryset = queryset.filter(**{filtr: values})
 
         for arg, field in self.MULTIVALUE_EXCLUDES.items():
-            values = request.QUERY_PARAMS.getlist(arg, None)
+            values = request.query_params.getlist(arg, None)
             if values:
                 # Locations are hierarchial - must include descendants
                 if arg == 'not_location':
@@ -135,11 +140,11 @@ class AlertHistoryFilterBackend(filters.BaseFilterBackend):
                 filtr = field + '__in'
                 queryset = queryset.exclude(**{filtr: values})
 
-        acked = request.QUERY_PARAMS.get("acknowledged", False)
+        acked = request.query_params.get("acknowledged", False)
         if not acked:
             queryset = queryset.filter(acknowledgement__isnull=True)
 
-        on_maintenance = request.QUERY_PARAMS.get("on_maintenance", False)
+        on_maintenance = request.query_params.get("on_maintenance", False)
         if not on_maintenance:
             is_on_maintenance = (
                 alert_serializers.AlertHistorySerializer.is_on_maintenance)

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,15 +15,15 @@
 #
 """Django URL configuration"""
 
-
-from django.conf.urls import url, patterns
+from django.conf.urls import url
 from nav.web.info.images import views
 
-urlpatterns = patterns('',
+
+urlpatterns = [
     url(r'^update_title', views.update_title,
         name='image-update-title'),
     url(r'^delete', views.delete_image,
         name='image-delete-image'),
     url(r'^update_priority', views.update_priority,
         name='image-update-priority'),
-)
+]

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -37,24 +37,21 @@ class DatabaseResult(object):
         self.hidden = []
 
         connection = db.getConnection('default')
-        database = connection.cursor()
+        cursor = connection.cursor()
 
         self.sql, self.parameters = report_config.make_sql()
 
-        ## Make a dictionary of which columns to summarize
-        self.sums = dict([(sum_key, '') for sum_key in report_config.sum])
+        # Make a dictionary of which columns to summarize
+        self.sums = {sum_key: '' for sum_key in report_config.sum}
 
         try:
-            database.execute(self.sql, self.parameters or None)
-            self.result = database.fetchall()
+            cursor.execute(self.sql, self.parameters or None)
+            self.result = cursor.fetchall()
 
             # A list of the column headers.
-            col_head = []
-            for col in range(0, len(database.description)):
-                col_head.append(database.description[col][0])
-            report_config.sql_select = col_head
+            report_config.sql_select = [col.name for col in cursor.description]
 
-            ## Total count of the rows returned.
+            # Total count of the rows returned.
             self.rowcount = len(self.result)
 
         except psycopg2.ProgrammingError as error:
@@ -65,3 +62,5 @@ class DatabaseResult(object):
         except psycopg2.DataError as error:
             self.error = ("Data error! Some of your input data is of an "
                           "invalid type: {}".format(error))
+        else:
+            self.error = report_config.error

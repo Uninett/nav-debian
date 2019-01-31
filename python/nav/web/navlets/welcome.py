@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,17 +15,9 @@
 #
 """Module comment"""
 
-import os
-
-from nav.buildconf import sysconfdir
 from nav.web.navlets import Navlet
+from nav.web.webfront import WELCOME_ANONYMOUS_PATH, WELCOME_REGISTERED_PATH
 from nav.web.webfront.utils import quick_read
-
-WEBCONF_DIR_PATH = os.path.join(sysconfdir, "webfront")
-WELCOME_ANONYMOUS_PATH = os.path.join(WEBCONF_DIR_PATH,
-                                      "welcome-anonymous.txt")
-WELCOME_REGISTERED_PATH = os.path.join(WEBCONF_DIR_PATH,
-                                       "welcome-registered.txt")
 
 
 class WelcomeNavlet(Navlet):

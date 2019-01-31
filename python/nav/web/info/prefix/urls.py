@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,15 +15,17 @@
 #
 """URL definitions for prefix details"""
 
-from django.conf.urls import url, patterns
+from django.conf.urls import url
+from nav.web.info.prefix import views
 
 
-urlpatterns = patterns(
-    'nav.web.info.prefix.views',
-    url(r'^$', 'index', name='prefix-index'),
-    url(r'^(?P<prefix_id>\d+)/$', 'prefix_details', name='prefix-details'),
-    url(r'^(?P<prefix_id>\d+)/addTags/$', 'prefix_add_tags',
+urlpatterns = [
+    url(r'^$', views.index,
+        name='prefix-index'),
+    url(r'^(?P<prefix_id>\d+)/$', views.prefix_details,
+        name='prefix-details'),
+    url(r'^(?P<prefix_id>\d+)/addTags/$', views.prefix_add_tags,
         name='prefix-add-tags'),
-    url(r'^(?P<prefix_id>\d+)/reloadTags/$', 'prefix_reload_tags',
+    url(r'^(?P<prefix_id>\d+)/reloadTags/$', views.prefix_reload_tags,
         name='prefix-reload-tags'),
-)
+]

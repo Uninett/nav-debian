@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -13,11 +13,12 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
+from functools import reduce
+from collections import OrderedDict
 
 from django.core.paginator import InvalidPage
 
 from django.db.models import Q
-from django.utils.datastructures import SortedDict
 
 from nav.models.event import AlertHistory, AlertHistoryMessage
 from nav.models.manage import (Netbox, Device, Location, Room, Module,
@@ -154,7 +155,7 @@ def get_messages_for_history(alert_history):
 
 
 def group_history_and_messages(history, messages, group_by=None):
-    grouped_history = SortedDict()
+    grouped_history = OrderedDict()
     for a in history:
         a.extra_messages = {}
         for m in messages:
@@ -208,7 +209,7 @@ def _get_data_to_search_terms(selection, key_string, model):
     """
     selected_objects = len(selection[key_string])
     if selected_objects == model.objects.all().count():
-        return ["All %s selected." % unicode(model._meta.verbose_name_plural)]
+        return ["All {} selected.".format(model._meta.verbose_name_plural)]
     else:
         return model.objects.filter(id__in=selection[key_string])
 

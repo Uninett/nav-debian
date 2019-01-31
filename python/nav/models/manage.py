@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -34,6 +34,7 @@ from django.db.models import Q
 from django.utils.encoding import python_2_unicode_compatible
 
 from nav import util
+from nav.adapters import HStoreField
 from nav.bitvector import BitVector
 from nav.metrics.data import get_netboxes_availability
 from nav.metrics.graphs import get_simple_graph_url
@@ -50,7 +51,6 @@ from nav.metrics.templates import (
 import nav.natsort
 from nav.models.fields import DateTimeInfinityField, VarcharField, PointField
 from nav.models.fields import CIDRField
-from django_hstore import hstore
 import nav.models.event
 
 
@@ -86,14 +86,14 @@ class Netbox(models.Model):
     )
 
     id = models.AutoField(db_column='netboxid', primary_key=True)
-    ip = models.IPAddressField(unique=True)
+    ip = models.GenericIPAddressField(unique=True)
     room = models.ForeignKey('Room', db_column='roomid')
     type = models.ForeignKey('NetboxType', db_column='typeid',
                              blank=True, null=True)
     sysname = VarcharField(unique=True, blank=True)
     category = models.ForeignKey('Category', db_column='catid')
     groups = models.ManyToManyField(
-        'NetboxGroup', through='NetboxCategory', blank=True, null=True)
+        'NetboxGroup', through='NetboxCategory', blank=True)
     groups.help_text = ''
     organization = models.ForeignKey('Organization', db_column='orgid')
     read_only = VarcharField(db_column='ro', blank=True, null=True)
@@ -108,8 +108,8 @@ class Netbox(models.Model):
                                blank=True, default=None,
                                related_name='instances')
 
-    data = hstore.DictionaryField(blank=True)
-    objects = hstore.HStoreManager()
+    data = HStoreField(blank=True, null=True, default={})
+    objects = models.Manager()
     ups_objects = UpsManager()
 
     class Meta(object):
@@ -473,9 +473,7 @@ class NetboxEntity(models.Model):
     mfg_date = models.DateTimeField(null=True)
     uris = VarcharField(null=True)
     gone_since = models.DateTimeField(null=True)
-    data = hstore.DictionaryField()
-
-    objects = hstore.HStoreManager()
+    data = HStoreField(default={})
 
     class Meta:
         db_table = 'netboxentity'
@@ -744,9 +742,7 @@ class Room(models.Model):
     location = models.ForeignKey('Location', db_column='locationid')
     description = VarcharField(db_column='descr', blank=True)
     position = PointField(null=True, blank=True, default=None)
-    data = hstore.DictionaryField(blank=True)
-
-    objects = hstore.HStoreManager()
+    data = HStoreField(blank=True, default={})
 
     class Meta(object):
         db_table = 'room'
@@ -808,8 +804,7 @@ class Location(models.Model, TreeMixin):
     parent = models.ForeignKey('self', db_column='parent',
                                blank=True, null=True)
     description = VarcharField(db_column='descr', blank=True)
-    data = hstore.DictionaryField()
-    objects = hstore.HStoreManager()
+    data = HStoreField(default={})
 
     class Meta(object):
         db_table = 'location'
@@ -839,9 +834,7 @@ class Organization(models.Model, TreeMixin):
                                blank=True, null=True)
     description = VarcharField(db_column='descr', blank=True)
     contact = VarcharField(db_column='contact', blank=True)
-    data = hstore.DictionaryField()
-
-    objects = hstore.HStoreManager()
+    data = HStoreField(default={})
 
     class Meta(object):
         db_table = 'org'
@@ -867,7 +860,7 @@ class Category(models.Model):
 
     id = models.CharField(db_column='catid', max_length=8, primary_key=True)
     description = VarcharField(db_column='descr')
-    req_snmp = models.BooleanField()
+    req_snmp = models.BooleanField(default=False)
 
     class Meta(object):
         db_table = 'cat'
@@ -979,7 +972,7 @@ class NetboxType(models.Model):
         if self.sysobjectid.startswith(prefix):
             specific = self.sysobjectid[len(prefix):]
             enterprise = specific.split('.')[0]
-            return long(enterprise)
+            return int(enterprise)
 
 #######################################################################
 ### Device management
@@ -1230,7 +1223,7 @@ class Arp(models.Model):
     netbox = models.ForeignKey('Netbox', db_column='netboxid', null=True)
     prefix = models.ForeignKey('Prefix', db_column='prefixid', null=True)
     sysname = VarcharField()
-    ip = models.IPAddressField()
+    ip = models.GenericIPAddressField()
     # TODO: Create MACAddressField in Django
     mac = models.CharField(max_length=17)
     start_time = models.DateTimeField(auto_now_add=True)
@@ -1483,14 +1476,14 @@ class Interface(models.Model):
     ifadminstatus = models.IntegerField(choices=ADM_STATUS_CHOICES)
     ifoperstatus = models.IntegerField(choices=OPER_STATUS_CHOICES)
     iflastchange = models.IntegerField()
-    ifconnectorpresent = models.BooleanField()
-    ifpromiscuousmode = models.BooleanField()
+    ifconnectorpresent = models.BooleanField(default=False)
+    ifpromiscuousmode = models.BooleanField(default=False)
     ifalias = VarcharField()
 
     baseport = models.IntegerField()
     media = VarcharField(null=True)
     vlan = models.IntegerField()
-    trunk = models.BooleanField()
+    trunk = models.BooleanField(default=False)
     duplex = models.CharField(max_length=1, choices=DUPLEX_CHOICES, null=True)
 
     to_netbox = models.ForeignKey('Netbox', db_column='to_netboxid', null=True,
@@ -1770,7 +1763,7 @@ class GatewayPeerSession(models.Model):
     id = models.AutoField(primary_key=True, db_column='peersessionid')
     netbox = models.ForeignKey('Netbox', db_column='netboxid')
     protocol = models.IntegerField(choices=PROTOCOL_CHOICES)
-    peer = models.IPAddressField()
+    peer = models.GenericIPAddressField()
     state = VarcharField()
     local_as = models.IntegerField(null=True)
     remote_as = models.IntegerField(null=True)
@@ -2155,7 +2148,7 @@ class Netbios(models.Model):
     import datetime
 
     id = models.AutoField(db_column='netbiosid', primary_key=True)
-    ip = models.IPAddressField()
+    ip = models.GenericIPAddressField()
     mac = models.CharField(max_length=17, blank=False, null=True)
     name = VarcharField()
     server = VarcharField()
@@ -2216,7 +2209,7 @@ class POEPort(models.Model):
     poegroup = models.ForeignKey('POEGroup', db_column='poegroupid')
     interface = models.ForeignKey('Interface', db_column='interfaceid',
                                   null=True)
-    admin_enable = models.BooleanField()
+    admin_enable = models.BooleanField(default=False)
     index = models.IntegerField()
 
     STATUS_DISABLED = 1

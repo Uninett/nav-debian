@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -49,7 +49,7 @@ class Identity(models.Model):
     justification = models.ForeignKey('Justification',
                                       db_column='blocked_reasonid')
     interface = models.ForeignKey(Interface, db_column='swportid')
-    ip = models.IPAddressField(null=True, default='0.0.0.0')
+    ip = models.GenericIPAddressField(null=True, default='0.0.0.0')
     dns = VarcharField(blank=True)
     netbios = VarcharField(blank=True)
     first_offence = models.DateTimeField(db_column='starttime',

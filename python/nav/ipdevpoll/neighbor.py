@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -336,7 +336,7 @@ class LLDPNeighbor(Neighbor):
         return self._interface_query(Q(ifphysaddress=mac))
 
     def _interfaces_from_ip(self, ip):
-        ip = unicode(ip)
+        ip = six.text_type(ip)
         assert ip
         if ip in self._invalid_neighbor_ips:
             return

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -18,13 +18,14 @@
 from datetime import datetime
 from socket import gethostbyaddr, herror
 from IPy import IP
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 import logging
+
+from django.utils import six
 
 from nav import asyncdns
 from nav.models.manage import Prefix, Netbox, Interface
 
-from django.utils.datastructures import SortedDict
 from django.db import DatabaseError, transaction
 
 _cached_hostname = {}
@@ -40,7 +41,7 @@ def hostname(ip):
     :returns: A hostname string or a False value if the lookup failed.
 
     """
-    addr = unicode(ip)
+    addr = six.text_type(ip)
     if addr in _cached_hostname:
         return _cached_hostname[addr]
 
@@ -118,7 +119,7 @@ def ip_dict(rows):
     :param rows: IP search result rows.
     :return: A dict mapping IP addresses to matching result rows.
     """
-    result = SortedDict()
+    result = OrderedDict()
     for row in rows:
         ip = IP(row.ip)
         if ip not in result:
@@ -142,7 +143,7 @@ def min_max_mac(prefix):
     :returns: A tuple of (min_mac_string, max_mac_string)
 
     """
-    return unicode(prefix[0]), unicode(prefix[-1])
+    return six.text_type(prefix[0]), six.text_type(prefix[-1])
 
 
 def track_mac(keys, resultset, dns):
@@ -160,7 +161,7 @@ def track_mac(keys, resultset, dns):
         dns_lookups = asyncdns.reverse_lookup(ips_to_lookup)
         _logger.debug("track_mac: PTR lookup done")
 
-    tracker = SortedDict()
+    tracker = OrderedDict()
     for row in resultset:
         if row.end_time > datetime.now():
             row.still_active = "Still active"

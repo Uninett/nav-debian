@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License version 2 as published by the Free
+# terms of the GNU General Public License version 3 as published by the Free
 # Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -15,10 +15,12 @@
 #
 """Django URL config for geomap"""
 
-from django.conf.urls import url, patterns
+from django.conf.urls import url
+from nav.web.geomap import views
 
-urlpatterns = patterns('nav.web.geomap.views',
-    url(r'^$', 'forward_to_default_variant', name='geomap-forward'),
-    url(r'^([^/]+)/$', 'geomap', name='geomap'),
-    url(r'^([^/]+)/data$', 'data', name='geomap-data'),
-)
+
+urlpatterns = [
+    url(r'^$', views.forward_to_default_variant, name='geomap-forward'),
+    url(r'^([^/]+)/$', views.geomap, name='geomap'),
+    url(r'^([^/]+)/data$', views.data, name='geomap-data'),
+]

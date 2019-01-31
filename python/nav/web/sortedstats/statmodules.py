@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -18,11 +18,8 @@
 
 import logging
 from operator import itemgetter
-try:
-    from urllib.parse import urlencode
-except:
-    from urllib import urlencode
 
+from django.utils.six.moves.urllib.parse import urlencode
 from django.core.urlresolvers import reverse
 
 from nav.metrics.data import (get_metric_average, get_metric_max,

@@ -4,7 +4,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -65,6 +65,6 @@ def get_upsince(timestamp, ticks):
     :returns: A datetime object representing the timestamp minus the ticks.
 
     """
-    delta = timedelta(seconds=long(ticks / 100))
+    delta = timedelta(seconds=int(ticks / 100))
     sometime = datetime.fromtimestamp(timestamp)
     return sometime - delta

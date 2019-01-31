@@ -5,7 +5,7 @@
 # This file is part of Network Administration Visualized (NAV).
 #
 # NAV is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by
+# the terms of the GNU General Public License version 3 as published by
 # the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
@@ -295,14 +295,11 @@ class Report(object):
 
                     links = link_pattern.findall(uri)
                     if links:
-                        for link in links:
-                            href = six.text_type(
-                                line[self.field_name_map[link]]) or ""
-                            pattern = re.compile(r"\$" + link)
-                            try:
-                                uri = pattern.sub(href, uri)
-                            except TypeError:
-                                uri += href
+                        for column_ref in links:
+                            value = six.text_type(
+                                line[self.field_name_map[column_ref]]) or ""
+                            pattern = '$' + column_ref
+                            uri = uri.replace(pattern, value)
                     newfield.set_hyperlink(uri)
 
                 newline.append(newfield)
