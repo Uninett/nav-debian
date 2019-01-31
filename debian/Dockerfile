@@ -18,7 +18,6 @@ RUN  apt-get -y update && \
        cdbs \
        autoconf \
        automake \
-       python-support \
        quilt \
        reportbug \
        dh-systemd \
