@@ -1,4 +1,4 @@
-nav (4.9.0-1) UNRELEASED; urgency=medium
+nav (4.9.0-1) oldstable; urgency=medium
 
   * New upstream release
     - Adapted to new setuptools-based build system.
@@ -8,7 +8,7 @@ nav (4.9.0-1) UNRELEASED; urgency=medium
     - Added binary dependencies for some of the embedded Python packages.
     - All NAV binaries are now symlinked to either /usr/bin or /usr/sbin .
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 31 Jan 2019 09:36:48 +0000
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 31 Jan 2019 10:41:59 +0000
 
 nav (4.8.6-1) oldstable; urgency=medium
 
