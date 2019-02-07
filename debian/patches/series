@@ -1,4 +1,3 @@
 setup-py-version-tag-regexp
 nav-start-mkdir-var-run
 config-debian-dirs
-doc-fix-version
