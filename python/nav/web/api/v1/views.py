@@ -556,29 +556,40 @@ class MachineTrackerViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
                 where=[SQL_OVERLAPS.format(starttime, endtime)])
 
         # Support wildcard filtering on mac
-        mac = self.request.query_params.get('mac')
-        if mac:
-            try:
-                mac = MacPrefix(mac, min_prefix_len=2)
-            except ValueError as e:
-                raise exceptions.ParseError("mac: %s" % e)
-            # convert to text and use like to filter
-            queryset = queryset.extra(where=["mac::text like %s"],
-                                      params=[str(mac) + '%'])
+        queryset = self._parse_mac_to_queryset(
+            self.request.query_params.get('mac'), queryset
+        )
 
         return queryset
 
+    @staticmethod
+    def _parse_mac_to_queryset(mac, queryset):
+        if not mac:
+            return queryset
+
+        try:
+            mac = MacPrefix(mac, min_prefix_len=2)
+        except ValueError as e:
+            raise exceptions.ParseError("mac: %s" % e)
+
+        low, high = mac[0], mac[-1]
+        return queryset.extra(
+            where=["mac BETWEEN %s AND %s"],
+            params=[str(low), str(high)]
+        )
+
 
 class CamViewSet(MachineTrackerViewSet):
-    """Lists all cam records.
+    """Lists CAM records.
 
-    *Because the number of cam records often is huge, the API does not support
+    *Because the number of CAM records often is huge, the API does not support
     fetching all and will ask you to use a filter if you try.*
 
     Filters
     -------
-    - `active`: *set this to list only records that has not ended. This will
-      then ignore any start and endtimes set*
+    - `active`: *set this to list only records that are still active. Enabling
+    this will **ignore** any start- and endtime filters present in the same
+    request.*
     - `starttime`: *if set without endtime: lists all active records at that
       timestamp*
     - `endtime`: *must be set with starttime: lists all active records in the
@@ -607,16 +618,17 @@ class CamViewSet(MachineTrackerViewSet):
 
 
 class ArpViewSet(MachineTrackerViewSet):
-    """Lists all arp records.
+    """Lists ARP records.
 
-    *Because the number of arp records often is huge, the API does not support
+    *Because the number of ARP records often is huge, the API does not support
     fetching all and will ask you to use a filter if you try.*
 
     Filters
     -------
 
-    - `active`: *set this to list only records that has not ended. This will
-      then ignore any start and endtimes set*
+    - `active`: *set this to list only records that are still active. Enabling
+    this will **ignore** any start- and endtime filters present in the same
+    request.*
     - `starttime`: *if set without endtime: lists all active records at that
       timestamp*
     - `endtime`: *must be set with starttime: lists all active records in the
@@ -791,9 +803,9 @@ class PrefixUsageList(NAVAPIMixin, ListAPIView):
     def get_queryset(self):
         """Filter for ip family"""
         if 'scope' in self.request.GET:
-            queryset = (manage.Prefix.objects.within(
-                self.request.GET.get('scope')).select_related('vlan')
-                        .order_by('net_address'))
+            queryset = manage.Prefix.objects.within(
+                self.request.GET.get('scope')
+            ).order_by('net_address')
         elif self.request.GET.get('family'):
             queryset = manage.Prefix.objects.extra(
                 where=['family(netaddr)=%s'],
