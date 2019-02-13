@@ -1,0 +1,57 @@
+From ea73fb062d3f4d5087fac0cd48de510d54861859 Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Tue, 12 Feb 2019 11:25:26 +0100
+Subject: [PATCH] Ensure last_used filter works as expectd on interface api
+ endpoint
+
+The InterfaceWithCamSerializer did not properly specify which model it was
+using. Maybe older versions of REST framework would assume this from the
+inherited class' Meta, but newer versions do not.
+
+Also, there was an inherent crash bug with the last_used serializer, which
+would crash whenever attempting to fetch a cam for for an interface that didn't
+have any (which would be all the time if just fetching
+/api/1/interfaces/?last_used=on)
+
+Fixes #1839
+---
+ python/nav/models/manage.py          | 8 ++++++--
+ python/nav/web/api/v1/serializers.py | 2 ++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/python/nav/models/manage.py b/python/nav/models/manage.py
+index c766e10fb..9e33f5294 100644
+--- a/python/nav/models/manage.py
++++ b/python/nav/models/manage.py
+@@ -1550,8 +1550,12 @@ class Interface(models.Model):
+ 
+     def get_last_cam_record(self):
+         """Returns the newest cam record gotten from this switch port."""
+-        return self.netbox.cam_set.filter(ifindex=self.ifindex).latest(
+-            'end_time')
++        try:
++            return self.netbox.cam_set.filter(
++                ifindex=self.ifindex
++            ).latest('end_time')
++        except Cam.DoesNotExist:
++            return None
+ 
+     def get_active_time(self, interval=600):
+         """
+diff --git a/python/nav/web/api/v1/serializers.py b/python/nav/web/api/v1/serializers.py
+index 5b980e36b..1b013205c 100644
+--- a/python/nav/web/api/v1/serializers.py
++++ b/python/nav/web/api/v1/serializers.py
+@@ -205,7 +205,9 @@ class InterfaceSerializer(serializers.ModelSerializer):
+ 
+ class InterfaceWithCamSerializer(InterfaceSerializer):
+     last_used = CamSerializer(source='get_last_cam_record')
++
+     class Meta(object):
++        model = manage.Interface
+         fields = '__all__'
+ 
+ 
+-- 
+2.17.1
+
