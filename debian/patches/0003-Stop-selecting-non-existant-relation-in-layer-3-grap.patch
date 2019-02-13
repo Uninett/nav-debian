@@ -1,0 +1,30 @@
+From dba80ea47166f316064c7ec743c236d88d03c0ec Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Tue, 12 Feb 2019 11:57:15 +0100
+Subject: [PATCH] Stop selecting non-existant relation in layer 3 graph API
+ endpoint.
+
+The actual relation selected on _is_ gwportprefix, and it does _not_ have a
+relation to itself :-P
+
+Fixes #1842
+---
+ python/nav/web/netmap/graph.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/python/nav/web/netmap/graph.py b/python/nav/web/netmap/graph.py
+index cc11ffffe..265e11d1c 100644
+--- a/python/nav/web/netmap/graph.py
++++ b/python/nav/web/netmap/graph.py
+@@ -89,7 +89,7 @@ def _json_layer2(load_traffic=False, view=None):
+ @cache_topology("layer 3")
+ def _json_layer3(load_traffic=False, view=None):
+     topology_without_metadata = vlan.build_layer3_graph(
+-        ('prefix__vlan__net_type', 'gwportprefix__prefix__vlan__net_type',)
++        ('prefix__vlan__net_type',)
+     )
+ 
+     vlans_map = _get_vlans_map_layer3(topology_without_metadata)
+-- 
+2.17.1
+

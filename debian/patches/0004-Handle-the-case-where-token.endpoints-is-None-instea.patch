@@ -1,0 +1,58 @@
+From 44a9d17d486a27a250ddaa26a91c8cec3600c755 Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Tue, 12 Feb 2019 14:33:00 +0100
+Subject: [PATCH] Handle the case where token.endpoints is None instead of an
+ empty dict
+
+This is due to the fact that django_hstore would translate NULL values to empty
+dicts, whereas Django 1.8 will translate NULL values to None.
+
+Fixes #1841
+---
+ python/nav/web/templates/useradmin/token_detail.html | 6 ++++--
+ python/nav/web/templates/useradmin/token_list.html   | 2 ++
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/python/nav/web/templates/useradmin/token_detail.html b/python/nav/web/templates/useradmin/token_detail.html
+index c3cc4a783..662afab56 100644
+--- a/python/nav/web/templates/useradmin/token_detail.html
++++ b/python/nav/web/templates/useradmin/token_detail.html
+@@ -51,13 +51,15 @@
+ 
+         <h5>Endpoints</h5>
+         <p>
++        {% if object.endpoints %}
+           {% for key, value in object.endpoints|sortdict  %}
+             <span class="label" title="{{ value }}">
+               {{ key }}
+             </span>
+-          {% empty %}
+-            No endpoints set
+           {% endfor %}
++        {% else %}
++            No endpoints set
++        {% endif %}
+         </p>
+ 
+         <ul class="no-bullet">
+diff --git a/python/nav/web/templates/useradmin/token_list.html b/python/nav/web/templates/useradmin/token_list.html
+index a9caaf12a..706435962 100644
+--- a/python/nav/web/templates/useradmin/token_list.html
++++ b/python/nav/web/templates/useradmin/token_list.html
+@@ -88,11 +88,13 @@
+ 
+                 {# Token endpoints #}
+                 <td class="show-for-medium-up">
++                {% if token.endpoints %}
+                   {% for key, value in token.endpoints|sortdict %}
+                     <span class="label endpoint" title="{{ value }}">
+                       {{ key }}
+                     </span>
+                   {% endfor %}
++                {% endif %}
+                 </td>
+ 
+                 {# Token comment #}
+-- 
+2.17.1
+

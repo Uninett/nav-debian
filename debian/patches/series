@@ -1,3 +1,10 @@
-setup-py-version-tag-regexp
+0001-Always-cast-EMAIL_PORT-to-an-integer-to-comply-with-.patch
+0002-Ensure-last_used-filter-works-as-expectd-on-interfac.patch
+0003-Stop-selecting-non-existant-relation-in-layer-3-grap.patch
+0004-Handle-the-case-where-token.endpoints-is-None-instea.patch
+0005-Make-strings-using-six-to-stay-compatible-with-Py2-3.patch
+0006-Correctly-select-stateless-event-text-for-stateless-.patch
+0007-Fix-missing-negation-introduced-by-6ccbc02c8.patch
+0008-fix-portadmin-aliasformat.patch
 nav-start-mkdir-var-run
 config-debian-dirs

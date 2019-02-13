@@ -1,0 +1,42 @@
+From 211d69ffcbe7a4e263699d2e9bfe044dce1ea9d3 Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Wed, 13 Feb 2019 08:58:17 +0100
+Subject: [PATCH] Correctly select stateless event text for stateless alerts.
+
+Fixes #1847
+---
+ python/nav/web/navlets/roomstatus.py | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/python/nav/web/navlets/roomstatus.py b/python/nav/web/navlets/roomstatus.py
+index 80e3dafbe..63e22ab8d 100644
+--- a/python/nav/web/navlets/roomstatus.py
++++ b/python/nav/web/navlets/roomstatus.py
+@@ -20,7 +20,7 @@ from django import forms
+ from itertools import groupby
+ from operator import attrgetter
+ 
+-from nav.models.event import AlertHistory, STATE_START
++from nav.models.event import AlertHistory, STATE_START, STATE_STATELESS
+ 
+ from nav.web.navlets.status2 import Status2Widget
+ 
+@@ -48,8 +48,14 @@ class RoomStatus(Status2Widget):
+         for room, alertlist in groupby(alerts, attrgetter('netbox.room')):
+             room.alerts = sorted(alertlist, key=attrgetter('start_time'))
+             for alert in room.alerts:
++                state = (
++                    STATE_START
++                    if alert.end_time is not None
++                    else STATE_STATELESS
++
++                )
+                 alert.sms_message = alert.messages.get(
+-                    type='sms', language='en', state=STATE_START)
++                    type='sms', language='en', state=state)
+             rooms.append(room)
+ 
+         context['items'] = rooms
+-- 
+2.17.1
+

@@ -1,0 +1,29 @@
+From b4abc21045f9345934336dc134012d381583bf75 Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Wed, 13 Feb 2019 09:11:48 +0100
+Subject: [PATCH] Fix missing negation introduced by 6ccbc02c8
+
+Seems 6ccbc02c8 inadvertently dropped the "not" from this logic
+statement, thereby negating the stateless selection filter.
+
+Fixes #1848
+---
+ python/nav/web/api/v1/views.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/python/nav/web/api/v1/views.py b/python/nav/web/api/v1/views.py
+index 1830412c4..3799dd4ff 100644
+--- a/python/nav/web/api/v1/views.py
++++ b/python/nav/web/api/v1/views.py
+@@ -917,7 +917,7 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
+         """Gets an AlertHistory QuerySet"""
+         if self.is_single_alert_by_primary_key():
+             return event.AlertHistory.objects.all().select_related()
+-        elif self.request.query_params.get('stateless', False):
++        elif not self.request.query_params.get('stateless', False):
+             return event.AlertHistory.objects.unresolved().select_related()
+         else:
+             return self._get_stateless_queryset()
+-- 
+2.17.1
+
