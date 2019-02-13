@@ -6,6 +6,5 @@
 0006-Correctly-select-stateless-event-text-for-stateless-.patch
 0007-Fix-missing-negation-introduced-by-6ccbc02c8.patch
 0008-fix-portadmin-aliasformat.patch
-setup-py-version-tag-regexp
 nav-start-mkdir-var-run
 config-debian-dirs
