@@ -1,3 +1,11 @@
+nav (4.9.1-2) oldstable; urgency=medium
+
+  * Add several hotpatches for critical bugs discovered in 4.9.1.
+  * debian/rules:
+    - Use environment to set correct upstream version of built package.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 13 Feb 2019 09:31:07 +0000
+
 nav (4.9.1-1) oldstable; urgency=medium
 
   * New upstream release.
