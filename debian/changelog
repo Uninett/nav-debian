@@ -1,8 +1,15 @@
-nav (4.9.1-3stretch) oldstable; urgency=medium
+nav (4.9.2-2stretch) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Stretch
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 13 Feb 2019 09:49:41 +0000
+
+nav (4.9.2-1) oldstable; urgency=medium
+
+  * New upstream version.
+    - Remove obsolete hotpatches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 14 Feb 2019 10:07:25 +0000
 
 nav (4.9.1-2) oldstable; urgency=medium
 
