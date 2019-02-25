@@ -1,0 +1,33 @@
+From 12376a1f01c24dc07793246bed51ff9f3b8b766c Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Fri, 15 Feb 2019 14:26:02 +0100
+Subject: [PATCH] Make is_nan function available to indicator rules
+
+is_nan was removed from the import list at some point, because it
+wasn't used by any code in the module. However, it is used by code that
+this module runs through an eval() call *shudder*. Left a comment to
+explain the seemingly unused import.
+
+Fixes #1856
+---
+ python/nav/web/geomap/features.py | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/python/nav/web/geomap/features.py b/python/nav/web/geomap/features.py
+index 2ddf28b3c..f09d85ec0 100644
+--- a/python/nav/web/geomap/features.py
++++ b/python/nav/web/geomap/features.py
+@@ -39,7 +39,9 @@ from django import template
+ 
+ from nav.config import open_configfile
+ from nav.web.geomap.conf import get_configuration
+-from nav.web.geomap.utils import union_dict, subdict, concat_list
++# is_nan must be available in the global namespace for the proper evaluation of
++# some indicator rules
++from nav.web.geomap.utils import union_dict, subdict, concat_list, is_nan
+ 
+ _logger = logging.getLogger('nav.web.geomap.features')
+ 
+-- 
+2.17.1
+

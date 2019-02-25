@@ -1,0 +1,94 @@
+From f146b949ee618397c43ad4319829556e9855a6be Mon Sep 17 00:00:00 2001
+From: Sigmund Augdal <sigmund.augdal@uninett.no>
+Date: Fri, 22 Feb 2019 13:20:19 +0100
+Subject: [PATCH 2/4] (servicemon) Allways unbind ldap connection Fixes
+ resource leaks whenever the ldap check fails, and probably some other cases
+ as well
+
+---
+ python/nav/statemon/checker/LdapChecker.py | 66 ++++++++++++----------
+ 1 file changed, 35 insertions(+), 31 deletions(-)
+
+diff --git a/python/nav/statemon/checker/LdapChecker.py b/python/nav/statemon/checker/LdapChecker.py
+index c37e3e355..e59bc8042 100644
+--- a/python/nav/statemon/checker/LdapChecker.py
++++ b/python/nav/statemon/checker/LdapChecker.py
+@@ -52,40 +52,44 @@ class LdapChecker(AbstractChecker):
+         else:
+             ip, port = self.get_address()
+             conn = ldap.initialize("ldap://%s:%s" % (ip, port))
+-        username = args.get("username", "")
+-        password = args.get("password", "")
+-        conn.simple_bind(username, password)
+-
+         try:
+-            self._set_version(args, conn)
+-        except ValueError:
+-            return Event.DOWN, "unsupported protocol version"
++            username = args.get("username", "")
++            password = args.get("password", "")
++            conn.simple_bind(username, password)
+ 
+-        base = args.get("base", "dc=example,dc=org")
+-        if base == "cn=monitor":
+-            my_res = conn.search_st(base, ldap.SCOPE_BASE,
+-                                    timeout=self.timeout)
+-            versionstr = str(my_res[0][-1]['description'][0])
+-            self.version = versionstr
+-            return Event.UP, versionstr
+-        scope = args.get("scope", "SUBTREE").upper()
+-        if scope == "BASE":
+-            scope = ldap.SCOPE_BASE
+-        elif scope == "ONELEVEL":
+-            scope = ldap.SCOPE_ONELEVEL
+-        else:
+-            scope = ldap.SCOPE_SUBTREE
+-        filtr = args.get("filter", "objectClass=*")
+-        try:
+-            conn.search_ext_s(base, scope, filterstr=filtr,
+-                              timeout=self.timeout)
+-            # pylint: disable=W0703
+-        except Exception as err:
+-            return (Event.DOWN,
+-                    "Failed ldapSearch on %s for %s: %s" % (
+-                        self.get_address(), filtr, str(err)))
++            try:
++                self._set_version(args, conn)
++            except ValueError:
++                return Event.DOWN, "unsupported protocol version"
+ 
+-        conn.unbind()
++            base = args.get("base", "dc=example,dc=org")
++            if base == "cn=monitor":
++                my_res = conn.search_st(base, ldap.SCOPE_BASE,
++                                        timeout=self.timeout)
++                versionstr = str(my_res[0][-1]['description'][0])
++                self.version = versionstr
++                return Event.UP, versionstr
++            scope = args.get("scope", "SUBTREE").upper()
++            if scope == "BASE":
++                scope = ldap.SCOPE_BASE
++            elif scope == "ONELEVEL":
++                scope = ldap.SCOPE_ONELEVEL
++            else:
++                scope = ldap.SCOPE_SUBTREE
++            filtr = args.get("filter", "objectClass=*")
++            try:
++                conn.search_ext_s(base, scope, filterstr=filtr,
++                                  timeout=self.timeout)
++                # pylint: disable=W0703
++            except Exception as err:
++                return (Event.DOWN,
++                        "Failed ldapSearch on %s for %s: %s" % (
++                            self.get_address(), filtr, str(err)))
++        finally:
++            try:
++                conn.unbind()
++            except Exception:
++                pass
+ 
+         return Event.UP, "Ok"
+ 
+-- 
+2.17.1
+

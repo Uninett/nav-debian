@@ -1,0 +1,39 @@
+From fccf51d42eb07064c082beaa4f3702bd6307a952 Mon Sep 17 00:00:00 2001
+From: Sigmund Augdal <sigmund.augdal@uninett.no>
+Date: Fri, 22 Feb 2019 17:01:41 +0100
+Subject: [PATCH 4/4] Remove garbage collection related debug code that broke
+ garbage collection
+
+---
+ bin/servicemon.py | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/bin/servicemon.py b/bin/servicemon.py
+index 1e2bc9e30..dfd332064 100755
+--- a/bin/servicemon.py
++++ b/bin/servicemon.py
+@@ -23,8 +23,6 @@ import os
+ import sys
+ import time
+ import random
+-import gc
+-import threading
+ import signal
+ import argparse
+ import logging
+@@ -108,12 +106,6 @@ class Controller:
+                 self._runqueue.enq(checker)
+                 sleep(pause)
+ 
+-            # extensive debugging
+-            objects = gc.get_objects()
+-            dbgthreads = [i for i in objects if isinstance(i, threading.Thread)]
+-            LOGGER.debug("Garbage: %s Objects: %i Threads: %i", gc.garbage,
+-                         len(objects), len(dbgthreads))
+-
+             wait = self._looptime - (time.time() - start)
+             LOGGER.debug("Waiting %i seconds.", wait)
+             if wait <= 0:
+-- 
+2.17.1
+

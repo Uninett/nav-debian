@@ -1,0 +1,28 @@
+From c1119f9176dc92fff0719465b1331c8a2fc09f9b Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Mon, 25 Feb 2019 11:51:05 +0100
+Subject: [PATCH] Wait longer for processes to die.
+
+Not all NAV daemons shutdown equally fast, so allow for a longer grace
+period before giving up on "nav stop" command.
+---
+ python/nav/startstop.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/python/nav/startstop.py b/python/nav/startstop.py
+index f9ccd2985..57601c4b1 100644
+--- a/python/nav/startstop.py
++++ b/python/nav/startstop.py
+@@ -138,7 +138,8 @@ class DaemonService(Service):
+                 else:
+                     raise
+             if self.is_up(pid=pid):
+-                time.sleep(1)
++                delay = (attempt+1) * 2
++                time.sleep(delay)
+         else:
+             return False
+ 
+-- 
+2.17.1
+

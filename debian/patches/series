@@ -1,2 +1,9 @@
+0001-Don-t-mix-date-and-datetime-objects-in-business-repo.patch
+0001-Make-is_nan-function-available-to-indicator-rules.patch
+0001-Wait-longer-for-processes-to-die.patch
+0001-servicemon-Do-not-needlessly-keep-a-reference-to-the.patch
+0002-servicemon-Allways-unbind-ldap-connection.patch
+0003-servicemon-Fix-a-whole-bunch-of-resource-leaks.patch
+0004-Remove-garbage-collection-related-debug-code-that-br.patch
 nav-start-mkdir-var-run
 config-debian-dirs
