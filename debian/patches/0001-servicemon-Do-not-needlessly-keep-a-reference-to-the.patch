@@ -1,0 +1,52 @@
+From 9325727bda04b50152badf65b27b67dc42c40c1f Mon Sep 17 00:00:00 2001
+From: Sigmund Augdal <sigmund.augdal@uninett.no>
+Date: Fri, 22 Feb 2019 13:18:30 +0100
+Subject: [PATCH 1/4] (servicemon) Do not needlessly keep a reference to the
+ last run checker in the worker threads The reference is never used and could
+ potentially cause problems with garbage collection
+
+---
+ python/nav/statemon/RunQueue.py | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/python/nav/statemon/RunQueue.py b/python/nav/statemon/RunQueue.py
+index 304e2c857..e444b7cf1 100644
+--- a/python/nav/statemon/RunQueue.py
++++ b/python/nav/statemon/RunQueue.py
+@@ -55,7 +55,6 @@ class Worker(threading.Thread):
+         self._running = 1
+         self._time_created = time.time()
+         self._time_start_execute = 0
+-        self._checker = None
+ 
+     def run(self):
+         """
+@@ -64,13 +63,13 @@ class Worker(threading.Thread):
+         """
+         while self._running:
+             try:
+-                self._checker = self._runqueue.deq()
+-                self.execute()
++                checker = self._runqueue.deq()
++                self.execute(checker)
+             except TerminateException:
+                 self._runqueue.workers.remove(self)
+                 return
+ 
+-    def execute(self):
++    def execute(self, checker):
+         """
+         Executes the checker. If maximum runcount is
+         exceeded, self._running is set to zero and the
+@@ -78,7 +77,7 @@ class Worker(threading.Thread):
+         """
+         self._runcount += 1
+         self._time_start_execute = time.time()
+-        self._checker.run()
++        checker.run()
+         if (self._runqueue.get_max_run_count() != 0 and
+                 self._runcount > self._runqueue.get_max_run_count()):
+             self._running = 0
+-- 
+2.17.1
+
