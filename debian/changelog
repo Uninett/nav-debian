@@ -1,8 +1,8 @@
-nav (4.9.2-2) UNRELEASED; urgency=medium
+nav (4.9.2-2) oldstable; urgency=medium
 
   * Add several hotpatches from upstream.
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 25 Feb 2019 11:06:58 +0000
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 25 Feb 2019 11:30:24 +0000
 
 nav (4.9.2-1) oldstable; urgency=medium
 
