@@ -18,10 +18,7 @@ following steps:
 
     Then run:
 
-      su -c "/usr/sbin/navsyncdb -c" postgres
-
-    Also take a look at /usr/share/nav/sql/README for details, especially if
-    you need to install the schema on a remote PostgreSQL server.
+      sudo -u postgres navsyncdb
 
     The default settings of the Debian PostgreSQL packages are good enough for
     smaller installations of NAV. If you are monitoring a large network,
@@ -34,7 +31,7 @@ following steps:
 
     o Run 'a2dissite 000-default && a2ensite nav-default'.
 
-    o Restart Apache2 ('service apache2 restart').
+    o Restart Apache2 ('systemctl restart apache2').
 
     o We strongly recommend you modify
       /etc/apache2/sites-available/nav-default.conf to serve the NAV web
@@ -50,20 +47,16 @@ following steps:
     /etc/nav/graphite.conf.
 
     The Carbon backend's UDP listener must be enabled, and Carbon should be
-    configured with NAV's storage schemas and aggregation rules. Details on
-    how to configure Graphite for use with NAV can be found at [2].
+    configured with NAV's storage schemas and aggregation rules. Details on how
+    to install and configure Graphite for use with NAV on Debian can be found
+    at [2].
 
-    The recommended `graphite-carbon` package is available in the official
-    Debian Wheezy distribution, but the `graphite-web` package is only
-    officially available in Debian Sid (unstable). We have provided a backport
-    of this package for Wheezy.
-
-    [2] https://nav.uninett.no/doc/latest/intro/install.html#integrating-graphite-with-nav
+    [2] https://nav.uninett.no/doc/latest/howto/installing-graphite-on-debian.html
 
  5. Enable nav.service and start NAV:
 
       systemctl enable nav.service
-      service nav start
+      systemctl start nav
 
  6. Log into the NAV web interface and change the admin user's password from
     the insecure default value of 'admin'.
@@ -72,4 +65,4 @@ following steps:
 Happy NAV-ing! :)
 
 
- -- Morten Brekkevold <mvold@charlottenlund>, Fri, 14 Dec 2018 14:31:16 +0100
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>, Wed, 27 Feb 2019 10:07:51 +0100
