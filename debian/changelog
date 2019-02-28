@@ -1,3 +1,10 @@
+nav (4.9.3-1) oldstable; urgency=medium
+
+  * New upstream release
+    - Removed obsolete hotpatches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 28 Feb 2019 11:37:09 +0000
+
 nav (4.9.2-2) oldstable; urgency=medium
 
   * Add several hotpatches from upstream.
