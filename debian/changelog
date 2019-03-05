@@ -1,8 +1,8 @@
-nav (4.9.3-3stretch) UNRELEASED; urgency=medium
+nav (4.9.3-3stretch) stretch; urgency=medium
 
   * Repackaged for Debian Stretch
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 28 Feb 2019 11:42:48 +0000
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 05 Mar 2019 06:52:38 +0000
 
 nav (4.9.3-2) oldstable; urgency=medium
 
