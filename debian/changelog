@@ -1,3 +1,10 @@
+nav (4.9.7-3) stretch; urgency=medium
+
+  * Add patch for compatibility with PostgreSQL 11
+  * Drop support for Debian Jessie.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 25 Jul 2019 08:23:45 +0000
+
 nav (4.9.7-2stretch) oldstable; urgency=medium
 
   * Repackaged for Debian Stretch
