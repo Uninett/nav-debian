@@ -1,0 +1,50 @@
+commit 2bb848288441e117e3a8491e9af90801c45411b3
+Author: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date:   Thu Jul 25 09:34:46 2019 +0200
+
+    Stop explicitly installing pl/pgSQL during db init.
+    
+    pl/pgSQL has been installed in all databases by default for many, many
+    versions of PostgreSQL now. This routine was written while NAV still
+    supported PostgreSQL 8.3, and has likely been superfluous since around
+    PostgreSQL 9.1.
+    
+    Now, this routine will fail on PostgreSQL 11, since the createlang
+    command line has been removed, so it's time to retire this piece of code.
+
+diff --git a/python/nav/pgsync.py b/python/nav/pgsync.py
+index 983b5f4ec..23731e972 100755
+--- a/python/nav/pgsync.py
++++ b/python/nav/pgsync.py
+@@ -108,7 +108,6 @@ def create_database():
+                  check_call, ["createdb",
+                               "--owner=%s" % nav_opts.user,
+                               "--encoding=utf-8", nav_opts.dbname])
+-    install_pl_pgsql(nav_opts.dbname)
+ 
+ 
+ def drop_database():
+@@ -179,23 +178,6 @@ def create_user(username, password):
+                   "template1"])
+ 
+ 
+-def install_pl_pgsql(dbname):
+-    "Installs PL/pgSQL to dbname if not already present"
+-    process = trap_and_die(
+-        subprocess.CalledProcessError,
+-        "Failed checking for PL/pgSQL language in database %s" % dbname,
+-        popen, ["createlang", "-l", dbname],
+-        stdout=subprocess.PIPE)
+-
+-    output = process.communicate()[0].decode('UTF-8')
+-    if 'plpgsql' not in output.lower():
+-        trap_and_die(
+-            subprocess.CalledProcessError,
+-            "Failed installing PL/pgSQL language in database %s" % dbname,
+-            check_call,
+-            ["createlang", "plpgsql", dbname])
+-
+-
+ def handle_missing_binaries(func):
+     """Decorates func to handle errors from the subprocess module."""
+     messages = {
