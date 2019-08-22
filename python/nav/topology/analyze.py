@@ -239,22 +239,46 @@ class AdjacencyReducer(AdjacencyAnalyzer):
     def _visit_unvisited(self, unvisited):
         for port in unvisited:
             for source, dest, proto in self.graph.edges(port, keys=True):
-                _logger.debug("Considering %s %s source %s",
-                              source, dest, proto)
+                _logger.debug("Considering %s -> %s, source %s", source, dest, proto)
                 if dest == source[0]:
-                    _logger.warning("A possible self-loop was found: "
-                                    "%r", (source, dest))
+                    _logger.warning(
+                        "A possible self-loop was found: " "%r", (source, dest)
+                    )
                     self.graph.remove_edge(source, dest)
                     continue
 
+                if self._is_single_dataless_destination(source, dest):
+                    self.connect_ports(source, dest)
+                    return True
+
                 remote_port = self.find_return_port(source, dest)
                 if remote_port:
-                    _logger.debug("Found connection %s -> %s because of good return path",
-                                  source, remote_port)
+                    _logger.debug(
+                        "Found connection %s -> %s because of good return path",
+                        source,
+                        remote_port,
+                    )
                     self.connect_ports(source, remote_port)
                     return True
             _logger.debug("Found no connection for %s", port)
         return False
+
+    def _is_single_dataless_destination(self, source, dest):
+        """Returns True if dest has no candidate data and is the single distinct
+        candidate from source's data.
+        """
+        if self.graph.out_degree(dest) > 0:
+            return False
+        distinct_edges = set(self.graph.edges(source))
+        if len(distinct_edges) == 1:
+            _logger.debug(
+                "No data from %s, trusting single distinct candidate from %s",
+                dest,
+                source,
+            )
+            return True
+        else:
+            return False
 
     def connect_ports(self, i, j):
         """Add connection between a and b to result.
