@@ -77,6 +77,10 @@ def ipdevpoll_test_config():
     os.rename(configfile, tmpfile)
     with open(configfile, "w") as config_handle:
         config_handle.write("""
+[snmp]
+# we don't need timeout tests to take forever:
+timeout=0.1
+
 [plugins]
 snmpcheck=
 crash=nav.ipdevpoll.plugins.debugging.Crash
@@ -85,7 +89,7 @@ fail=nav.ipdevpoll.plugins.debugging.Fail
 sleep=nav.ipdevpoll.plugins.debugging.Sleep
 noop=nav.ipdevpoll.plugins.debugging.Noop
 """)
-    config.ipdevpoll_conf.read_all()
+    config.ipdevpoll_conf = config.IpdevpollConfig()  # test load from scratch
     plugins.import_plugins()
     yield configfile
     print("restoring ipdevpoll config")
