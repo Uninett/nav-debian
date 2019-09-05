@@ -1,3 +1,10 @@
+nav (4.9.8-2) stretch; urgency=medium
+
+  * Change apache2 and libapache2-mod-wsgi dependencies into recommendations.
+    - There are alternative web and WSGI server packages that can be used.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 05 Sep 2019 10:53:30 +0000
+
 nav (4.9.8-1) stretch; urgency=medium
 
   * New upstream release.
