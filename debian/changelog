@@ -1,8 +1,8 @@
-nav (4.9.8-3buster) UNRELEASED; urgency=medium
+nav (4.9.8-3buster) buster; urgency=medium
 
   * Repackaged for Debian Buster
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 22 Aug 2019 12:47:16 +0000
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 05 Sep 2019 10:58:42 +0000
 
 nav (4.9.8-2) stretch; urgency=medium
 
