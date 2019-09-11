@@ -1,28 +1,54 @@
 # NAV Debian package
 
-This package uses a straight up 3.0 (quilt) format with dh_virtualenv
-
 Referencing the guide at https://wiki.debian.org/PackagingWithGit - this is a
-fork of the upstream repo at https://github.com/UNINETT/nav .
+fork of the upstream NAV repo at https://github.com/Uninett/nav, with an added
+`debian/` directory for building Debian packages from NAV.
 
-The upstream master is tracked in the `upstream` branch, while this repo's
-`master` branch is used to maintain the `debian/` subdirectory.
+This package uses a straight up 3.0 (quilt) format with `dh_virtualenv`.
 
-The `debian/` directory contains a `Dockerfile` that attempts to set up a
-build environment for the currently targeted Debian distribution version, and
-also contains the helper scripts `dev.sh`, `build.sh` and `dch.sh` to perform
-common package maintenance tasks within a Docker container based on the
-`Dockerfile`.
+
+## TL;DR
+
+To build NAV 4.9.8 for Debian Stretch:
+
+    git clone git@github.com:Uninett/nav-debian.git
+    cd nav-debian
+    git checkout debian-stretch
+    git remote add upstream git@github.com:Uninett/nav.git
+    git fetch --tags upstream
+    git pull upstream 4.9.8
+    cd debian
+	./dch.sh -v 4.9.8-1
+    ./build.sh
+
+This clones this repo, tracks the upstream NAV repo in the `upstream` remote,
+pulls and merges the 4.9.8 tag, updated the Debian changelog with a package
+version of `4.9.8-1`, and runs a full package build.
+
+## Build tools
+
+The `debian/` directory contains a `Dockerfile` that describes a build
+environment for the currently targeted Debian distribution version. The
+directory also contains a few helper shell scripts to aid in using Docker to
+build the package:
+
+<dl>
+
+  <dt><code>dev.sh</code></dt>
+  <dd>Will drop you into a shell inside a Docker container, containing the full environment needed to build a Debian package for the targeted Debian version.</dd>
+
+  <dt><code>dch.sh</code></dt>
+  <dd>Will run <code>debchange</code> inside a Docker container to manipulate the Debian changelog of the package. Any arguments will be forwarded to the <code>debchange</code> command.</dd>
+
+  <dt><code>build.sh</code></dt>
+  <dd>Will run <code>debuild</code> inside a Docker container to produce a working Debian package.</dd>
+
+</dl>
 
 ## Dependency considerations
 
 Most of NAV's Python dependencies will be vendored into this package, using the
-dh_virtualenv mechanism. However, for Debian 8 (Jessie), there is no version of
-`libgammu-dev` that can match up with any version of `python-libgammu` that is
-published on PyPI. Debian Jessie ships with version 1.33.0, but even in the
-`python-libgammu` Github repository, there are no versions prior to 2.0 that
-provide a `setup.py` build, so it cannot be installed by pip anyway.
-
+`dh_virtualenv` mechanism.
 
 ## Other useful references:
 
