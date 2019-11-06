@@ -7,10 +7,11 @@ Build-Depends:
  dh-systemd (>= 1.5),
  quilt,
  python-all,
+ python3-all,
  dh-virtualenv (>= 1.0),
  dh-python,
- python-dev,
- python-setuptools,
+ python3-dev,
+ python3-setuptools,
 # The following are required to build various Python packages in the virtualenv:
  libpq-dev,
  libjpeg-dev,
@@ -28,12 +29,12 @@ Depends:
   ${misc:Depends},
   systemd,
   adduser,
-  python (>= 2.7), python (<< 3.0),
+  python3 (>= 3.5),
   nbtscan,
   logrotate,
   postgresql (>= 9.4),
   postgresql-contrib (>= 9.4),
-  python-gammu,
+  python3-gammu,
   rrdtool,
   makepasswd,
   rsync,
@@ -47,7 +48,7 @@ Depends:
   libldap-2.4-2 (>= 2.4.7),
   libpq5,
   zlib1g
-Recommends: apache2, libapache2-mod-wsgi, graphite-carbon, graphite-web
+Recommends: apache2, libapache2-mod-wsgi-py3, graphite-carbon, graphite-web
 Conflicts: graphite-web-django14
 Description: Network Administration Visualized
  This package contains Network Administration Visualized, an advanced
