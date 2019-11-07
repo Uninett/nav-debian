@@ -15,18 +15,17 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from nav.django.utils import get_verbose_name
 
 from nav.web.message import new_message, Messages
 
-STEP_CHANGEVALUES = 0 # Dropdown boxes with new values
-STEP_CONFIRM = 1 # What the objects will look like afterwards
-STEP_SAVE = 2 # Update the objects
+STEP_CHANGEVALUES = 0  # Dropdown boxes with new values
+STEP_CONFIRM = 1  # What the objects will look like afterwards
+STEP_SAVE = 2  # Update the objects
 
 
 def move(request, model, form_model, redirect, title_attr='id',
@@ -38,7 +37,7 @@ def move(request, model, form_model, redirect, title_attr='id',
     # If no post or no objects selected, start over
     if request.method != 'POST':
         return HttpResponseRedirect(reverse(redirect))
-    if not len(request.POST.getlist('object')):
+    if not request.POST.getlist('object'):
         new_message(request,
                     "You need to select at least one object to edit",
                     Messages.ERROR)
@@ -120,8 +119,7 @@ def move(request, model, form_model, redirect, title_attr='id',
 
     extra_context.update(context)
 
-    return render_to_response('seeddb/move.html',
-        extra_context, RequestContext(request))
+    return render(request, 'seeddb/move.html', extra_context)
 
 
 def _parse_value_differences(values, data, title_attr, fields):
@@ -137,7 +135,7 @@ def _parse_value_differences(values, data, title_attr, fields):
         row = {
             'pk': obj['pk'],
             'values': [("Current %s" % attr, obj[attr])
-                for attr in attr_list],
+                       for attr in attr_list],
         }
 
         # If the form has data, format the fields with new values

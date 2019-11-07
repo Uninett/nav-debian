@@ -25,12 +25,12 @@ from __future__ import absolute_import
 import datetime
 import logging
 
+from django.db import transaction
+from django.db.models import Q
+
 from nav.models import manage, service
 from nav.models.event import EventQueue as Event, AlertHistory
 from nav.models.msgmaint import MaintenanceTask
-
-from django.db import transaction
-from django.db.models import Q
 
 INFINITY = datetime.datetime.max
 
@@ -62,7 +62,7 @@ def check_tasks_without_end():
         currently_or_too_recently_down = []
         threshold = datetime.datetime.now() - MINIMUM_UPTIME
         for subject in task.get_event_subjects():
-            end_time = subject and subject.last_downtime_ended() or None
+            end_time = subject.last_downtime_ended() if subject else None
             if end_time and end_time > threshold:
                 currently_or_too_recently_down.append(subject)
 

@@ -50,9 +50,14 @@ logfile = os.path.join(NAV_CONFIG['LOG_DIR'], 'smsd.log')
 pidfile = os.path.join(NAV_CONFIG['PID_DIR'], 'smsd.pid')
 
 #
+# Logging
+#
+_logger = logging.getLogger('nav.smsd')
+
+#
 # Globals
 #
-logger = config = delay = failed = defaults = None
+config = delay = failed = defaults = None
 
 #
 #  MAIN FUNCTION
@@ -117,14 +122,12 @@ def main():
                  username, sys.argv[0]))
 
     # Initialize logging
-    global logger
-    logger = logging.getLogger('nav.smsd')
     nav.logs.init_stderr_logging()
     if not loginitsmtp(mailwarnlevel, mailaddr, fromaddr, mailserver):
         sys.exit('Failed to init SMTP logging.')
 
     # First log message
-    logger.info('Starting smsd.')
+    _logger.info('Starting smsd.')
 
     # Set custom loop delay
     if args.delay:
@@ -134,7 +137,7 @@ def main():
     if args.cancel:
         queue = nav.smsd.navdbqueue.NAVDBQueue()
         ignored_count = queue.cancel()
-        logger.info("All %d unsent messages ignored.", ignored_count)
+        _logger.info("All %d unsent messages ignored.", ignored_count)
         sys.exit(0)
 
     if args.delayfactor:
@@ -150,7 +153,7 @@ def main():
     try:
         dh = nav.smsd.dispatcher.DispatcherHandler(config)
     except PermanentDispatcherError as error:
-        logger.critical("Dispatcher configuration failed. Exiting. (%s)", error)
+        _logger.critical("Dispatcher configuration failed. Exiting. (%s)", error)
         sys.exit(1)
 
     # Send test message (in other words: test the dispatcher)
@@ -162,19 +165,19 @@ def main():
             try:
                 (sms, sent, ignored, smsid) = dh.sendsms(args.test, msg)
             except DispatcherError as error:
-                logger.critical("Sending failed. Exiting. (%s)", error)
+                _logger.critical("Sending failed. Exiting. (%s)", error)
                 sys.exit(1)
 
-            logger.info("SMS sent. Dispatcher returned reference %d.", smsid)
+            _logger.info("SMS sent. Dispatcher returned reference %d.", smsid)
 
         elif args.TEST and args.uid:
             queue = nav.smsd.navdbqueue.NAVDBQueue()
             rowsinserted = queue.inserttestmsgs(args.uid, args.TEST, text)
             if rowsinserted:
-                logger.info("SMS put in queue. %d row(s) inserted.",
+                _logger.info("SMS put in queue. %d row(s) inserted.",
                             rowsinserted)
             else:
-                logger.info("SMS not put in queue.")
+                _logger.info("SMS not put in queue.")
 
         sys.exit(0)
 
@@ -182,7 +185,7 @@ def main():
     try:
         nav.daemon.justme(pidfile)
     except nav.daemon.DaemonError as error:
-        logger.error(error)
+        _logger.error(error)
         sys.exit(1)
 
     # Daemonize
@@ -190,12 +193,12 @@ def main():
         try:
             nav.daemon.daemonize(pidfile, stderr=open(logfile, "a"))
         except nav.daemon.DaemonError as error:
-            logger.error(error)
+            _logger.error(error)
             sys.exit(1)
 
-        logger.info('smsd now running in daemon mode')
+        _logger.info('smsd now running in daemon mode')
         # Reopen log files on SIGHUP
-        logger.debug('Adding signal handler for reopening log files on SIGHUP.')
+        _logger.debug('Adding signal handler for reopening log files on SIGHUP.')
         signal.signal(signal.SIGHUP, signalhandler)
     else:
         nav.daemon.writepidfile(pidfile)
@@ -213,29 +216,29 @@ def main():
     # Automatically cancel unsent messages older than a given interval
     if autocancel != '0':
         ignored_count = queue.cancel(autocancel)
-        logger.info("%d unsent messages older than '%s' autocanceled.",
+        _logger.info("%d unsent messages older than '%s' autocanceled.",
                     ignored_count, autocancel)
 
     # Loop forever
     while True:
-        logger.debug("Starting loop.")
+        _logger.debug("Starting loop.")
 
         # Queue: Get users with unsent messages
         users = queue.getusers('N')
 
-        logger.info("Found %d user(s) with unsent messages.", len(users))
+        _logger.info("Found %d user(s) with unsent messages.", len(users))
 
         # Loop over cell numbers
         for user in users:
             # Queue: Get unsent messages for a user ordered by severity desc
             msgs = queue.getusermsgs(user, 'N')
-            logger.info("Found %d unsent message(s) for %s.", len(msgs), user)
+            _logger.info("Found %d unsent message(s) for %s.", len(msgs), user)
 
             # Dispatcher: Format and send SMS
             try:
                 (sms, sent, ignored, smsid) = dh.sendsms(user, msgs)
             except PermanentDispatcherError as error:
-                logger.critical("Sending failed permanently. Exiting. (%s)",
+                _logger.critical("Sending failed permanently. Exiting. (%s)",
                                 error)
                 sys.exit(1)
             except DispatcherError as error:
@@ -245,27 +248,27 @@ def main():
 
                     break  # End this run
                 except:
-                    logger.exception("")
+                    _logger.exception("")
                     raise
             except Exception as error:
-                logger.exception("Unknown exception: %s", error)
+                _logger.exception("Unknown exception: %s", error)
 
-            logger.info("SMS sent to %s.", user)
+            _logger.info("SMS sent to %s.", user)
 
             if failed:
                 resetdelay()
                 failed = 0
-                logger.debug("Resetting delay and number of failed runs.")
+                _logger.debug("Resetting delay and number of failed runs.")
 
             for msgid in sent:
                 queue.setsentstatus(msgid, 'Y', smsid)
             for msgid in ignored:
                 queue.setsentstatus(msgid, 'I', smsid)
-            logger.info("%d messages were sent and %d ignored.",
+            _logger.info("%d messages were sent and %d ignored.",
                         len(sent), len(ignored))
 
         # Sleep a bit before the next run
-        logger.debug("Sleeping for %d seconds.", delay)
+        _logger.debug("Sleeping for %d seconds.", delay)
         time.sleep(delay)
 
         # Devel only
@@ -327,10 +330,10 @@ def parse_args():
 def setdelay(seconds):
     """Set delay (in seconds) between queue checks."""
 
-    global delay, logger
+    global delay, _logger
 
     delay = seconds
-    logger.info("Setting delay to %d seconds.", delay)
+    _logger.info("Setting delay to %d seconds.", delay)
 
 
 def resetdelay():
@@ -362,7 +365,7 @@ def backoff(seconds, error, retryvars):
         retryvars['retrylimit'], retryvars['retrylimitaction'])
 
     failed += 1
-    logger.debug("Dispatcher failed %d time(s).", failed)
+    _logger.debug("Dispatcher failed %d time(s).", failed)
     increasedelay(seconds, delayfactor, maxdelay)
 
     queue = nav.smsd.navdbqueue.NAVDBQueue()
@@ -375,11 +378,11 @@ def backoff(seconds, error, retryvars):
     # If limit is disabled, report error and continue
     elif retrylimit == 0 and delay >= maxdelay:
         if len(msgs):
-            logger.critical("Dispatching SMS fails. %d unsent message(s), "
+            _logger.critical("Dispatching SMS fails. %d unsent message(s), "
                             "the oldest from %s. (%s)",
                             len(msgs), msgs[0]['time'], error)
         else:
-            logger.critical("Dispatching SMS fails. (%s)", error)
+            _logger.critical("Dispatching SMS fails. (%s)", error)
 
 
 def backoffaction(error, retrylimitaction):
@@ -389,38 +392,46 @@ def backoffaction(error, retrylimitaction):
     queue = nav.smsd.navdbqueue.NAVDBQueue()
     msgs = queue.getmsgs('N')
 
-    # FIXME This needs a look-over for Python3/unicode issues
     if retrylimitaction == "ignore":
         # Queued messages are marked as ignored, logs a critical error with
         # message details, then resumes run.
         numbmsg = queue.cancel()
-        error_message = (u"Dispatch retry limit has been reached."
-            " Dispatching SMS has failed %s times. Ignoring %s message(s)." %
-            (failed, numbmsg))
+        error_message = (
+            u"Dispatch retry limit has been reached. Dispatching SMS has failed %s "
+            u"times. Ignoring %s message(s)."
+        ) % (failed, numbmsg)
 
         for index, msg in enumerate(msgs):
-            error_message += u"\n%s: \"%s\" --> %s" % (
+            error_message += u'\n%s: "%s" --> %s' % (
                 index+1,
-                smart_text(msg['msg']), smart_text(msg['name']))
+                smart_text(msg['msg']),
+                smart_text(msg['name']),
+            )
 
         error_message += u"\nError message: %s" % error
-        logger.critical(error_message)
+        _logger.critical(error_message)
         failed = 0
         resetdelay()
 
     elif retrylimitaction == "shutdown":
         # Logs the number of unsent messages and time of the oldest in queue
         # before shutting down daemon.
-        logger.critical("Dispatch retry limit has been reached. Dispatching "
-                        "SMS has failed %d times. %d unsent message(s), the "
-                        "oldest from %s. \nError message: %s \nShutting down "
-                        "daemon.\n",
-                        failed, len(msgs), msgs[0]["time"], error)
+        _logger.critical(
+            "Dispatch retry limit has been reached. Dispatching SMS has failed %d "
+            "times. %d unsent message(s), the oldest from %s. "
+            "\nError message: %s "
+            "\nShutting down daemon.\n",
+            failed,
+            len(msgs),
+            msgs[0]["time"],
+            error,
+        )
         sys.exit(0)
 
     else:
-        logger.warning("No retry limit action is set or the configured option "
-                       "is not valid.")
+        _logger.warning(
+            "No retry limit action is set or the configured option is not valid."
+        )
 
 
 def signalhandler(signum, _):
@@ -430,17 +441,17 @@ def signalhandler(signum, _):
     """
 
     if signum == signal.SIGHUP:
-        logger.info("SIGHUP received; reopening log files.")
+        _logger.info("SIGHUP received; reopening log files.")
         nav.logs.reopen_log_files()
         nav.daemon.redirect_std_fds(stderr=open(logfile, "a"))
         nav.logs.reset_log_levels()
         nav.logs.set_log_config()
-        logger.info('Log files reopened.')
+        _logger.info('Log files reopened.')
     elif signum == signal.SIGTERM:
-        logger.warning('SIGTERM received: Shutting down.')
+        _logger.warning('SIGTERM received: Shutting down.')
         sys.exit(0)
     elif signum == signal.SIGINT:
-        logger.warning('SIGINT received: Shutting down.')
+        _logger.warning('SIGINT received: Shutting down.')
         sys.exit(0)
 
 
@@ -457,8 +468,8 @@ def loginitsmtp(loglevel, mailaddr, fromaddr, mailserver):
         mailformatter = logging.Formatter(mailformat)
         mailhandler.setFormatter(mailformatter)
         mailhandler.setLevel(loglevel)
-        logger = logging.getLogger()
-        logger.addHandler(mailhandler)
+        _logger = logging.getLogger()
+        _logger.addHandler(mailhandler)
         return True
     except Exception as error:
         print("Failed creating SMTP loghandler. Daemon mode disabled. (%s)"

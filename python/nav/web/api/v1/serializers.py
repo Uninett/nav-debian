@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 Uninett AS
+# Copyright (C) 2013, 2019 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,8 +16,23 @@
 # pylint: disable=R0903
 """Serializers for the NAV REST api"""
 
-from nav.models import manage, cabling, rack, profiles
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+
+from nav.web.api.v1.fields import DisplayNameWritableField
+from nav.models import manage, cabling, rack, profiles
+from nav.web.seeddb.page.netbox.edit import get_sysname
+
+
+
+class ManagementProfileSerializer(serializers.ModelSerializer):
+    """Serializer for management profiles"""
+
+    protocol = DisplayNameWritableField()
+
+    class Meta(object):
+        model = manage.ManagementProfile
+        fields = "__all__"
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -90,6 +105,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class SubNetboxSerializer(serializers.ModelSerializer):
     object_url = serializers.CharField(source='get_absolute_url')
+
     class Meta(object):
         model = manage.Netbox
         fields = '__all__'
@@ -135,11 +151,58 @@ class NetboxSerializer(serializers.ModelSerializer):
                                                 queryset=manage.NetboxType.objects.all())
     type = NetboxTypeSerializer(read_only=True)
 
+    profiles = serializers.PrimaryKeyRelatedField(
+        required=False,
+        many=True,
+        write_only=False,
+        queryset=manage.ManagementProfile.objects,
+    )
 
     class Meta(object):
         model = manage.Netbox
         depth = 1
         fields = '__all__'
+
+    def validate(self, attrs):
+        if attrs.get("ip") and not attrs.get("sysname"):
+            attrs["sysname"] = get_sysname(attrs.get("ip")) or attrs.get("ip")
+        try:
+            duplicate = manage.Netbox.objects.get(sysname=attrs.get("sysname"))
+        except manage.Netbox.DoesNotExist:
+            pass
+        else:
+            if duplicate != self.instance:
+                raise ValidationError(
+                    "{} already exists in the database".format(attrs.get("sysname")),
+                    code="unique",
+                )
+        return attrs
+
+    def create(self, validated_data):
+        profile_list = validated_data.pop("profiles", None)
+        netbox = manage.Netbox.objects.create(**validated_data)
+        self._update_profiles(netbox, profile_list)
+        return netbox
+
+    def update(self, instance, validated_data):
+        profile_list = validated_data.pop("profiles", None)
+        instance = super(NetboxSerializer, self).update(instance, validated_data)
+        self._update_profiles(instance, profile_list)
+        return instance
+
+    @staticmethod
+    def _update_profiles(instance, profile_list):
+        if profile_list is None:
+            return
+
+        profile_set = set(profile_list)
+        old_profiles = set(instance.profiles.all())
+        to_add = profile_set.difference(old_profiles)
+        to_remove = old_profiles.difference(profile_set)
+        for profile in to_remove:
+            manage.NetboxProfile.objects.get(netbox=instance, profile=profile).delete()
+        for profile in to_add:
+            manage.NetboxProfile(netbox=instance, profile=profile).save()
 
 
 class PatchSerializer(serializers.ModelSerializer):
@@ -183,6 +246,7 @@ class ArpSerializer(serializers.ModelSerializer):
 
 class SubInterfaceSerializer(serializers.ModelSerializer):
     object_url = serializers.CharField(source='get_absolute_url')
+
     class Meta(object):
         model = manage.Interface
         fields = '__all__'
@@ -234,6 +298,8 @@ class RackItemSerializer(serializers.Serializer):
     human_readable = serializers.ReadOnlyField()
     absolute_url = serializers.ReadOnlyField(source='get_absolute_url')
     display_range = serializers.ReadOnlyField(source='get_display_range')
+    display_configuration = serializers.ReadOnlyField(
+        source='get_display_configuration')
 
     class Meta(object):
         fields = '__all__'

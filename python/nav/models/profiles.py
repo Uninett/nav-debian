@@ -16,20 +16,18 @@
 #
 """Django ORM wrapper for profiles in NAV"""
 
-# pylint: disable=R0903, C1001
+# pylint: disable=R0903
 
 from hashlib import md5
 import itertools
 import logging
-import os
 from datetime import datetime
 import re
 import json
 
-from django.utils import six
 from django.views.decorators.debug import sensitive_variables
-from django.core.urlresolvers import reverse
 from django.db import models, transaction
+from django.urls import reverse
 from django.utils.encoding import python_2_unicode_compatible
 from django.forms.models import model_to_dict
 
@@ -90,7 +88,7 @@ class Account(models.Model):
     name = VarcharField()
     password = VarcharField()
     ext_sync = VarcharField(blank=True)
-    preferences = HStoreField(default={})
+    preferences = HStoreField(default=dict)
 
     organizations = models.ManyToManyField(Organization, db_table='accountorg',
                                            blank=True)
@@ -181,7 +179,7 @@ class Account(models.Model):
     @sensitive_variables('password')
     def set_password(self, password):
         """Sets user password. Copied from nav.db.navprofiles"""
-        if len(password.strip()):
+        if password.strip():
             pw_hash = nav.pwhash.Hash(password=password)
             self.password = str(pw_hash)
         else:
@@ -284,7 +282,11 @@ class AccountGroup(models.Model):
 @python_2_unicode_compatible
 class NavbarLink(models.Model):
     """A hyperlink on a user's navigation bar."""
-    account = models.ForeignKey('Account', db_column='accountid')
+    account = models.ForeignKey(
+        'Account',
+        on_delete=models.CASCADE,
+        db_column='accountid'
+    )
     name = models.CharField('Link text', blank=False, max_length=100)
     uri = models.CharField('URL', blank=False, max_length=100)
 
@@ -299,8 +301,16 @@ class NavbarLink(models.Model):
 @python_2_unicode_compatible
 class Privilege(models.Model):
     """A privilege granted to an AccountGroup."""
-    group = models.ForeignKey('AccountGroup', db_column='accountgroupid')
-    type = models.ForeignKey('PrivilegeType', db_column='privilegeid')
+    group = models.ForeignKey(
+        'AccountGroup',
+        on_delete=models.CASCADE,
+        db_column='accountgroupid'
+    )
+    type = models.ForeignKey(
+        'PrivilegeType',
+        on_delete=models.CASCADE,
+        db_column='privilegeid'
+    )
     target = VarcharField()
 
     class Meta(object):
@@ -331,8 +341,16 @@ class AlertAddress(models.Model):
     """
     DEBUG_MODE = False
 
-    account = models.ForeignKey('Account', db_column='accountid')
-    type = models.ForeignKey('AlertSender', db_column='type')
+    account = models.ForeignKey(
+        'Account',
+        on_delete=models.CASCADE,
+        db_column='accountid'
+    )
+    type = models.ForeignKey(
+        'AlertSender',
+        on_delete=models.CASCADE,
+        db_column='type'
+    )
     address = VarcharField()
 
     class Meta(object):
@@ -347,23 +365,23 @@ class AlertAddress(models.Model):
 
            Return value should indicate if message was sent"""
 
-        logger = logging.getLogger('nav.alertengine.alertaddress.send')
+        _logger = logging.getLogger('nav.alertengine.alertaddress.send')
 
         # Determine the right language for the user.
         lang = self.account.preferences.get(
             Account.PREFERENCE_KEY_LANGUAGE, 'en')
 
         if not (self.address or '').strip():
-            logger.error(
-                'Ignoring alert %d (%s: %s)! Account %s does not have an '
-                'address set for the alertaddress with id %d, this needs '
-                'to be fixed before the user will recieve any alerts.',
-                alert.id, alert, alert.netbox, self.account, self.id)
+            _logger.error(
+                 'Ignoring alert %d (%s: %s)! Account %s does not have an '
+                 'address set for the alertaddress with id %d, this needs '
+                 'to be fixed before the user will recieve any alerts.',
+                 alert.id, alert, alert.netbox, self.account, self.id)
 
             return True
 
         if self.type.is_blacklisted():
-            logger.warning(
+            _logger.warning(
                 'Not sending alert %s to %s as handler %s is blacklisted: %s',
                 alert.id, self.address, self.type,
                 self.type.blacklist_reason())
@@ -371,27 +389,27 @@ class AlertAddress(models.Model):
 
         try:
             self.type.send(self, alert, language=lang)
-            logger.info(
+            _logger.info(
                 'alert %d sent by %s to %s due to %s subscription %d',
                 alert.id, self.type, self.address,
                 subscription.get_type_display(), subscription.id)
 
         except FatalDispatcherException as error:
-            logger.error(
+            _logger.error(
                 '%s raised a FatalDispatcherException indicating that the '
                 'alert never will be sent: %s',
                 self.type, error)
             raise
 
         except DispatcherException as error:
-            logger.error(
+            _logger.error(
                 '%s raised a DispatcherException indicating that an alert '
                 'could not be sent at this time: %s',
                 self.type, error)
             return False
 
         except Exception as error:
-            logger.exception(
+            _logger.exception(
                 'Unhandled error from %s (the handler has been blacklisted)',
                 self.type)
             self.type.blacklist(error)
@@ -405,17 +423,16 @@ class AlertSender(models.Model):
     """A registered alert sender/medium."""
     name = models.CharField(max_length=100)
     handler = models.CharField(max_length=100)
+    supported = models.BooleanField(default=True)
 
     _blacklist = {}
     _handlers = {}
 
-    JABBER = u'Jabber'
     EMAIL = u'Email'
     SMS = u'SMS'
     SLACK = u'Slack'
 
     SCHEMES = {
-        JABBER: u'jabber:',
         EMAIL: u'mailto:',
         SMS: u'sms:',
         SLACK: u'slack:'
@@ -427,6 +444,8 @@ class AlertSender(models.Model):
     @transaction.atomic
     def send(self, *args, **kwargs):
         """Sends an alert via this medium."""
+        if not self.supported:
+            raise FatalDispatcherException("{} is not supported".format(self.name))
         if self.handler not in self._handlers:
             dispatcher_class = self._load_dispatcher_class()
             dispatcher = dispatcher_class(
@@ -475,10 +494,17 @@ class AlertSender(models.Model):
 class AlertPreference(models.Model):
     """AlertProfile account preferences"""
 
-    account = models.OneToOneField('Account', primary_key=True,
-                                   db_column='accountid')
-    active_profile = models.OneToOneField('AlertProfile',
-                                          db_column='activeprofile', null=True)
+    account = models.OneToOneField(
+        'Account', primary_key=True,
+        on_delete=models.CASCADE,
+        db_column='accountid'
+    )
+    active_profile = models.OneToOneField(
+        'AlertProfile',
+        on_delete=models.CASCADE,
+        db_column='activeprofile',
+        null=True
+    )
     last_sent_day = models.DateTimeField(db_column='lastsentday')
     last_sent_week = models.DateTimeField(db_column='lastsentweek')
 
@@ -515,7 +541,11 @@ class AlertProfile(models.Model):
         (SUNDAY, _('sunday')),
     )
 
-    account = models.ForeignKey('Account', db_column='accountid')
+    account = models.ForeignKey(
+        'Account',
+        on_delete=models.CASCADE,
+        db_column='accountid'
+    )
     name = VarcharField()
     daily_dispatch_time = models.TimeField(default='08:00')
     weekly_dispatch_day = models.IntegerField(choices=VALID_WEEKDAYS,
@@ -533,7 +563,7 @@ class AlertProfile(models.Model):
         # Could have been done with a ModelManager, but the logic
         # is somewhat tricky to do with the django ORM.
 
-        logger = logging.getLogger(
+        _logger = logging.getLogger(
             'nav.alertengine.alertprofile.get_active_timeperiod')
 
         now = datetime.now()
@@ -551,7 +581,7 @@ class AlertProfile(models.Model):
         # If the current time is before the start of the first time
         # period, the active time period is the last one (i.e. from
         # the day before)
-        if len(timeperiods) > 0 and timeperiods[0].start > now.time():
+        if timeperiods and timeperiods[0].start > now.time():
             active_timeperiod = timeperiods[-1]
         else:
             for period in timeperiods:
@@ -559,10 +589,10 @@ class AlertProfile(models.Model):
                     active_timeperiod = period
 
         if active_timeperiod:
-            logger.debug("Active timeperiod for alertprofile %d is %s (%d)",
-                         self.id, active_timeperiod, active_timeperiod.id)
+            _logger.debug("Active timeperiod for alertprofile %d is %s (%d)",
+                          self.id, active_timeperiod, active_timeperiod.id)
         else:
-            logger.debug("No active timeperiod for alertprofile %d", self.id)
+            _logger.debug("No active timeperiod for alertprofile %d", self.id)
 
         return active_timeperiod
 
@@ -581,7 +611,11 @@ class TimePeriod(models.Model):
         (WEEKENDS, _('weekends')),
     )
 
-    profile = models.ForeignKey('AlertProfile', db_column='alert_profile_id')
+    profile = models.ForeignKey(
+        'AlertProfile',
+        on_delete=models.CASCADE,
+        db_column='alert_profile_id'
+    )
     start = models.TimeField(db_column='start_time', default='08:00')
     valid_during = models.IntegerField(choices=VALID_DURING_CHOICES,
                                        default=ALL_WEEK)
@@ -612,9 +646,18 @@ class AlertSubscription(models.Model):
         (NEXT, _('at end of timeperiod')),
     )
 
-    alert_address = models.ForeignKey('AlertAddress')
-    time_period = models.ForeignKey('TimePeriod')
-    filter_group = models.ForeignKey('FilterGroup')
+    alert_address = models.ForeignKey(
+        'AlertAddress',
+        on_delete=models.CASCADE,
+    )
+    time_period = models.ForeignKey(
+        'TimePeriod',
+        on_delete=models.CASCADE,
+    )
+    filter_group = models.ForeignKey(
+        'FilterGroup',
+        on_delete=models.CASCADE,
+    )
     type = models.IntegerField(db_column='subscription_type',
                                choices=SUBSCRIPTION_TYPES, default=NOW)
     ignore_resolved_alerts = models.BooleanField(default=False)
@@ -659,8 +702,14 @@ class FilterGroupContent(models.Model):
     positive = models.BooleanField(default=False)
     priority = models.IntegerField()
 
-    filter = models.ForeignKey('Filter')
-    filter_group = models.ForeignKey('FilterGroup')
+    filter = models.ForeignKey(
+        'Filter',
+        on_delete=models.CASCADE,
+    )
+    filter_group = models.ForeignKey(
+        'FilterGroup',
+        on_delete=models.CASCADE,
+    )
 
     class Meta(object):
         db_table = u'filtergroupcontent'
@@ -750,7 +799,10 @@ class Operator(models.Model):
         ENDSWITH: "host(%s) ILIKE %%s + '%%%%'",
     }
     type = models.IntegerField(choices=OPERATOR_TYPES, db_column='operator_id')
-    match_field = models.ForeignKey('MatchField')
+    match_field = models.ForeignKey(
+        'MatchField',
+        on_delete=models.CASCADE,
+    )
 
     class Meta(object):
         db_table = u'operator'
@@ -774,8 +826,14 @@ class Expression(models.Model):
     can be evaluated.
 
     """
-    filter = models.ForeignKey('Filter')
-    match_field = models.ForeignKey('MatchField')
+    filter = models.ForeignKey(
+        'Filter',
+        on_delete=models.CASCADE,
+    )
+    match_field = models.ForeignKey(
+        'MatchField',
+        on_delete=models.CASCADE,
+    )
     operator = models.IntegerField(choices=Operator.OPERATOR_TYPES)
     value = VarcharField()
 
@@ -798,7 +856,11 @@ class Filter(models.Model):
     Handles the actual construction of queries to be run taking into account
     special cases like the IP datatype and WILDCARD lookups."""
 
-    owner = models.ForeignKey('Account', null=True)
+    owner = models.ForeignKey(
+        'Account',
+        on_delete=models.CASCADE,
+        null=True
+    )
     name = VarcharField()
 
     class Meta(object):
@@ -819,7 +881,7 @@ class Filter(models.Model):
 
         :type alert: nav.models.event.AlertQueue
         """
-        logger = logging.getLogger('nav.alertengine.filter.check')
+        _logger = logging.getLogger('nav.alertengine.filter.check')
 
         filtr = {}
         exclude = {}
@@ -896,7 +958,7 @@ class Filter(models.Model):
         if not extra['where']:
             extra = {}
 
-        logger.debug(
+        _logger.debug(
             'alert %d: checking against filter %d with filter: %s, exclude: '
             '%s and extra: %s',
             alert.id, self.id, filtr, exclude, extra)
@@ -905,10 +967,10 @@ class Filter(models.Model):
         # db doesn't have to work as much.
         if AlertQueue.objects.filter(**filtr).exclude(**exclude).extra(
                 **extra).count():
-            logger.debug('alert %d: matches filter %d', alert.id, self.id)
+            _logger.debug('alert %d: matches filter %d', alert.id, self.id)
             return True
 
-        logger.debug('alert %d: did not match filter %d', alert.id, self.id)
+        _logger.debug('alert %d: did not match filter %d', alert.id, self.id)
         return False
 
 
@@ -918,7 +980,11 @@ class FilterGroup(models.Model):
     given permission to.
 
     """
-    owner = models.ForeignKey('Account', null=True)
+    owner = models.ForeignKey(
+        'Account',
+        on_delete=models.CASCADE,
+        null=True
+    )
     name = VarcharField()
     description = VarcharField()
 
@@ -1103,7 +1169,7 @@ class MatchField(models.Model):
 
     def get_lookup_mapping(self):
         """Returns the field lookup represented by this MatchField."""
-        logger = logging.getLogger(
+        _logger = logging.getLogger(
             'nav.alertengine.matchfield.get_lookup_mapping')
 
         try:
@@ -1115,7 +1181,7 @@ class MatchField(models.Model):
             return value
 
         except KeyError:
-            logger.error(
+            _logger.error(
                 "Tried to lookup mapping for %s which is not supported",
                 self.value_id)
         return None
@@ -1138,7 +1204,12 @@ class SMSQueue(models.Model):
         (IGNORED, _('ignored')),
     )
 
-    account = models.ForeignKey('Account', db_column='accountid', null=True)
+    account = models.ForeignKey(
+        'Account',
+        on_delete=models.CASCADE,
+        db_column='accountid',
+        null=True
+    )
     time = models.DateTimeField(auto_now_add=True)
     phone = models.CharField(max_length=15)
     message = models.CharField(max_length=145, db_column='msg')
@@ -1165,9 +1236,21 @@ class SMSQueue(models.Model):
 class AccountAlertQueue(models.Model):
     """Defines which alerts should be keept around and sent at a later time"""
 
-    account = models.ForeignKey('Account', null=True)
-    subscription = models.ForeignKey('AlertSubscription', null=True)
-    alert = models.ForeignKey('AlertQueue', null=True)
+    account = models.ForeignKey(
+        'Account',
+        on_delete=models.CASCADE,
+        null=True
+    )
+    subscription = models.ForeignKey(
+        'AlertSubscription',
+        on_delete=models.CASCADE,
+        null=True
+    )
+    alert = models.ForeignKey(
+        'AlertQueue',
+        on_delete=models.CASCADE,
+        null=True
+    )
     insertion_time = models.DateTimeField(auto_now_add=True)
 
     class Meta(object):
@@ -1209,12 +1292,12 @@ class AccountAlertQueue(models.Model):
                     "failed db upgrade from 3.4 to 3.5" % address)
 
         except AlertQueue.DoesNotExist:
-            logger = logging.getLogger(
+            _logger = logging.getLogger(
                 'nav.alertengine.accountalertqueue.send')
-            logger.error(('Inconsistent database state, alertqueue entry %d ' +
-                          'missing for account-alert. If you know how the ' +
-                          'database got into this state please update ' +
-                          'LP#494036'), self.alert_id)
+            _logger.error(('Inconsistent database state, alertqueue entry %d ' +
+                           'missing for account-alert. If you know how the ' +
+                           'database got into this state please update ' +
+                           'LP#494036'), self.alert_id)
 
             super(AccountAlertQueue, self).delete()
             return False
@@ -1236,7 +1319,11 @@ LINK_TYPES = (2, 'Layer 2'), (3, 'Layer 3')
 class NetmapView(models.Model):
     """Properties for a specific view in Netmap"""
     viewid = models.AutoField(primary_key=True)
-    owner = models.ForeignKey(Account, db_column='owner')
+    owner = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        db_column='owner'
+    )
     title = models.TextField()
     description = models.TextField(null=True, blank=True)
     topology = models.IntegerField(choices=LINK_TYPES)
@@ -1271,8 +1358,16 @@ class NetmapView(models.Model):
 class NetmapViewDefaultView(models.Model):
     """Default view for each user"""
     id = models.AutoField(primary_key=True)
-    view = models.ForeignKey(NetmapView, db_column='viewid')
-    owner = models.ForeignKey(Account, db_column='ownerid')
+    view = models.ForeignKey(
+        NetmapView,
+        on_delete=models.CASCADE,
+        db_column='viewid'
+    )
+    owner = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        db_column='ownerid'
+    )
 
     class Meta(object):
         db_table = u'netmap_view_defaultview'
@@ -1289,9 +1384,17 @@ class NetmapViewCategories(models.Model):
     """Saved categories for a selected view in Netmap"""
     id = models.AutoField(primary_key=True)  # Serial for faking a primary key
     view = models.ForeignKey(
-        NetmapView, db_column='viewid', related_name='categories_set')
+        NetmapView,
+        on_delete=models.CASCADE,
+        db_column='viewid',
+        related_name='categories_set'
+    )
     category = models.ForeignKey(
-        Category, db_column='catid', related_name='netmapview_set')
+        Category,
+        on_delete=models.CASCADE,
+        db_column='catid',
+        related_name='netmapview_set'
+    )
 
     def __str__(self):
         return u'%s in category %s' % (self.view, self.category)
@@ -1305,9 +1408,17 @@ class NetmapViewNodePosition(models.Model):
     """Saved positions for nodes for a selected view in Netmap"""
     id = models.AutoField(primary_key=True)  # Serial for faking a primary key
     viewid = models.ForeignKey(
-        NetmapView, db_column='viewid', related_name='node_position_set')
+        NetmapView,
+        on_delete=models.CASCADE,
+        db_column='viewid',
+        related_name='node_position_set'
+    )
     netbox = models.ForeignKey(
-        Netbox, db_column='netboxid', related_name='node_position_set')
+        Netbox,
+        on_delete=models.CASCADE,
+        db_column='netboxid',
+        related_name='node_position_set'
+    )
     x = models.IntegerField()
     y = models.IntegerField()
 
@@ -1320,7 +1431,11 @@ class AccountTool(models.Model):
     """Link between tool and account"""
     id = models.AutoField(primary_key=True, db_column='account_tool_id')
     toolname = VarcharField()
-    account = models.ForeignKey(Account, db_column='accountid')
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        db_column='accountid'
+    )
     display = models.BooleanField(default=True)
     priority = models.IntegerField(default=0)
 
@@ -1337,7 +1452,10 @@ class AccountDashboard(models.Model):
     name = VarcharField()
     is_default = models.BooleanField(default=False)
     num_columns = models.IntegerField(default=3)
-    account = models.ForeignKey(Account)
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+    )
 
     def __str__(self):
         return self.name
@@ -1367,10 +1485,18 @@ class AccountNavlet(models.Model):
     """Store information about a users navlets"""
     navlet = VarcharField()
     order = models.IntegerField(default=0, db_column='displayorder')
-    account = models.ForeignKey(Account, db_column='account')
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        db_column='account'
+    )
     preferences = DictAsJsonField(null=True)
     column = models.IntegerField(db_column='col')
-    dashboard = models.ForeignKey(AccountDashboard, related_name='widgets')
+    dashboard = models.ForeignKey(
+        AccountDashboard,
+        on_delete=models.CASCADE,
+        related_name='widgets'
+    )
 
     def __str__(self):
         return "%s - %s" % (self.navlet, self.account)
@@ -1388,6 +1514,7 @@ class AccountNavlet(models.Model):
         ordering = ['order']
 
 
+@python_2_unicode_compatible
 class ReportSubscription(models.Model):
     """Subscriptions for availability reports"""
 
@@ -1400,8 +1527,14 @@ class ReportSubscription(models.Model):
     LINK = 'link'
     TYPES = ((DEVICE, 'device availability'), (LINK, 'link availability'))
 
-    account = models.ForeignKey(Account)
-    address = models.ForeignKey(AlertAddress)
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+    )
+    address = models.ForeignKey(
+        AlertAddress,
+        on_delete=models.CASCADE,
+    )
     period = VarcharField(choices=PERIODS)
     report_type = VarcharField(choices=TYPES)
     exclude_maintenance = models.BooleanField()
@@ -1409,7 +1542,7 @@ class ReportSubscription(models.Model):
     class Meta(object):
         db_table = u'report_subscription'
 
-    def __unicode__(self):
+    def __str__(self):
         if self.report_type == self.LINK:
             return u"{} report for {} sent to {}".format(
                 self.get_period_description(self.period),
@@ -1424,7 +1557,7 @@ class ReportSubscription(models.Model):
 
     def serialize(self):
         keys = ['report_type', 'period', 'address']
-        filtered = {k:v for k, v in model_to_dict(self).items() if k in keys}
+        filtered = {k: v for k, v in model_to_dict(self).items() if k in keys}
         return json.dumps(filtered)
 
     @staticmethod

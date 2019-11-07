@@ -17,7 +17,8 @@
 
 from datetime import datetime
 from collections import defaultdict
-from functools import partial
+import logging
+
 from django.shortcuts import get_object_or_404
 
 from nav.netmap.metadata import (
@@ -41,7 +42,6 @@ from nav.netmap.traffic import get_traffic_data, get_traffic_for
 from .common import get_traffic_rgb
 from .cache import cache_traffic, cache_topology
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -81,7 +81,7 @@ def _json_layer2(load_traffic=False, view=None):
         'vlans': get_vlan_lookup_json(vlan_by_interface),
         'nodes': _get_nodes(node_to_json_layer2, graph),
         'links': [edge_to_json_layer2(get_edge_from_meta(meta), meta) for
-                  u, v, meta in graph.edges_iter(data=True)]
+                  u, v, meta in graph.edges(data=True)]
     }
     return result
 
@@ -106,14 +106,14 @@ def _json_layer3(load_traffic=False, view=None):
         'vlans': [vlan_to_json(prefix.vlan) for prefix in vlans_map],
         'nodes': _get_nodes(node_to_json_layer3, graph),
         'links': [edge_to_json_layer3(get_edge_from_meta(meta), meta) for
-                  u, v, meta in graph.edges_iter(data=True)]
+                  u, v, meta in graph.edges(data=True)]
     }
     return result
 
 
 def _get_nodes(node_to_json_function, graph):
     nodes = {}
-    for node, nx_metadata in graph.nodes_iter(data=True):
+    for node, nx_metadata in graph.nodes(data=True):
         nodes.update(node_to_json_function(node, nx_metadata))
     return nodes
 
@@ -125,28 +125,6 @@ def get_traffic_gradient():
     return [
         dict(zip(keys, get_traffic_rgb(percent))) for percent in range(0, 101)
     ]
-
-
-def get_traffic_interfaces(edges, interfaces):
-    """Gives list of edges and interfaces, filter out the interfaces we are to
-    fetch traffic for
-
-    :param set edges: a set of edges represented by netbox pairs
-    :param QuerySet interfaces: all interfaces
-    :returns: The list of interfaces we have to fetch traffic for.
-    """
-    storage = {}
-    for source, target in edges:
-        edge_interfaces = interfaces.filter(
-            netbox_id=source,
-            to_netbox_id=target
-        )
-        for interface in edge_interfaces:
-            storage[interface.pk] = interface
-            if interface.to_interface:
-                storage[interface.to_interface.pk] = interface.to_interface
-
-    return storage.values()
 
 
 @cache_traffic("layer 2")
@@ -176,23 +154,25 @@ def get_layer2_traffic(location_or_room_id=None):
         else:
             interfaces = interfaces.filter(netbox__room=room)
 
-    edges = set([
-        (
-            interface.netbox_id,
-            interface.to_netbox_id
-        )
-        for interface in interfaces
-    ])
+    edges = defaultdict(set)
+    for interface in interfaces:
+        edges[(interface.netbox_id, interface.to_netbox_id)].add(interface)
+
+    _logger.debug(
+        "Produced %d edges from %d interfaces in %s",
+        len(edges),
+        len(interfaces),
+        datetime.now() - start,
+    )
+
+    complete_interface_set = set(interfaces) | set(
+        ifc.to_interface for ifc in interfaces if ifc.to_interface
+    )
+    traffic_cache = get_traffic_for(complete_interface_set)
+    _logger.debug('Traffic cache built. Time used so far: %s', datetime.now() - start)
 
     traffic = []
-    traffic_cache = get_traffic_for(
-        get_traffic_interfaces(edges, interfaces))
-
-    for source, target in edges:
-        edge_interfaces = interfaces.filter(
-            netbox_id=source,
-            to_netbox_id=target
-        )
+    for (source, target), edge_interfaces in edges.items():
         edge_traffic = []
         for interface in edge_interfaces:
             to_interface = interface.to_interface
@@ -209,7 +189,7 @@ def get_layer2_traffic(location_or_room_id=None):
             'edges': edge_traffic,
         })
 
-    _logger.debug('Time used: %s', datetime.now() - start)
+    _logger.debug('Total time used: %s', datetime.now() - start)
     return traffic
 
 

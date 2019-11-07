@@ -16,18 +16,18 @@
 """Database related functionality for ipdevpoll."""
 
 import gc
+import logging
 from pprint import pformat
-from twisted.internet import threads
 import threading
 from functools import wraps
 
+from twisted.internet import threads
 import django.db
 from django.db import transaction
 from django.db.utils import OperationalError as DjangoOperationalError
 from django.db.utils import InterfaceError as DjangoInterfaceError
 from psycopg2 import InterfaceError, OperationalError
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -50,7 +50,7 @@ def django_debug_cleanup():
     query_count = len(django.db.connection.queries)
     if query_count:
         runtime = sum_django_queries_runtime()
-        thread= threading.current_thread()
+        thread = threading.current_thread()
         _logger.debug("Thread %s/%s: Removing %d logged Django queries "
                       "(total time %.03f):\n%s",
                       thread.ident, thread.name,

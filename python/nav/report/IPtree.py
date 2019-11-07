@@ -16,9 +16,9 @@
 #
 """Builds and represents IP nets in a tree structure."""
 
-from IPy import IP
 from copy import deepcopy
 from nav import db
+from nav.ip import IP
 from nav.report.IPtools import getMask, sort_nets_by_prefixlength, andIpMask
 
 
@@ -141,7 +141,7 @@ def get_subtree(tree, ip):
 
 
 def _is_leaf_node(node):
-    if len(node.keys()) == 0:
+    if not node.keys():
         return True
     else:
         return False
@@ -162,7 +162,7 @@ def get_max_leaf(tree, max_prefix_length=128):
                     maxval = result
         return maxval
 
-    root = tree.keys()[0]
+    root = next(iter(tree.keys()))
     return _dfs(tree, root)
 
 

@@ -14,18 +14,20 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Builds the prefix matrix."""
-import math
-import IPy
-from collections import namedtuple
 
-from django.core.urlresolvers import reverse
+from collections import namedtuple
+import logging
+import math
+
+import IPy
+
+from django.urls import reverse
 
 from nav.metrics.templates import metric_path_for_prefix
 from nav.metrics.graphs import get_simple_graph_url
 from nav.report import metaIP, IPtools, IPtree
 
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -40,6 +42,7 @@ class Cell(object):
         self.netaddr = kwargs.get('netaddr')
         self.dataurl = kwargs.get('dataurl')
         self.link = kwargs.get('link')
+
 
 Link = namedtuple('Link', ('href', 'text', 'title'))
 
@@ -124,7 +127,8 @@ class Matrix(object):
         elif self.matrix_nets[subnet]:
             # this subnet is divided into parts
             host_nybbles_map = IPtools.getLastbitsIpMap(
-                self.matrix_nets[subnet].keys())
+                list(self.matrix_nets[subnet].keys())
+            )
             return self._add_child_nets(host_nybbles_map)
 
         else:

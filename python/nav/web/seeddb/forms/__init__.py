@@ -13,8 +13,10 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-# pylint: disable=C1001,R0903
+# pylint: disable=R0903
 """Forms for seeddb pages"""
+
+import logging
 
 from django import forms
 from django.utils.safestring import mark_safe
@@ -30,7 +32,6 @@ from nav.models.manage import (Location, Room, Organization, NetboxType,
                                Vendor, NetboxGroup, Netbox)
 from nav.models.cabling import Cabling
 
-import logging
 _logger = logging.getLogger(__name__)
 
 

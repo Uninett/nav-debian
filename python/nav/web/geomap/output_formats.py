@@ -69,6 +69,7 @@ def make_kml(featurelist):
 
 # General
 
+
 _formats = {
     'geojson': (make_geojson, 'application/json'),
     'kml': (make_kml, 'application/vnd.google-earth.kml+xml')
@@ -85,7 +86,7 @@ def format_data(format, featurelist):
     featurelist -- list of features
 
     """
-    if not format in _formats:
+    if format not in _formats:
         raise Exception('unknown format %s' % format)
     formatter = _formats[format][0]
     return formatter(featurelist)
@@ -93,6 +94,6 @@ def format_data(format, featurelist):
 
 def format_mime_type(format):
     """Returns the MIME type for the specified format."""
-    if not format in _formats:
+    if format not in _formats:
         raise Exception('unknown format %s' % format)
     return _formats[format][1]

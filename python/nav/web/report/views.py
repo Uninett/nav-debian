@@ -18,8 +18,6 @@ import logging
 import hashlib
 from functools import wraps
 
-from IPy import IP
-
 from operator import itemgetter
 from collections import defaultdict, namedtuple
 from time import localtime, strftime
@@ -27,15 +25,16 @@ import csv
 import os
 import re
 
+from IPy import IP
+
 # this is just here to make sure Django finds NAV's settings file
 # pylint: disable=W0611
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, InvalidPage
-from django.shortcuts import render_to_response, render
-from django.template import RequestContext
+from django.shortcuts import render
 from django.http import HttpResponse, Http404, HttpResponseRedirect
-from django.utils.six import iteritems, text_type
+from django.urls import reverse
+from django.utils.six import PY2, iteritems, text_type
 
 from nav.models.manage import Prefix
 
@@ -70,8 +69,7 @@ def index(request):
     with open(FRONT_FILE, 'r') as f:
         context['index'] = f.read()
 
-    return render_to_response("report/index.html", context,
-                              RequestContext(request))
+    return render(request, "report/index.html", context)
 
 
 def get_report_for_widget(request, report_name):
@@ -101,8 +99,7 @@ def get_report(request, report_name):
     context['add_sort_links'] = True
     context['page_sizes'] = PAGE_SIZES
 
-    return render_to_response('report/report.html', context,
-                              RequestContext(request))
+    return render(request, 'report/report.html', context)
 
 
 def _strip_empty_arguments(request):
@@ -142,7 +139,7 @@ def _get_export_delimiter(query):
             del query['exportcsv']
 
 
-def matrix_report(request):
+def matrix_report(request, scope=None):
     """Subnet matrix view
     :type request: django.http.request.HttpRequest
     """
@@ -157,7 +154,7 @@ def matrix_report(request):
         'show_unused': show_unused
     }
 
-    if 'scope' not in request.GET:
+    if scope is None:
         scopes = Prefix.objects.filter(vlan__net_type='scope')
         if scopes.count() == 1:
             # If there is only one scope in the database display that scope
@@ -167,7 +164,7 @@ def matrix_report(request):
             context['scopes'] = group_scopes(scopes)
             return render(request, 'report/matrix.html', context)
     else:
-        scope = IP(request.GET.get('scope'))
+        scope = IP(scope)
 
     matrix = create_matrix(scope, show_unused)
 
@@ -184,10 +181,7 @@ def matrix_report(request):
         'hide_for': hide_content_for_colspan
     })
 
-    return render_to_response(
-        'report/matrix.html',
-        context,
-        context_instance=RequestContext(request))
+    return render(request, 'report/matrix.html', context)
 
 
 def group_scopes(scopes):
@@ -268,8 +262,7 @@ def report_list(request):
         'report_list_local': reports_local
     }
 
-    return render_to_response('report/report_list.html', context,
-                              RequestContext(request))
+    return render(request, 'report/report_list.html', context)
 
 
 def make_report(request, report_name, export_delimiter, query_dict,
@@ -432,7 +425,7 @@ def find_page_range(page_number, page_range, visible_pages=5):
 def generate_export(report, report_name, export_delimiter):
     """Generates a CSV export version of a report"""
     def _cellformatter(cell):
-        if isinstance(cell.text, unicode):
+        if PY2 and isinstance(cell.text, text_type):
             return cell.text.encode('utf-8')
         else:
             return cell.text

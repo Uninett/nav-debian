@@ -14,10 +14,12 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Forms used for Bulk import of data"""
-from nav.bulkparse import BulkParseError, CommentStripper
-from nav.bulkimport import BulkImportError
 
 from django import forms
+from django.utils import six
+
+from nav.bulkparse import BulkParseError, CommentStripper
+from nav.bulkimport import BulkImportError
 
 
 class BulkImportForm(forms.Form):
@@ -49,7 +51,7 @@ class BulkImportForm(forms.Form):
     def get_raw_data(self):
         """Returns the bulk data as an utf-8 encoded string"""
         data = self.data.get('bulk_data', None)
-        if isinstance(data, unicode):
+        if six.PY2 and isinstance(data, six.string_type):
             return data.encode('utf-8')
         else:
             return data

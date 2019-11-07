@@ -24,6 +24,9 @@ import logging
 import sys
 import atexit
 
+from django.db.models import Q
+import django.db
+
 from nav import buildconf
 from nav import daemon
 from nav.debug import log_stacktrace, log_last_django_query
@@ -34,8 +37,6 @@ from nav.topology.analyze import (AdjacencyReducer, build_candidate_graph_from_d
 from nav.topology.vlan import VlanGraphAnalyzer, VlanTopologyUpdater
 
 from nav.models.manage import Vlan, Prefix
-from django.db.models import Q
-import django.db
 
 LOG_FILE = 'navtopology.log'
 PID_FILE = 'navtopology.pid'
@@ -100,9 +101,9 @@ def with_exception_logging(func):
             return func(*args, **kwargs)
         except Exception:
             stacktrace = inspect.trace()[1:]
-            logger = logging.getLogger(__name__)
-            logger.exception("An unhandled exception occurred")
-            log_last_django_query(logger)
+            _logger = logging.getLogger(__name__)
+            _logger.exception("An unhandled exception occurred")
+            log_last_django_query(_logger)
             log_stacktrace(logging.getLogger('nav.topology.stacktrace'),
                            stacktrace)
             raise
@@ -176,6 +177,7 @@ def verify_singleton():
 
     daemon.writepidfile(PID_FILE)
     atexit.register(daemon.daemonexit, PID_FILE)
+
 
 if __name__ == '__main__':
     main()

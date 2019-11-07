@@ -23,12 +23,14 @@ implementation for multiple MIBs must be implemented.
 
 from twisted.internet import defer
 from twisted.internet.defer import returnValue
+
+from nav.Snmp import safestring
 from nav.smidumps import get_mib
 from nav.mibs.mibretriever import MibRetriever
 from nav.models.manage import Sensor
 
-DEGREES_CELSIUS = "\xb0C"
-DEGREES_FAHRENHEIT = "\xb0F"
+DEGREES_CELSIUS = u"\xb0C"
+DEGREES_FAHRENHEIT = u"\xb0F"
 UNIT_MAP = {
     DEGREES_CELSIUS: Sensor.UNIT_CELSIUS,
     DEGREES_FAHRENHEIT: Sensor.UNIT_FAHRENHEIT,
@@ -59,8 +61,8 @@ class Comet(MibRetriever):
             o_value = "ch%dIntVal" % channel
             value_oid = self.nodes[o_value].oid
 
-            name = yield self.get_next(o_name)
-            unit = yield self.get_next(o_unit)
+            name = yield self.get_next(o_name).addCallback(safestring)
+            unit = yield self.get_next(o_unit).addCallback(safestring)
             if not name and not unit:
                 continue
             unit = UNIT_MAP.get(unit, unit)
@@ -91,7 +93,7 @@ class Comet(MibRetriever):
             value_oid = self.nodes[o_value].oid
             alarm_oid = self.nodes[o_alarm].oid
 
-            name = yield self.get_next(o_name)
+            name = yield self.get_next(o_name).addCallback(safestring)
             value = yield self.get_next(o_value)
             if value is None:
                 self._logger.debug("Ignoring BIN input %s (%s), it has no value",
@@ -111,13 +113,16 @@ class Comet(MibRetriever):
             ))
             result.append(dict(
                 oid=str(alarm_oid) + '.0',
-                unit_of_measurement="boolean",
+                unit_of_measurement=Sensor.UNIT_TRUTHVALUE,
                 precision=0,
                 scale=None,
                 description="%s alarm" % name,
                 name="BIN %s Alarm" % binary,
                 internal_name="bin%sAlarm" % binary,
                 mib=self.get_module_name(),
+                on_message='%s alarm triggered' % name,
+                off_message='%s alarm not triggered' % name,
+                on_state=1,
             ))
         returnValue(result)
 

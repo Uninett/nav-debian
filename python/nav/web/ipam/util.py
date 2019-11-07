@@ -19,9 +19,12 @@ API and prefixes related utilities
 """
 
 import ipaddress
-from nav.models.manage import Prefix
-from django.db.models import Q
+from itertools import islice
+
 from IPy import IP, IPSet
+from django.db.models import Q
+
+from nav.models.manage import Prefix
 
 
 class PrefixQuerysetBuilder(object):
@@ -34,6 +37,7 @@ class PrefixQuerysetBuilder(object):
         if queryset is None:
             queryset = Prefix.objects.all()
         self.queryset = queryset
+        self.queryset = self.queryset.select_related('vlan', 'vlan__net_type', 'vlan__organization')
         self.is_realized = False
         self.post_hooks = [lambda x: x]
 
@@ -226,19 +230,13 @@ def suggest_range(prefix, prefixlen=24, offset=0, n=10):
     # Somewhat slow path
     else:
         _blocks = partition_subnet(prefixlen, prefix)
-    try:
-        # drop first #offset blocks
-        for _ in range(offset):
-            next(_blocks)
-        # collect remainder
-        for block in (next(_blocks) for _ in range(n)):
-            acc["candidates"].append({
-                "length": block.len(),
-                "prefix": str(block),
-                "start": str(block[-0]),
-                "end": str(block[-1])
-            })
-    except StopIteration:
-        # done, set "more" flag
+    for block in islice(_blocks, offset, offset + n):
+        acc["candidates"].append({
+            "length": block.len(),
+            "prefix": str(block),
+            "start": str(block[-0]),
+            "end": str(block[-1])
+        })
+    if len(acc["candidates"]) < n:
         acc["more"] = False
     return acc

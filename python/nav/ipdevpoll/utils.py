@@ -61,8 +61,8 @@ def binary_mac_to_hex(binary_mac):
 
     """
     if binary_mac:
-        binary_mac = binary_mac[-6:].rjust(MAX_MAC_ADDRESS_LENGTH, '\x00')
-        return ":".join("%02x" % ord(x) for x in binary_mac)
+        binary_mac = binary_mac[-6:].rjust(MAX_MAC_ADDRESS_LENGTH, b'\x00')
+        return ":".join("%02x" % x for x in six.iterbytes(binary_mac))
 
 
 def truncate_mac(mac):
@@ -87,6 +87,18 @@ def find_prefix(ip, prefix_list):
             if not ret or IP(ret.net_address).prefixlen() < sub.prefixlen():
                 ret = pfx
     return ret
+
+
+def is_invalid_database_string(string):
+    """Returns True if string cannot be stored in PostgreSQL in its current
+    representation. I.e. if string contains NUL characters, or is a binary object
+    that cannot be decoded as UTF-8, or is another type of object, it is considered
+    invalid.
+    """
+    return (
+        (isinstance(string, six.text_type) and "\x00" in string)
+        or is_invalid_utf8(string)
+    )
 
 
 def is_invalid_utf8(string):

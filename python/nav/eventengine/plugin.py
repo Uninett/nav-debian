@@ -41,6 +41,11 @@ class EventHandler(object):
                 if cls.handled_types else True)
 
     def __init__(self, event, engine):
+        """Initializes an event plugin instance.
+
+        :type event: nav.models.event.EventQueue
+        :type engine: nav.eventengine.engine.EventEngine
+        """
         if not self.can_handle(event):
             raise UnsupportedEvent("%s can't handle %s" % (
                     self.__class__.__name__, event.event_type_id))
@@ -94,8 +99,6 @@ def _find_package_modules(package_name):
 def _get_recursive_subclasses(cls, subclasses=None):
     if subclasses is None:
         subclasses = set()
-    # hey mr. pylint, every class has __subclasses__, you idiot!
-    # pylint: disable=E1101
     new_classes = cls.__subclasses__()
     subclasses.update(new_classes)
     for cls in new_classes:

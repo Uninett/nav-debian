@@ -16,8 +16,7 @@
 """Handles attaching and converting metadata in a netmap networkx toplogy
 graph"""
 from collections import defaultdict
-import logging
-from django.core.urlresolvers import reverse, NoReverseMatch
+from django.urls import reverse, NoReverseMatch
 from django.utils import six
 
 from IPy import IP
@@ -26,8 +25,6 @@ from nav.errors import GeneralException
 from nav.models.manage import GwPortPrefix, Interface
 from nav.netmap import stubs
 from nav.web.netmap.common import get_status_image_link
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class NetmapException(GeneralException):
@@ -72,7 +69,7 @@ class Node(object):
                         'x': self.metadata['position'].x,
                         'y': self.metadata['position'].y
                     }})
-            if 'vlans' in self.metadata: # Layer2 metadata
+            if 'vlans' in self.metadata:  # Layer2 metadata
 
                 json.update({
                     'vlans': [nav_vlan_id for nav_vlan_id, _ in
@@ -423,7 +420,7 @@ def edge_to_json_layer3(nx_edge, nx_metadata):
         return IP(addr) if addr else addr
 
     # sorting the output based on prefix address
-    for key, value in six.iteritems(metadata_collection):
+    for value in six.itervalues(metadata_collection):
         value.sort(key=prefixaddress)
 
     json = {

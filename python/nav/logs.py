@@ -16,6 +16,7 @@
 #
 """NAV related logging functionality."""
 
+from __future__ import unicode_literals
 import sys
 import os
 import logging
@@ -35,7 +36,7 @@ _logger = logging.getLogger(__name__)
 def set_log_config():
     """Set log levels and custom log files"""
     set_log_levels()
-    set_custom_log_file()
+    _set_custom_log_file()
 
 
 def set_log_levels():
@@ -43,7 +44,7 @@ def set_log_levels():
     Read the logging config file and set up log levels for the different
     loggers.
     """
-    config = get_logging_conf()
+    config = _get_logging_conf()
     if 'levels' not in config.sections():
         return
 
@@ -52,11 +53,11 @@ def set_log_levels():
         # Allow the config file to specify the root logger as 'root'
         if logger_name.lower() == 'root':
             logger_name = ''
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(translate_log_level(level))
+        _logger = logging.getLogger(logger_name)
+        _logger.setLevel(_translate_log_level(level))
 
 
-def translate_log_level(level):
+def _translate_log_level(level):
     """Allow log levels to be specified as either names or values.
 
     Translate any non-integer levels to integer first.
@@ -72,10 +73,10 @@ def translate_log_level(level):
     return level
 
 
-def set_custom_log_file():
+def _set_custom_log_file():
     """Read logging config and add additional file handlers to specified logs"""
 
-    config = get_logging_conf()
+    config = _get_logging_conf()
     section = 'files'
 
     if section not in config.sections():
@@ -86,14 +87,14 @@ def set_custom_log_file():
         # Allow the config file to specify the root logger as 'root'
         if logger_name.lower() == 'root':
             logger_name = ''
-        logger = logging.getLogger(logger_name)
+        _logger = logging.getLogger(logger_name)
 
-        filehandler = logging.FileHandler(get_logfile_path(filename))
+        filehandler = logging.FileHandler(_get_logfile_path(filename))
         filehandler.setFormatter(DEFAULT_LOG_FORMATTER)
-        logger.addHandler(filehandler)
+        _logger.addHandler(filehandler)
 
 
-def get_logging_conf():
+def _get_logging_conf():
     """
     Returns a ConfigParser with the logging configuration to use.
 
@@ -104,6 +105,7 @@ def get_logging_conf():
     """
     filename = os.environ.get(LOGGING_CONF_VAR, LOGGING_CONF_FILE_DEFAULT)
     config = configparser.ConfigParser()
+    # Warning about `bytes` on py 3.5, fixed in py 3.7. Do not change
     read = config.read(filename)
     if filename not in read and LOGGING_CONF_VAR in os.environ:
         _logger.error("cannot read logging config from %s, trying default %s",
@@ -210,8 +212,8 @@ def init_generic_logging(logfile=None, stderr=True, stdout=False,
 
     if logfile:
         try:
-            filehandler = logging.FileHandler(get_logfile_path(logfile))
-        except IOError as err:
+            filehandler = logging.FileHandler(_get_logfile_path(logfile))
+        except IOError:
             pass
         else:
             formatter = formatter or DEFAULT_LOG_FORMATTER
@@ -224,7 +226,7 @@ def init_generic_logging(logfile=None, stderr=True, stdout=False,
         set_log_levels()
 
 
-def get_logfile_path(logfile):
+def _get_logfile_path(logfile):
     """Returns the fully qualified path to logfile.
 
     If logfile is an absolute path, it is returned unchanged, otherwise,

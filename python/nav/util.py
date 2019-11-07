@@ -26,11 +26,6 @@ from functools import wraps
 from itertools import chain, tee, groupby
 from operator import itemgetter
 
-try:
-    from itertools import ifilter
-except ImportError:
-    ifilter = filter
-
 from django.utils import six
 from django.utils.six.moves import range
 
@@ -45,7 +40,7 @@ def gradient(start, stop, steps):
     distance = (stop - start)
     # Reduce by 1 step to include both endpoints, but never reduce it
     # to zero (we always want at least to values)
-    steps = steps > 1 and steps-1 or 1
+    steps = steps - 1 if steps > 1 else 1
     increment = distance / float(steps)
     grad = []
     for i in range(steps):
@@ -218,7 +213,15 @@ def first_true(iterable, default=None, pred=None):
     :param pred: Optional predicate function to evaluate the truthfulness of
                  elements.
     """
-    return next(ifilter(pred, iterable), default)
+    return next(six.filter(pred, iterable), default)
+
+
+def chunks(lst, size):
+    """
+    Yields successive `size`-sized chunks from lst.
+    """
+    for i in range(0, len(lst), size):
+        yield lst[i:i+size]
 
 
 class IPRange(object):
@@ -471,7 +474,7 @@ def consecutive(seq):
     :param seq: A sequence of numbers.
     """
     data = ((y - x, y) for x, y in enumerate(sorted(seq)))
-    for key, group in groupby(data, itemgetter(0)):
+    for _key, group in groupby(data, itemgetter(0)):
         group = [item[1] for item in group]
         yield group[0], group[-1]
 
@@ -485,7 +488,7 @@ class NumberRange(object):
         self.ranges = list(consecutive(sequence))
 
     def __iter__(self):
-        return iter(self._range_to_str(x,y) for x, y in self.ranges)
+        return iter(self._range_to_str(x, y) for x, y in self.ranges)
 
     def __str__(self):
         return ", ".join(self)
@@ -498,4 +501,4 @@ class NumberRange(object):
         if x == y:
             return str(x)
         else:
-            return "{}-{}".format(x,y)
+            return "{}-{}".format(x, y)

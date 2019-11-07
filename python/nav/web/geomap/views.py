@@ -18,16 +18,16 @@
 
 
 import logging
-import psycopg2.extras
 from decimal import Decimal
+
+import psycopg2.extras
 
 from django.http import HttpResponse
 from django.http import HttpResponseForbidden
 from django.http import HttpResponseRedirect
 from django.http import Http404
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
+from django.urls import reverse
 from django.utils.six import itervalues
 
 import nav.db
@@ -44,7 +44,7 @@ from nav.web.geomap.output_formats import format_mime_type
 
 from nav.models.manage import Room
 
-logger = logging.getLogger('nav.web.geomap.views')
+_logger = logging.getLogger(__name__)
 
 DEFAULT_LON = Decimal('10.4059409151806')
 DEFAULT_LAT = Decimal('63.4141131037476')
@@ -74,7 +74,7 @@ def geomap_all_room_pos():
                     (DEFAULT_LON + DEFAULT_VARIANCE,
                      DEFAULT_LAT + DEFAULT_VARIANCE)]
     rooms_with_pos = _get_rooms_with_pos()
-    if len(rooms_with_pos) > 0:
+    if rooms_with_pos:
         multi_points = []
         for room in rooms_with_pos:
             room_lat, room_lon = room.position
@@ -92,7 +92,7 @@ def geomap(request, variant):
     if variant not in config['variants']:
         raise Http404
     room_points = geomap_all_room_pos()
-    logger.debug('geomap: room_points = %s', room_points)
+    _logger.debug('geomap: room_points = %s', room_points)
     variant_config = config['variants'][variant]
 
     context = {
@@ -104,8 +104,7 @@ def geomap(request, variant):
         'variant_config': variant_config,
     }
 
-    return render_to_response('geomap/geomap.html', context,
-                              RequestContext(request))
+    return render(request, 'geomap/geomap.html', context)
 
 
 def forward_to_default_variant(request):
@@ -195,19 +194,19 @@ def get_formatted_data(variant, db, format_, bounds, viewport_size, limit,
 
     """
     data = get_data(db, bounds, time_interval)
-    logger.debug('build_graph')
+    _logger.debug('build_graph')
     graph = build_graph(data)
-    logger.debug('simplify')
+    _logger.debug('simplify')
     simplify(graph, bounds, viewport_size, limit)
     if do_fetch_data:
-        logger.debug('_attach_cpu_load')
+        _logger.debug('_attach_cpu_load')
         _attach_cpu_load(graph, time_interval)
         if do_create_edges:
-            logger.debug('_attach_traffic_load')
+            _logger.debug('_attach_traffic_load')
             _attach_traffic_load(graph, time_interval)
-    logger.debug('create_features')
+    _logger.debug('create_features')
     features = create_features(variant, graph, do_create_edges)
-    logger.debug('format')
+    _logger.debug('format')
     output = format_data(format_, features)
     return output
 

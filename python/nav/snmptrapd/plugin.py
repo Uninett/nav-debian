@@ -18,7 +18,7 @@
 import logging
 from nav.errors import GeneralException
 
-_LOGGER = logging.getLogger('nav.snmptrapd')
+_logger = logging.getLogger(__name__)
 
 
 class ModuleLoadError(GeneralException):
@@ -49,11 +49,11 @@ def load_handler_modules(modules):
             try:
                 mod.initialize()
             except AttributeError:
-                pass # Silently ignore if module has no initialize method
+                pass  # Silently ignore if module has no initialize method
 
             handlermodules.append(mod)
         except Exception as why:
-            _LOGGER.exception("Module %s did not compile - %s", name, why)
+            _logger.exception("Module %s did not compile - %s", name, why)
             raise ModuleLoadError(why)
 
     return handlermodules

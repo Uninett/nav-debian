@@ -16,13 +16,13 @@
 """NAV status app views"""
 import base64
 import datetime
+import logging
 import pickle
 
-from django.shortcuts import render_to_response
-from django.core.urlresolvers import reverse
-from django.template import RequestContext
+from django.shortcuts import render
 from django.views.generic import View
 from django.http import HttpResponse, Http404
+from django.urls import reverse
 
 from nav.maintengine import check_devices_on_maintenance
 from nav.models.event import AlertHistory
@@ -31,7 +31,6 @@ from nav.models.msgmaint import MaintenanceTask, MaintenanceComponent
 from nav.models.fields import INFINITY
 from . import forms, STATELESS_THRESHOLD
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -79,7 +78,8 @@ class StatusView(View):
         else:
             form = forms.StatusPanelForm(self.get_status_preferences())
 
-        return render_to_response(
+        return render(
+            request,
             'status2/status.html',
             {
                 'title': 'NAV - Status',
@@ -87,7 +87,6 @@ class StatusView(View):
                 'form': form,
                 'permits': self.get_permits()
             },
-            RequestContext(request)
         )
 
 
@@ -161,7 +160,7 @@ def put_on_maintenance(request):
                         "by " + request.account.login
         description = request.POST.get('description') or default_descr
         candidates = [n for n in netboxes if not is_maintenance_task_posted(n)]
-        if len(candidates):
+        if candidates:
             add_maintenance_task(request.account, candidates, description)
             check_devices_on_maintenance()
         return HttpResponse(status=200)
@@ -205,7 +204,7 @@ def is_maintenance_task_posted(netbox):
 
 def add_maintenance_task(owner, netboxes, description=""):
     """Add a maintenance task with a component for each netbox"""
-    if not len(netboxes):
+    if not netboxes:
         return
 
     task = MaintenanceTask(

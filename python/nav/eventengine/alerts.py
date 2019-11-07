@@ -20,7 +20,7 @@ import os
 from pprint import pformat
 import re
 
-from django.template import loader, Context
+from django.template import loader
 
 from nav.models.event import AlertQueue as Alert, EventQueue as Event, AlertType
 from nav.models.event import AlertHistory
@@ -28,6 +28,7 @@ from nav.models.fields import INFINITY
 
 import nav.config
 from . import unresolved
+from . import export
 
 ALERT_TEMPLATE_DIR = nav.config.find_configfile('alertmsg')
 _logger = logging.getLogger(__name__)
@@ -68,12 +69,14 @@ class AlertGenerator(dict):
         return u"<AlertGenerator: {0} varmap={1}>".format(u" ".join(attribs),
                                                           dictrepr)
 
-    def __nonzero__(self):
+    def __bool__(self):
         """AlertGenerator inherits from dict, but must always be
-        considered non-zero.
+        considered True
 
         """
         return True
+
+    __nonzero__ = __bool__  # For PY2 compatibility
 
     def make_alert(self):
         """Generates an alert object based on the current attributes"""
@@ -119,12 +122,30 @@ class AlertGenerator(dict):
     def _find_existing_alert_history(self):
         return unresolved.refers_to_unresolved_alert(self.event) or None
 
-    def post(self):
-        """Generates and posts the necessary alert objects to the database"""
-        history = self.post_alert_history()
-        self.post_alert(history)
+    def post(self, post_alert=True, set_state=True):
+        """Generates and posts the necessary alert objects to the database,
+        and exports the alert to an external script if configured.
 
-    def post_alert(self, history=None):
+        :param post_alert: If True, an AlertQueue entry is posted.
+
+        :param set_state: If True, a new AlertHistory (state) entry is posted,
+                          or an existing one is updated/resolved. If False, no
+                          AlertHistory objects are created or updated. If this is an
+                          actual AlertHistory instance and _post_alert is True, the
+                          posted alert will reference this AlertHistory record.
+        """
+        if isinstance(set_state, AlertHistory):
+            history = set_state
+        else:
+            history = self._post_alert_history() if set_state else None
+        alert = self._post_alert(history) if post_alert else None
+        if export.exporter:
+            if not alert:
+                alert = self.make_alert()
+                alert.history = history
+            export.exporter.export(alert)
+
+    def _post_alert(self, history=None):
         """Generates and posts an alert on the alert queue only"""
         _logger.debug("posting to alert queue for %r", self)
         alert = self.make_alert()
@@ -133,7 +154,7 @@ class AlertGenerator(dict):
         self._post_alert_messages(alert)
         return alert
 
-    def post_alert_history(self):
+    def _post_alert_history(self):
         """Generates and posts an alert history record only"""
         _logger.debug("posting to alert history for %r", self)
         history = self.make_alert_history()
@@ -192,18 +213,13 @@ DEFAULT_LANGUAGE = "en"
 
 def ensure_alert_templates_are_available():
     """Inserts the ALERT_TEMPLATE_DIR into Django's TEMPLATE_DIRS list"""
-    import django
     from django.conf import settings
 
-    if django.VERSION[:2] == (1, 7):
-        if ALERT_TEMPLATE_DIR not in settings.TEMPLATE_DIRS:
-            settings.TEMPLATE_DIRS += (ALERT_TEMPLATE_DIR,)
-    else:
-        for config in settings.TEMPLATES:
-            if (config.get('BACKEND') ==
-                    'django.template.backends.django.DjangoTemplates'
-                    and ALERT_TEMPLATE_DIR not in config['DIRS']):
-                config['DIRS'] += (ALERT_TEMPLATE_DIR,)
+    for config in settings.TEMPLATES:
+        if (config.get('BACKEND') ==
+                'django.template.backends.django.DjangoTemplates'
+                and ALERT_TEMPLATE_DIR not in config['DIRS']):
+            config['DIRS'] += (ALERT_TEMPLATE_DIR,)
 
 
 def render_templates(alert):
@@ -239,7 +255,7 @@ def _render_template(details, alert):
 
     _template_logger.debug("rendering alert template with context:\n%s",
                            context['context_dump'])
-    output = template.render(Context(context)).strip()
+    output = template.render(context).strip()
     _template_logger.debug("rendered as:\n%s", output)
     return details, output
 
@@ -264,6 +280,7 @@ def get_list_of_templates_for(event_type, alert_type="default"):
                             match.group('msgtype'),
                             match.group('language') or DEFAULT_LANGUAGE)
             for match, name in matches if match]
+
 
 # pylint sucks on namedtuples
 # pylint: disable=C0103

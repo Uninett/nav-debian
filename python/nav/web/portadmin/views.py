@@ -22,11 +22,10 @@ from operator import or_ as OR
 from functools import reduce
 
 from django.http import HttpResponse, JsonResponse
-from django.template import RequestContext, Context
-from django.shortcuts import render, render_to_response, get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.contrib import messages
-from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from nav.auditlog.models import LogEntry
@@ -145,7 +144,7 @@ def search_by_kwargs(request, **kwargs):
             return default_render(request)
 
         interfaces = netbox.get_swports_sorted()
-        if len(interfaces) == 0:
+        if not interfaces:
             messages.error(request, 'IP device has no ports (yet)')
             return default_render(request)
         return render(request, 'portadmin/netbox.html',
@@ -192,7 +191,7 @@ def populate_infodict(request, netbox, interfaces):
             else:
                 set_voice_vlan_attribute(voice_vlan, interfaces)
         mark_detained_interfaces(interfaces)
-        if is_dot1x_enabled:
+        if is_dot1x_enabled(config):
             add_dot1x_info(interfaces, fac)
     except TimeOutException:
         readonly = True
@@ -212,7 +211,7 @@ def populate_infodict(request, netbox, interfaces):
     aliastemplate = ''
     if ifaliasformat:
         tmpl = get_aliastemplate()
-        aliastemplate = tmpl.render(Context({'ifaliasformat': ifaliasformat}))
+        aliastemplate = tmpl.render({'ifaliasformat': ifaliasformat})
 
     save_to_database(interfaces)
 
@@ -239,9 +238,9 @@ def populate_infodict(request, netbox, interfaces):
 
 
 def is_dot1x_enabled(config):
-    """Checks of dot1x config option is true"""
-    section = 'general'
-    option = 'enabledot1x'
+    """Checks if dot1x config option is true"""
+    section = 'dot1x'
+    option = 'enabled'
     try:
         return (config.has_option(section, option) and
                 config.getboolean(section, option))
@@ -260,6 +259,14 @@ def is_cisco_voice_enabled(config):
             return config.getboolean(section, option)
     return False
 
+def is_cisco_voice_cdp_enabled(config):
+    """Checks if the CDP config option is enabled"""
+    section = 'general'
+    option = 'cisco_voice_cdp'
+    if config.has_section(section):
+        if config.has_option(section, option):
+            return config.getboolean(section, option)
+    return False
 
 def fetch_voice_vlan_for_netbox(request, factory, config=None):
     """Fetch the voice vlan for this netbox
@@ -455,10 +462,12 @@ def set_voice_vlan(fac, interface, request):
 
     """
     if 'voicevlan' in request.POST:
+        cdp_changed = False
         config = read_config()
         voice_vlan = fetch_voice_vlan_for_netbox(request, fac, config)
         use_cisco_voice_vlan = (is_cisco_voice_enabled(config) and
                                 is_cisco(interface.netbox))
+        enable_cdp_for_cisco_voice_port = is_cisco_voice_cdp_enabled(config)
 
         # Either the voicevlan is turned off or turned on
         turn_on_voice_vlan = request.POST.get('voicevlan') == 'true'
@@ -467,19 +476,27 @@ def set_voice_vlan(fac, interface, request):
             if turn_on_voice_vlan:
                 if use_cisco_voice_vlan:
                     fac.set_cisco_voice_vlan(interface, voice_vlan)
+                    if enable_cdp_for_cisco_voice_port:
+                        fac.enable_cisco_cdp(interface)
+                        cdp_changed = True
                 else:
                     fac.set_voice_vlan(interface, voice_vlan)
-                _logger.info('%s: %s:%s - %s', account.login,
+                _logger.info('%s: %s:%s - %s%s', account.login,
                              interface.netbox.get_short_sysname(),
-                             interface.ifname, 'voice vlan enabled')
+                             interface.ifname, 'voice vlan enabled',
+                             ', CDP enabled' if cdp_changed else '')
             else:
                 if use_cisco_voice_vlan:
                     fac.disable_cisco_voice_vlan(interface)
+                    if enable_cdp_for_cisco_voice_port:
+                        fac.disable_cisco_cdp(interface)
+                        cdp_changed = True
                 else:
                     fac.set_access(interface, interface.vlan)
-                _logger.info('%s: %s:%s - %s', account.login,
+                _logger.info('%s: %s:%s - %s%s', account.login,
                              interface.netbox.get_short_sysname(),
-                             interface.ifname, 'voice vlan disabled')
+                             interface.ifname, 'voice vlan disabled',
+                             ', CDP disabled' if cdp_changed else '')
         except (SnmpError, ValueError, NotImplementedError) as error:
             messages.error(request, "Error setting voicevlan: %s" % error)
 
@@ -576,9 +593,7 @@ def render_trunk_edit(request, interfaceid):
                     'allowed_vlans': allowed_vlans,
                     'trunk_edit': get_trunk_edit(config)})
 
-    return render_to_response('portadmin/trunk_edit.html',
-                              context,
-                              RequestContext(request))
+    return render(request, 'portadmin/trunk_edit.html', context)
 
 
 def handle_trunk_edit(request, agent, interface):

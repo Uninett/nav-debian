@@ -16,8 +16,9 @@ RUN  apt-get -y update && \
        libz-dev \
        libldap2-dev \
        libsasl2-dev \
-       python-dev \
+       python3-dev \
        python-all \
+       python3-all \
      && \
      apt-get clean
 
@@ -25,7 +26,7 @@ RUN  apt-get -y update && \
      apt-get install -y \
          dh-virtualenv \
          dh-python \
-         python-setuptools
+         python3-setuptools
 
 ENV  HOME /home
 ENV  QUILT_PATCHES debian/patches

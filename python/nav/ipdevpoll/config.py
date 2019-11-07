@@ -72,14 +72,16 @@ IBM = IBM-PDU-MIB
 RITTAL_WERK_RUDOLF_LOH_GMBH_COKG = RITTAL-CMC-III-MIB
 JUNIPER_NETWORKS_INC = ENTITY-SENSOR-MIB JUNIPER-DOM-MIB
 SUPERIOR_POWER_SOLUTIONS_HK_COLTD = Pwt3PhaseV1Mib
+ALCATEL_LUCENT_ENTERPRISE_FORMERLY_ALCATEL = ALCATEL-IND1-PORT-MIB
 COMPAQ = CPQPOWER-MIB
+CORIANT_RD_GMBH = CORIANT-GROOVE-MIB
 """
 
 
 def get_job_descriptions(config=None):
     """Builds a dict of all job descriptions"""
-    return dict([(d.name.replace(JOB_PREFIX, ''), d.description)
-                 for d in get_jobs(config)])
+    return {d.name.replace(JOB_PREFIX, ''): d.description
+            for d in get_jobs(config)}
 
 
 def get_jobs(config=None):
@@ -154,5 +156,6 @@ def _parse_description(descr):
 
 class InvalidJobSectionName(ConfigurationError):
     """Section name is invalid as a job section"""
+
 
 ipdevpoll_conf = IpdevpollConfig()

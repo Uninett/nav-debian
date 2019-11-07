@@ -54,7 +54,7 @@ INCOMPLETE_MAC = '00:00:00:00:00:00'
 
 class Arp(Plugin):
     """Collects ARP records for IPv4 devices and NDP cache for IPv6 devices."""
-    prefix_cache = [] # prefix cache, should be sorted by descending mask length
+    prefix_cache = []  # prefix cache, should be sorted by descending mask length
     prefix_cache_update_time = datetime.min
     prefix_cache_max_age = timedelta(minutes=5)
 
@@ -87,7 +87,7 @@ class Arp(Plugin):
             mappings.update(ipv6_mappings)
 
         # If we got no results, or no IPv6 results, try vendor specific MIBs
-        if len(mappings) == 0 or not ipv6_address_in_mappings(mappings):
+        if not mappings or not ipv6_address_in_mappings(mappings):
             cisco_ip_mib = CiscoIetfIpMib(self.agent)
             cisco_ip_mappings = yield cisco_ip_mib.get_ifindex_ip_mac_mappings()
             self._logger.debug("Found %d mappings in CISCO-IETF-IP-MIB",

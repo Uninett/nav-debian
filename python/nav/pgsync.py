@@ -297,7 +297,7 @@ class Synchronizer(object):
                    (self.connect_options.dbname, ", ".join(schemas)))
             self.cursor.execute(sql)
         self.connection.commit()
-        self.connect() # must reconnect to activate the new search path
+        self.connect()  # must reconnect to activate the new search path
 
     def verify_namespaces(self):
         """Verifies that the database has the namespaces NAV needs"""

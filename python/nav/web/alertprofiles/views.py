@@ -25,11 +25,10 @@
 # the operation is the owner
 
 from django.http import HttpResponseRedirect
-from django.template import RequestContext
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.shortcuts import render_to_response
+from django.shortcuts import render
+from django.urls import reverse
 from django.utils import six
 
 from nav.web.utils import SubListView
@@ -118,18 +117,12 @@ def overview(request):
         ],
         'title': 'NAV - Alert profiles',
     }
-    return render_to_response(
-        'alertprofiles/account_detail.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/account_detail.html', info_dict)
 
 
 def show_profile(request):
     """Shows a single profile"""
     account = get_account(request)
-
-    page = request.GET.get('page', 1)
 
     # Define valid options for ordering
     valid_ordering = ['name', '-name']
@@ -219,11 +212,7 @@ def profile_show_form(request, profile_id=None, profile_form=None,
         ],
         'title': 'NAV - Alert profiles',
     }
-    return render_to_response(
-        'alertprofiles/profile_detail.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/profile_detail.html', info_dict)
 
 
 def profile_detail(request, profile_id=None):
@@ -362,7 +351,7 @@ def profile_remove(request):
         profiles = AlertProfile.objects.filter(
             pk__in=request.POST.getlist('profile'))
 
-        if len(profiles) == 0:
+        if not profiles:
             new_message(request,
                         _('No profiles were selected.'),
                         Messages.NOTICE)
@@ -406,11 +395,7 @@ def profile_remove(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
-            'alertprofiles/confirmation_list.html',
-            info_dict,
-            RequestContext(request),
-        )
+        return render(request, 'alertprofiles/confirmation_list.html', info_dict)
 
 
 @requires_post('alertprofiles-profile', ('activate',))
@@ -494,11 +479,7 @@ def profile_time_period(request, time_period_id, time_period_form=None):
         ],
         'title': 'NAV - Alert profiles',
     }
-    return render_to_response(
-        'alertprofiles/timeperiod_edit.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/timeperiod_edit.html', info_dict)
 
 
 @requires_post('alertprofiles-profile', ('profile',))
@@ -601,7 +582,7 @@ def profile_time_period_remove(request):
                     Messages.WARNING
                 )
 
-        if len(time_periods) == 0:
+        if not time_periods:
             new_message(request,
                         _('No time periods were selected.'),
                         Messages.NOTICE)
@@ -650,11 +631,7 @@ def profile_time_period_remove(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
-            'alertprofiles/confirmation_list.html',
-            info_dict,
-            RequestContext(request),
-        )
+        return render(request, 'alertprofiles/confirmation_list.html', info_dict)
 
 
 def profile_time_period_setup(request, time_period_id=None):
@@ -712,11 +689,7 @@ def profile_time_period_setup(request, time_period_id=None):
         'title': 'NAV - Alert profiles',
         'profile': profile
     }
-    return render_to_response(
-        'alertprofiles/subscription_form.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/subscription_form.html', info_dict)
 
 
 @requires_post('alertprofiles-profile')
@@ -807,11 +780,7 @@ def profile_time_period_subscription_edit(request, subscription_id=None):
         'title': 'NAV - Alert profiles',
         'profile': profile
     }
-    return render_to_response(
-        'alertprofiles/subscription_form.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/subscription_form.html', info_dict)
 
 
 @requires_post('alertprofiles-profile')
@@ -854,7 +823,7 @@ def profile_time_period_subscription_remove(request):
             return alertprofiles_response_forbidden(
                 request, _('You do not own this profile.'))
 
-        if len(subscriptions) == 0:
+        if not subscriptions:
             new_message(request,
                         _('No alert subscriptions were selected.'),
                         Messages.NOTICE)
@@ -914,11 +883,8 @@ def profile_time_period_subscription_remove(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
-            'alertprofiles/confirmation_list.html',
-            info_dict,
-            RequestContext(request),
-        )
+        return render(request, 'alertprofiles/confirmation_list.html',
+                      info_dict)
 
 
 def address_list(request):
@@ -1001,11 +967,7 @@ def address_show_form(request, address_id=None, address_form=None):
         ],
         'title': 'NAV - Alert profiles',
     }
-    return render_to_response(
-        'alertprofiles/address_form.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/address_form.html', info_dict)
 
 
 def address_detail(request, address_id=None):
@@ -1066,7 +1028,7 @@ def address_remove(request):
 
         subscriptions = AlertSubscription.objects.filter(
             alert_address__in=addresses)
-        if len(subscriptions) > 0:
+        if subscriptions:
             for sub in subscriptions:
                 new_message(
                     request,
@@ -1093,7 +1055,7 @@ def address_remove(request):
         addresses = AlertAddress.objects.filter(
             pk__in=request.POST.getlist('address'))
 
-        if len(addresses) == 0:
+        if not addresses:
             new_message(request,
                         _('No addresses were selected'),
                         Messages.NOTICE)
@@ -1154,11 +1116,8 @@ def address_remove(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
-            'alertprofiles/confirmation_list.html',
-            info_dict,
-            RequestContext(request),
-        )
+        return render(request, 'alertprofiles/confirmation_list.html',
+                      info_dict)
 
 
 @requires_post('alertprofiles-profile', ('language',))
@@ -1296,7 +1255,7 @@ def filter_show_form(request, filter_id=None, filter_form=None):
 
         # Check if filter is used by any filter groups
         filter_groups = FilterGroupContent.objects.filter(filter=filtr)
-        if len(filter_groups) > 0:
+        if filter_groups:
             fg_names = ', '.join([f.filter_group.name for f in filter_groups])
             new_message(
                 request,
@@ -1328,7 +1287,8 @@ def filter_show_form(request, filter_id=None, filter_form=None):
     else:
         subsection = {'new': True}
 
-    return render_to_response(
+    return render(
+        request,
         'alertprofiles/filter_form.html',
         {
             'active': active,
@@ -1344,8 +1304,7 @@ def filter_show_form(request, filter_id=None, filter_form=None):
                 (page_name, None),
             ],
             'title': 'NAV - Alert profiles',
-        },
-        RequestContext(request),
+        }
     )
 
 
@@ -1421,7 +1380,7 @@ def filter_remove(request):
             return alertprofiles_response_forbidden(
                 request, _('You do not own this filter.'))
 
-        if len(filters) == 0:
+        if not filters:
             new_message(request,
                         _('No filters were selected.'),
                         Messages.NOTICE)
@@ -1466,11 +1425,8 @@ def filter_remove(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
-            'alertprofiles/confirmation_list.html',
-            info_dict,
-            RequestContext(request),
-        )
+        return render(request, 'alertprofiles/confirmation_list.html',
+                      info_dict)
 
 
 @requires_post('alertprofiles-filters', ('id', 'matchfield'))
@@ -1516,11 +1472,7 @@ def filter_addexpression(request):
         ],
         'title': 'NAV - Alert profiles',
     }
-    return render_to_response(
-        'alertprofiles/expression_form.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/expression_form.html', info_dict)
 
 
 @requires_post('alertprofiles-filters')
@@ -1601,7 +1553,7 @@ def filter_removeexpression(request):
             return alertprofiles_response_forbidden(
                 request, _('You do not own this filter.'))
 
-        if len(expressions) == 0:
+        if not expressions:
             new_message(request,
                         _('No expressions were selected'),
                         Messages.NOTICE)
@@ -1638,11 +1590,8 @@ def filter_removeexpression(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
-            'alertprofiles/confirmation_list.html',
-            info_dict,
-            RequestContext(request),
-        )
+        return render(request, 'alertprofiles/confirmation_list.html',
+                      info_dict)
 
 
 def filter_group_list(request):
@@ -1743,7 +1692,7 @@ def filter_group_show_form(request, filter_group_id=None,
         profiles = AlertProfile.objects.filter(
             timeperiod__alertsubscription__filter_group=filter_group
         ).distinct()
-        if len(profiles) > 0:
+        if profiles:
             names = ', '.join([p.name for p in profiles])
             new_message(
                 request,
@@ -1788,11 +1737,7 @@ def filter_group_show_form(request, filter_group_id=None,
         ],
         'title': 'NAV - Alert profiles',
     }
-    return render_to_response(
-        'alertprofiles/filter_group_form.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/filter_group_form.html', info_dict)
 
 
 def filter_group_detail(request, filter_group_id=None):
@@ -1871,7 +1816,7 @@ def filter_group_remove(request):
             return alertprofiles_response_forbidden(
                 request, _('You do not own this filter group.'))
 
-        if len(filter_groups) == 0:
+        if not filter_groups:
             new_message(request,
                         _('No filter groups were selected.'),
                         Messages.NOTICE)
@@ -1921,10 +1866,10 @@ def filter_group_remove(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
+        return render(
+            request,
             'alertprofiles/confirmation_list.html',
             info_dict,
-            RequestContext(request),
         )
 
 
@@ -2064,7 +2009,7 @@ def filter_group_removefilter(request):
                 Messages.WARNING
             )
 
-        if len(filter_group_content) == 0:
+        if not filter_group_content:
             new_message(request,
                         _('No filters were selected.'),
                         Messages.NOTICE)
@@ -2101,10 +2046,10 @@ def filter_group_removefilter(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
+        return render(
+            request,
             'alertprofiles/confirmation_list.html',
             info_dict,
-            RequestContext(request),
         )
 
 
@@ -2251,7 +2196,7 @@ def matchfield_show_form(request, matchfield_id=None, matchfield_form=None):
         expressions = Expression.objects.filter(match_field=matchfield)
         filters = Filter.objects.filter(expression__in=expressions)
 
-        if len(filters) > 0:
+        if filters:
             names = ', '.join([f.name for f in filters])
             new_message(
                 request,
@@ -2290,11 +2235,7 @@ def matchfield_show_form(request, matchfield_id=None, matchfield_form=None):
         'title': 'NAV - Alert profiles',
     }
 
-    return render_to_response(
-        'alertprofiles/matchfield_form.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/matchfield_form.html', info_dict)
 
 
 def matchfield_detail(request, matchfield_id=None):
@@ -2365,7 +2306,7 @@ def matchfield_remove(request):
             'expression_set'
         ).filter(pk__in=request.POST.getlist('matchfield'))
 
-        if len(matchfields) == 0:
+        if not matchfields:
             new_message(request,
                         _('No matchfields were selected'),
                         Messages.NOTICE)
@@ -2407,10 +2348,10 @@ def matchfield_remove(request):
             ],
             'title': 'NAV - Alert profiles',
         }
-        return render_to_response(
+        return render(
+            request,
             'alertprofiles/confirmation_list.html',
             info_dict,
-            RequestContext(request),
         )
 
 
@@ -2451,11 +2392,7 @@ def permission_list(request, group_id=None):
         'title': 'NAV - Alert profiles',
     }
 
-    return render_to_response(
-        'alertprofiles/permissions.html',
-        info_dict,
-        RequestContext(request),
-    )
+    return render(request, 'alertprofiles/permissions.html', info_dict)
 
 
 @requires_post('alertprofiles-permissions')

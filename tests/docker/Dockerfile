@@ -73,7 +73,7 @@ RUN cd /tmp && \
     mv chromedriver /usr/local/bin/
 
 # Install our primary test runner
-RUN pip install tox
+RUN pip install tox snmpsim
 
 # Add a build user
 RUN adduser --system --group --home=/source --shell=/bin/bash build && \
@@ -83,7 +83,7 @@ RUN adduser --system --group --home=/source --shell=/bin/bash build && \
 ENV WORKSPACE /source
 ENV HOME /source
 
-COPY tests/docker/scripts/ /
+COPY scripts/ /
 WORKDIR /source
 ENTRYPOINT ["/entrypoint.sh"]
 RUN chmod 755 /*.sh

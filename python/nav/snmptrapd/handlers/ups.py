@@ -28,37 +28,40 @@ from nav.event import Event
 from nav.Snmp import Snmp
 
 # Create logger with modulename here
-logger = logging.getLogger('nav.snmptrapd.ups')
+_logger = logging.getLogger(__name__)
 
 # upsonbattery traps
-ONBATTERY = {'APC': ['.1.3.6.1.4.1.318.0.5'],
-             'Eaton': ['.1.3.6.1.4.1.534.1.0.0.0.3',
-                        # XUPS-MIB: xupstdOnBattery
-                       '.1.3.6.1.4.1.534.1.11.4.1.0.3',
-                       '.1.3.6.1.4.1.534.1.11.4.2.0.3'],
-                        # MG-SNMP-UPS-MIB: upsmgOnBattery'
-             'MGE': ['1.3.6.1.4.1.705.1.11.0.11'],
-                        # UPS-MIB: upsAlarmOnBattery
-             'RFC1628': ['.1.3.6.1.2.1.33.1.6.3.2'],
-             }
-BATTERYTIME = {'APC': ('.1.3.6.1.4.1.318.1.1.1.2.2.3.0', 'TIMETICKS'),
-                        # XUPS-MIB: xupsBatTimeRemaining
-               'Eaton': ('.1.3.6.1.4.1.534.1.2.1.0', 'SECONDS'),
-                        # MG-SNMP-UPS-MIB: upsmgBatteryRemainingTime
-               'MGE': ('1.3.6.1.4.1.705.1.5.1.0', 'SECONDS'),
-                        # UPS-MIB: upsEstimatedMinutesRemaining
-               'RFC1628': ('.1.3.6.1.2.1.33.1.2.3.0', 'MINUTES'),
-            }
+ONBATTERY = {
+    'APC': ['.1.3.6.1.4.1.318.0.5'],
+    'Eaton': ['.1.3.6.1.4.1.534.1.0.0.0.3',
+              # XUPS-MIB: xupstdOnBattery
+              '.1.3.6.1.4.1.534.1.11.4.1.0.3',
+              '.1.3.6.1.4.1.534.1.11.4.2.0.3'],
+    # MG-SNMP-UPS-MIB: upsmgOnBattery'
+    'MGE': ['1.3.6.1.4.1.705.1.11.0.11'],
+    # UPS-MIB: upsAlarmOnBattery
+    'RFC1628': ['.1.3.6.1.2.1.33.1.6.3.2'],
+}
+BATTERYTIME = {
+    'APC': ('.1.3.6.1.4.1.318.1.1.1.2.2.3.0', 'TIMETICKS'),
+    # XUPS-MIB: xupsBatTimeRemaining
+    'Eaton': ('.1.3.6.1.4.1.534.1.2.1.0', 'SECONDS'),
+    # MG-SNMP-UPS-MIB: upsmgBatteryRemainingTime
+    'MGE': ('1.3.6.1.4.1.705.1.5.1.0', 'SECONDS'),
+    # UPS-MIB: upsEstimatedMinutesRemaining
+    'RFC1628': ('.1.3.6.1.2.1.33.1.2.3.0', 'MINUTES'),
+}
 
 # upsoffbattery traps
-OFFBATTERY = {'APC': ['.1.3.6.1.4.1.318.0.9'],
-              'Eaton': ['.1.3.6.1.4.1.534.1.0.0.0.5',
-                        # XUPS-MIBS: xupstdUtilityPowerRestored
-                        '.1.3.6.1.4.1.534.1.11.4.1.0.5',
-                        '.1.3.6.1.4.1.534.1.11.4.2.0.5'],
-                        # MG-SNMP-UPS-MIB: upsmgReturnFromBattery
-              'MGE': ['1.3.6.1.4.1.705.1.11.0.12'],
-              }
+OFFBATTERY = {
+    'APC': ['.1.3.6.1.4.1.318.0.9'],
+    'Eaton': ['.1.3.6.1.4.1.534.1.0.0.0.5',
+              # XUPS-MIBS: xupstdUtilityPowerRestored
+              '.1.3.6.1.4.1.534.1.11.4.1.0.5',
+              '.1.3.6.1.4.1.534.1.11.4.2.0.5'],
+    # MG-SNMP-UPS-MIB: upsmgReturnFromBattery
+    'MGE': ['1.3.6.1.4.1.705.1.11.0.12'],
+}
 
 
 # pylint: disable=unused-argument
@@ -75,9 +78,9 @@ def handleTrap(trap, config=None):
     eventtypeid = "upsPowerState"
 
     # Use the trap-object to access trap-variables and do stuff.
-    for vendor in ONBATTERY.keys():
-        if trap.snmpTrapOID in ONBATTERY[vendor]:
-            logger.debug("Got ups on battery trap (%s)", vendor)
+    for vendor, oids in ONBATTERY.items():
+        if trap.snmpTrapOID in oids:
+            _logger.debug("Got ups on battery trap (%s)", vendor)
 
             # Get time to live
             try:
@@ -85,15 +88,15 @@ def handleTrap(trap, config=None):
                 s = Snmp(trap.agent, trap.community)
                 batterytime = s.get(batterytimeoid)
             except Exception as err:
-                logger.info("Could not get battery time from %s: %s",
-                            trap.agent, err)
+                _logger.info("Could not get battery time from %s: %s",
+                             trap.agent, err)
                 batterytime = False
             else:
                 batterytime = format_batterytime(batterytime, format)
-                logger.debug("batterytime: %s", batterytime)
+                _logger.debug("batterytime: %s", batterytime)
 
             if not trap.netbox:
-                logger.error(
+                _logger.error(
                     "Could not find netbox in database, no event will be posted",
                 )
                 return False
@@ -114,17 +117,17 @@ def handleTrap(trap, config=None):
             try:
                 e.post()
             except Exception as e:
-                logger.error(e)
+                _logger.error(e)
                 return False
 
             return True
 
-    for vendor in OFFBATTERY.keys():
-        if trap.snmpTrapOID in OFFBATTERY[vendor]:
-            logger.debug("Got ups on utility power trap (%s)", vendor)
+    for vendor, oids in OFFBATTERY.items():
+        if trap.snmpTrapOID in oids:
+            _logger.debug("Got ups on utility power trap (%s)", vendor)
 
             if not trap.netbox:
-                logger.error(
+                _logger.error(
                     "Could not find netbox in database, no event will be posted",
                 )
                 return False
@@ -144,7 +147,7 @@ def handleTrap(trap, config=None):
             try:
                 e.post()
             except Exception as e:
-                logger.error(e)
+                _logger.error(e)
                 return False
 
             return True
@@ -155,12 +158,12 @@ def handleTrap(trap, config=None):
 def format_batterytime(timeunit, format):
     if isinstance(timeunit, int):
         seconds = timeunit
-        if 'MINUTES' == format:
+        if format == 'MINUTES':
             # UPS-MIB
             seconds = (timeunit * 60)
-        if 'TIMETICKS' == format:
+        if format == 'TIMETICKS':
             seconds = timeunit / 100
-        return "%sh:%sm" %(int(seconds / 60 / 60), (seconds/60) % 60)
+        return "%sh:%sm" % (int(seconds / 60 / 60), (seconds/60) % 60)
 
 
 # This function is a nice to run to make sure the event and alerttypes
@@ -195,7 +198,7 @@ def verifyEventtype():
 
     queries = sql.split(';')
     for q in queries:
-        if len(q.rstrip()) > 0:
+        if q.rstrip():
             c.execute(q)
 
     db.commit()

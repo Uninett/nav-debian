@@ -12,11 +12,12 @@ This section contains reference material for end-users.
 
    arnold
    cabling_and_patch
+   eventengine
    event-templates
    geomap
    ipam
    ipdevpoll
-   ldap
+   external_authentication
    mailin
    navstats
    portadmin

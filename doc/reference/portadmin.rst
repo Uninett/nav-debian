@@ -115,13 +115,14 @@ I cannot edit an interface
 
 Two things can lead to an interface not being editable (no fields or dropdowns appear):
 
-- The NAV admin has turned on VLAN authorization. This means you can only
+* The NAV admin has turned on VLAN authorization. This means you can only
   edit interfaces that have a VLAN that you are organizationally connected to.
-- Something called a *read-write community* has not been set on the device. The
-  *read-write community* is similar to a password, and is needed for PortAdmin to
-  be able to give commands to the device. To fix this, a NAV admin must edit the
-  device in SeedDB and set the read-write community there. Also a read-write
-  community must be set on the device itself.
+* Something called a *read-write community* has not been set on the device. The
+  *read-write community* is similar to a password, and is needed for PortAdmin
+  to be able to give commands to the device. To fix this, a NAV admin must
+  edit the device in SeedDB and assign a write-enabled SNMP management profile
+  to it there. Also, the device itself must be configured to accept SNMP write
+  requests.
 
 Some parts of the interface is disabled/greyed out
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -146,7 +147,12 @@ are:
 **cisco_voice_vlan**
     Cisco has its own terminology and configuration regarding voice VLANs. NAV
     also supports this. To make NAV use Cisco Voice VLANs, set this option to
-    true. The default is false.
+    ``true``. The default is ``false``.
+
+**cisco_voice_cdp**
+    If using Cisco Voice VLANs, set this option to ``true`` to explicitly
+    enable CDP on a port when its voice vlan is configured (and consequently,
+    disable CDP when voice vlan is de-configured). The default is ``false``.
 
 **vlan_auth**
     If you want to limit what users can do in PortAdmin you activate

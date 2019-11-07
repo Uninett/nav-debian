@@ -14,6 +14,8 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """This package encompasses modules with web functionality for NAV"""
+from __future__ import unicode_literals
+
 import logging
 import sys
 
@@ -24,6 +26,9 @@ from django.http import HttpResponse
 
 import nav.logs
 from nav.config import find_configfile
+
+
+_logger = logging.getLogger(__name__)
 
 default_app_config = 'nav.web.apps.NAVWebAppConfig'
 
@@ -36,6 +41,7 @@ if _configfile:
 def refresh_session(request):
     """Forces a refresh of the session by setting the modified flag"""
     request.session.modified = True
+    _logger.debug('refresh_session: refreshed')
     return HttpResponse()
 
 

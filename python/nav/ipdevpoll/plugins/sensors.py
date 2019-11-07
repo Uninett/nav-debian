@@ -58,7 +58,7 @@ class Sensors(Plugin):
                            [type(m).__name__ for m in mibs])
         for mib in mibs:
             all_sensors = yield mib.get_all_sensors()
-            if len(all_sensors) > 0:
+            if all_sensors:
                 # Store and jump out on the first MIB that give
                 # any results
                 self._logger.debug("Found %d sensors from %s",
@@ -106,12 +106,15 @@ class Sensors(Plugin):
                                                      None)
                 sensor.precision = row.get('precision', 0)
                 sensor.data_scale = row.get('scale', None)
-                sensor.human_readable = safestring(row.get('description', None))
-                sensor.name = safestring(row.get('name', None))
-                sensor.internal_name = safestring(internal_name)
+                sensor.human_readable = row.get('description', None)
+                sensor.name = row.get('name', None)
+                sensor.internal_name = internal_name
                 sensor.mib = mib
                 sensor.display_minimum_sys = row.get('minimum', None)
                 sensor.display_maximum_sys = row.get('maximum', None)
+                sensor.on_message_sys = row.get('on_message')
+                sensor.off_message_sys = row.get('off_message')
+                sensor.on_state_sys = row.get('on_state')
                 if ifindex:
                     iface = self.containers.factory(ifindex, shadows.Interface)
                     iface.netbox = self.netbox
@@ -195,29 +198,3 @@ def _get_space_separated_list(config, section, option):
     raw_string = config.get(section, option, fallback='').strip()
     items = re.split(r"\s+", raw_string)
     return [item for item in items if item]
-
-
-def safestring(string, encodings_to_try=('utf-8', 'latin-1')):
-    """Tries to safely decode strings retrieved using SNMP.
-
-    SNMP does not really define encodings, and will not normally allow
-    non-ASCII strings to be written  (though binary data is fine). Sometimes,
-    administrators have been able to enter descriptions containing non-ASCII
-    characters using CLI's or web interfaces. The encoding of these are
-    undefined and unknown. To ensure they can be safely stored in the
-    database (which only accepts UTF-8), we make various attempts at decoding
-    strings to unicode objects before the database becomes involved.
-    """
-    if string is None:
-        return
-
-    if isinstance(string, unicode):
-        return string
-
-    for encoding in encodings_to_try:
-        try:
-            return string.decode(encoding)
-        except UnicodeDecodeError:
-            pass
-
-    return repr(string)  # fallback

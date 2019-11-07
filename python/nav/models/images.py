@@ -1,23 +1,39 @@
 """Models for uploaded image information"""
 import os
 from os.path import exists, join
+
+from django.conf import settings
 from django.db import models
+
 from nav.models.profiles import Account
 from nav.models.manage import Location, Room
 from nav.models.fields import VarcharField
-from django.conf import settings
 
 
 class Image(models.Model):
     """Model representing an uploaded image"""
     id = models.AutoField(db_column='imageid', primary_key=True)
-    room = models.ForeignKey(Room, db_column='roomid', null=True)
-    location = models.ForeignKey(Location, db_column='locationid', null=True)
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        db_column='roomid',
+        null=True
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        db_column='locationid',
+        null=True
+    )
     title = VarcharField()
     path = VarcharField()
     name = VarcharField()
     created = models.DateTimeField(auto_now_add=True)
-    uploader = models.ForeignKey(Account, db_column='uploader')
+    uploader = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        db_column='uploader'
+    )
     priority = models.IntegerField()
 
     class Meta(object):

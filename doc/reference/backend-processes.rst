@@ -18,14 +18,16 @@ relevant section in this document:
 
 - `activeip`_
 - `alertengine`_
+- `dbclean`_
+- `emailreports`_
 - `eventengine`_
 - `ipdevpoll`_
 - `logengine`_
 - `mactrace`_
 - `maintengine`_
+- `navstats`_
 - `netbiostracker`_
 - `pping`_
-- `psuwatch`_
 - `servicemon`_
 - `smsd`_
 - `snmptrapd`_
@@ -71,6 +73,23 @@ recipients.
 :Logs:
   :file:`alertengine.log`
 
+emailreports
+------------
+
+Sends daily/weekly/monthly business report e-mail, according to subscriptions.
+
+For each configured subscription in the :program:`Business Reports` web tool,
+this cron job generates and dispatches the actual report e-mails.
+
+:Dependencies:
+  Subscriptions must be added using the :program:`Business Reports` web UI
+  tool.
+:Run mode:
+  cron
+:Configuration:
+  All configuration is done using the web interface.
+:Logs:
+  None
 
 eventengine
 -----------
@@ -88,6 +107,8 @@ Also, the Event Engine examines the network topology to correlate events from
 passes through another device currently known to be down, a ``boxShadow``
 alert will be posted instead of a ``boxDown`` alert.
 
+:Reference:
+  :doc:`Event Engine reference guide <eventengine>`
 :Dependencies:
   The various monitors need to post events on the *event queue*, targeted at
   ``eventEngine``, in order for the Event Engine to have anything to do.
@@ -98,6 +119,23 @@ alert will be posted instead of a ``boxDown`` alert.
 :Logs:
   :file:`eventengine.log`
 
+
+dbclean
+-------
+
+Regularly cleans out old data from the NAV database, using the
+:program:`navclean` program. The standard cleanup routine removes old web user
+interface sessions, and deletes IP devices that have been scheduled for
+deletion through either SeedDB or the API.
+
+:Dependencies:
+  None
+:Run mode:
+  cron
+:Configuration:
+  None.
+:Logs:
+  None
 
 ipdevpoll
 ---------
@@ -175,6 +213,24 @@ appropriate maintenance events for individual devices and services on NAV's
 :Logs:
   :file:`maintengine.log`
 
+navstats
+--------
+
+Regularly produces Graphite metrics from the configured SQL statements in
+:file:`navstats.conf`. By default, SQL reports are configured to log metrics of
+the number of difference IP Device types, the number of switch ports, and the
+number of switch ports that have an active link. More can be configured by the
+user in the config file.
+
+:Dependencies:
+  None
+:Run mode:
+  cron
+:Configuration:
+  :file:`navstats.conf`
+:Logs:
+  :file:`maintengine.log`
+
 
 netbiostracker
 --------------
@@ -222,25 +278,6 @@ posted on the event queue.
   :file:`pping.conf`
 :Logs:
   :file:`pping.log` (configurable)
-
-
-psuwatch
---------
-
-Monitors the state of redundant PSUs and fans.
-
-Uses SNMP to query for current state and compares it with the state stored in
-the database. Results are posted on the event queue. The event- and alert system
-takes care of messaging.
-
-:Dependencies:
-  Supports only HP and Cisco devices
-:Run mode:
-  cron
-:Configuration:
-  None
-:Logs:
-  :file:`powersupplywatch.log`
 
 
 servicemon

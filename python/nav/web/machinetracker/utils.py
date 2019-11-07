@@ -17,16 +17,16 @@
 
 from datetime import datetime
 from socket import gethostbyaddr, herror
-from IPy import IP
 from collections import namedtuple, OrderedDict
 import logging
 
+from IPy import IP
+
+from django.db import DatabaseError, transaction
 from django.utils import six
 
 from nav import asyncdns
 from nav.models.manage import Prefix, Netbox, Interface
-
-from django.db import DatabaseError, transaction
 
 _cached_hostname = {}
 _logger = logging.getLogger(__name__)
@@ -197,17 +197,8 @@ class ProcessInput:
         if not self.input.get('days', False):
             self.input['days'] = 7
 
-    def __prefix(self):
-        try:
-            ip = Prefix.objects.get(id=self.input['prefixid'])
-        except Prefix.DoesNotExist:
-            return None
-        self.input['ip_range'] = ip.net_address
-
     def ip(self):
         """Populates the GET dict with formatted values for an ip search"""
-        if self.input.get('prefixid', False):
-            self.__prefix()
         self.__common()
         if not self.input.get('period_filter'):
             self.input['period_filter'] = 'active'

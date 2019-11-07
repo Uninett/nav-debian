@@ -18,7 +18,6 @@ from __future__ import unicode_literals
 import io
 import re
 
-import nav
 from nav.report.dbresult import DatabaseResult
 from nav.report.report import Report
 
@@ -179,7 +178,7 @@ class ConfigParser(object):
 
         """
 
-        conf_pattern = re.compile(r'^\s*\$(\S*)\s*\=\s*"(.*?)"\;?', re.M|re.S)
+        conf_pattern = re.compile(r'^\s*\$(\S*)\s*\=\s*"(.*?)"\;?', re.M | re.S)
         conf_match = conf_pattern.findall(report_config)
 
         config = self.configuration
@@ -210,8 +209,7 @@ class ConfigParser(object):
 
                 if match:
                     if (match.group('group') == "navn"
-                        or match.group('group') == "name"
-                        ):
+                        or match.group('group') == "name"):
                         config.name[match.group('groupkey')] = value
                     elif (match.group('group') == "url"
                           or match.group('group') == "uri"
@@ -343,7 +341,7 @@ class ArgumentParser(object):
                     value = [None, None]
 
         self.config.where.append(field + " " + negate + operat + " %s")
-        if type(value) is list:
+        if isinstance(value, list):
             self.config.parameters.extend(value)
         else:
             self.config.parameters.append(value)

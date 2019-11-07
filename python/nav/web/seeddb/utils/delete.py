@@ -20,16 +20,15 @@
 import logging
 
 from django.db import connection, transaction, IntegrityError
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
+from django.urls import reverse
 from django.http import HttpResponseRedirect
 
 from nav.django.utils import get_model_and_name, get_all_related_objects
 from nav.web.message import new_message, Messages
 from nav.auditlog.models import LogEntry
 
-LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 @transaction.atomic()
@@ -60,7 +59,7 @@ def render_delete(request, model, redirect, whitelist=None, extra_context=None,
     """
     if request.method != 'POST':
         return HttpResponseRedirect(reverse(redirect))
-    if not len(request.POST.getlist('object')):
+    if not request.POST.getlist('object'):
         new_message(request,
                     "You need to select at least one object to edit",
                     Messages.ERROR)
@@ -94,7 +93,7 @@ def render_delete(request, model, redirect, whitelist=None, extra_context=None,
             new_message(request, msg, Messages.ERROR)
         except Exception as ex:
             # Something else went wrong
-            LOGGER.exception("Unhandled exception during delete: %r", request)
+            _logger.exception("Unhandled exception during delete: %r", request)
             msg = "Error: %s" % ex
             new_message(request, msg, Messages.ERROR)
         else:
@@ -113,8 +112,7 @@ def render_delete(request, model, redirect, whitelist=None, extra_context=None,
         'sub_active': {'list': True},
     }
     extra_context.update(info_dict)
-    return render_to_response('seeddb/delete.html',
-        extra_context, RequestContext(request))
+    return render(request, 'seeddb/delete.html', extra_context)
 
 
 def log_deleted(account, objects, template):

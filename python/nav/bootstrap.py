@@ -1,4 +1,4 @@
-# Copyright (C) 2018 UNINETT AS
+# Copyright (C) 2018 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -21,7 +21,6 @@ import sys
 
 import django
 from django.apps import apps
-from django.utils.timezone import now
 
 
 __all__ = ['bootstrap_django']

@@ -27,6 +27,7 @@ Based on datacollector.py from the old Java-applet based Netmap.
 
 import logging
 
+from django.core.cache import cache
 from django.utils.six import iteritems, iterkeys
 from django.utils.six.moves.urllib.error import HTTPError
 
@@ -39,8 +40,8 @@ from nav.metrics.names import escape_metric_name
 from nav.metrics.templates import (metric_path_for_interface,
                                    metric_path_for_cpu_load,
                                    metric_path_for_cpu_utilization)
-from nav.web.geomap.utils import lazy_dict, subdict, is_nan, chunks
-from django.core.cache import cache
+from nav.web.geomap.utils import lazy_dict, subdict, is_nan
+from nav.util import chunks
 
 _logger = logging.getLogger(__name__)
 
@@ -316,8 +317,7 @@ ORDER BY remote_sysname, local_sysname, interface_swport.speed DESC
             connection_rid not in connections):
             connections[connection_id] = connection
         else:
-            for existing_id in connections.keys():
-                existing_conn = connections[existing_id]
+            for existing_id, existing_conn in connections.items():
                 if ((existing_id == connection_id or
                      existing_id == connection_rid) and
                     (existing_conn['forward']['capacity'] < res['capacity'])):

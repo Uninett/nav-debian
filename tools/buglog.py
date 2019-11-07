@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2008, 2011, 2017, 2019 Uninett AS
 #
@@ -58,7 +58,7 @@ def main():
             output = format_issue_markdown(issue)
         else:
             output = format_issue(issue)
-        print(output.encode('utf-8'))
+        print(output)
 
 
 def format_issue(issue):

@@ -63,6 +63,7 @@ BLACKLISTED_PATHS = [
     # getting these endpoints without args results in 400 bad request
     '/api/1/cam',
     '/api/1/arp',
+    '/graphite',
 ]
 
 #
@@ -155,6 +156,8 @@ class WebCrawler(object):
                 continue
             elif self._is_blacklisted(path):
                 continue
+            elif element.attrib.get("rel") == "nofollow":
+                continue  # ignore nofollow links
             elif not self._is_seen(path):
                 self.queue.append('%s://%s%s' % (url.scheme, url.netloc, url.path))
 

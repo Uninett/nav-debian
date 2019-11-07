@@ -45,7 +45,11 @@ class Service(models.Model):
     TIME_FRAMES = ('day', 'week', 'month')
 
     id = models.AutoField(db_column='serviceid', primary_key=True)
-    netbox = models.ForeignKey(Netbox, db_column='netboxid')
+    netbox = models.ForeignKey(
+        Netbox,
+        on_delete=models.CASCADE,
+        db_column='netboxid'
+    )
     active = models.BooleanField(default=True)
     handler = VarcharField(verbose_name='service')
     version = VarcharField()
@@ -123,7 +127,7 @@ class Service(models.Model):
         """
         classname = u"{}Checker".format(str(self.handler).capitalize())
         modulename = u"nav.statemon.checker.{}".format(classname)
-        checker = __import__(modulename, globals(), locals(), [classname], -1)
+        checker = __import__(modulename, globals(), locals(), [classname], 0)
         klass = getattr(checker, classname)
         return getattr(klass, 'DESCRIPTION', '')
 
@@ -135,14 +139,18 @@ class ServiceProperty(models.Model):
     """From NAV Wiki: Each service may have an additional set of attributes.
     They are defined here."""
 
-    id = models.AutoField(primary_key=True) # Serial for faking a primary key
-    service = models.ForeignKey(Service, db_column='serviceid')
+    id = models.AutoField(primary_key=True)  # Serial for faking a primary key
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE,
+        db_column='serviceid'
+    )
     property = models.CharField(max_length=64)
     value = VarcharField()
 
     class Meta(object):
         db_table = 'serviceproperty'
-        unique_together = (('service', 'property'),) # Primary key
+        unique_together = (('service', 'property'),)  # Primary key
 
     def __str__(self):
         return u'%s=%s, for %s' % (self.property, self.value, self.service)

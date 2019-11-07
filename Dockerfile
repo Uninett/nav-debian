@@ -25,9 +25,6 @@ FROM mbrekkevold/navbase-debian:stretch
 #### Install various build and runtime requirements as Debian packages ####
 
 RUN apt-get update \
-    && apt-get -y install python-pip
-
-RUN apt-get update \
     && apt-get -y --no-install-recommends install \
        git-core \
        libsnmp30 \
@@ -38,7 +35,7 @@ RUN apt-get update \
        vim \
        less \
        nbtscan \
-       python-gammu \
+       python3-gammu \
        # Python package build deps: \
        libpq-dev \
        libjpeg-dev \
@@ -61,8 +58,9 @@ ADD tools/docker/supervisord.conf /etc/supervisor/conf.d/nav.conf
 COPY requirements/ /requirements
 ADD requirements.txt /
 ADD tests/requirements.txt /test-requirements.txt
-RUN pip install --upgrade pip tox setuptools && \
+RUN pip3 install --upgrade pip tox setuptools && \
     hash -r && \
+    # Since we used pip3 to install pip globally, pip should now be for Python 3 \
     pip install -r /requirements.txt && \
     pip install -r /test-requirements.txt
 

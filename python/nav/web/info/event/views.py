@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2017 UNINETT AS
+# Copyright (C) 2017 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,7 +15,6 @@
 
 """Controllers for the event info pages"""
 
-import datetime
 import operator
 import itertools
 

@@ -20,39 +20,77 @@ class TestGenericBulkImport(TestCase):
 
 
 class TestNetboxImporter(DjangoTransactionTestCase):
+    def setUp(self):
+        """Sets up some management profiles to refer to when importing"""
+        self.read_profile = manage.ManagementProfile(
+            name='SNMP v1 read profile',
+            protocol=manage.ManagementProfile.PROTOCOL_SNMP,
+            configuration={
+                'community': 'public',
+                'version': 1,
+                'write': False,
+            },
+        )
+        self.write_profile = manage.ManagementProfile(
+            name='SNMP v1 write profile',
+            protocol=manage.ManagementProfile.PROTOCOL_SNMP,
+            configuration={
+                'community': 'secret',
+                'version': 1,
+                'write': True,
+            },
+        )
+
+        self.read_profile.save()
+        self.write_profile.save()
+
     def test_simple_import_yields_netbox_and_device_model(self):
-        data = 'myroom:10.0.90.252:myorg:SW:1:public::'
+        data = 'myroom:10.0.90.252:myorg:SW:{}::'.format(
+            self.read_profile.name,
+        )
         parser = bulkparse.NetboxBulkParser(data)
         importer = bulkimport.NetboxImporter(parser)
         _line_num, objects = six.next(importer)
 
         self.assertTrue(isinstance(objects, list), repr(objects))
-        self.assertTrue(len(objects) == 1, repr(objects))
-        self.assertTrue(isinstance(objects[0], manage.Netbox), objects[0])
+        self.assertTrue(len(objects) == 2, repr(objects))
+        self.assertTrue(any(
+            isinstance(o, manage.Netbox)
+            for o in objects
+        ), msg=objects)
+        self.assertTrue(any(
+            isinstance(o, manage.NetboxProfile)
+            for o in objects
+        ), msg=objects)
 
     def test_simple_import_yields_objects_with_proper_values(self):
-        data = 'myroom:10.0.90.252:myorg:SW:1:public::'
+        data = 'myroom:10.0.90.252:myorg:SW:{}::'.format(
+            self.read_profile.name,
+        )
         parser = bulkparse.NetboxBulkParser(data)
         importer = bulkimport.NetboxImporter(parser)
         _line_num, objects = six.next(importer)
 
-        (netbox, ) = objects
-        self.assertEquals(netbox.ip, '10.0.90.252')
-        self.assertEquals(netbox.room_id, 'myroom')
-        self.assertEquals(netbox.organization_id, 'myorg')
-        self.assertEquals(netbox.category_id, 'SW')
-        self.assertEquals(netbox.snmp_version, '1')
-        self.assertEquals(netbox.read_only, 'public')
+        (netbox, profile) = objects
+        self.assertEqual(netbox.ip, '10.0.90.252')
+        self.assertEqual(netbox.room_id, 'myroom')
+        self.assertEqual(netbox.organization_id, 'myorg')
+        self.assertEqual(netbox.category_id, 'SW')
+        self.assertEqual(profile.profile, self.read_profile)
 
     def test_invalid_room_gives_error(self):
-        data = 'invalid:10.0.90.252:myorg:SW:1:public::'
+        data = 'invalid:10.0.90.252:myorg:SW:{}::'.format(
+            self.read_profile.name,
+        )
         parser = bulkparse.NetboxBulkParser(data)
         importer = bulkimport.NetboxImporter(parser)
         _line_num, objects = six.next(importer)
         self.assertTrue(isinstance(objects, bulkimport.DoesNotExist))
 
     def test_netbox_function_is_set(self):
-        data = 'myroom:10.0.90.252:myorg:SW:1:public:::does things:'
+        data = 'myroom:10.0.90.252:myorg:SW:{}::does things:'.format(
+            self.read_profile.name,
+        )
         parser = bulkparse.NetboxBulkParser(data)
         importer = bulkimport.NetboxImporter(parser)
         _line_num, objects = six.next(importer)
@@ -66,11 +104,11 @@ class TestNetboxImporter(DjangoTransactionTestCase):
         netboxinfo = importer._get_netboxinfo_from_function(netbox, 'hella')
         self.assertTrue(isinstance(netboxinfo, manage.NetboxInfo))
         self.assertTrue(netboxinfo.key is None)
-        self.assertEquals(netboxinfo.variable, 'function')
-        self.assertEquals(netboxinfo.value, 'hella')
+        self.assertEqual(netboxinfo.variable, 'function')
+        self.assertEqual(netboxinfo.value, 'hella')
 
     def test_netbox_groups_are_set(self):
-        data = 'myroom:10.0.90.10:myorg:SRV:::::fileserver::WEB:UNIX:MAIL'
+        data = 'myroom:10.0.90.10:myorg:SRV:::fileserver::WEB:UNIX:MAIL'
         parser = bulkparse.NetboxBulkParser(data)
         importer = bulkimport.NetboxImporter(parser)
         _line_num, objects = six.next(importer)
@@ -91,24 +129,24 @@ class TestNetboxImporter(DjangoTransactionTestCase):
         for netboxgroup, ncategory in zip(netboxgroups, ncategories):
             self.assertTrue(isinstance(ncategory, manage.NetboxCategory),
                             ncategory)
-            self.assertEquals(ncategory.category_id, netboxgroup)
+            self.assertEqual(ncategory.category_id, netboxgroup)
 
     def test_duplicate_locations_should_give_error(self):
         netbox = manage.Netbox(
             sysname='10.1.0.1', ip='10.1.0.1',
             room=manage.Room.objects.get(id='myroom'),
             category=manage.Category.objects.get(id='SRV'),
-            organization=manage.Organization.objects.get(id='myorg'),
-            snmp_version=1)
+            organization=manage.Organization.objects.get(id='myorg')
+        )
         netbox.save()
 
-        data = 'myroom:10.1.0.1:myorg:SRV:::::fileserver::WEB:UNIX:MAIL'
+        data = 'myroom:10.1.0.1:myorg:SRV:::fileserver::WEB:UNIX:MAIL'
         objects = self.parse_to_objects(data)
 
         self.assertTrue(isinstance(objects, bulkimport.AlreadyExists))
 
     def test_created_objects_can_be_saved(self):
-        data = 'myroom:10.0.90.10:myorg:SRV:::::fileserver::WEB:UNIX:MAIL'
+        data = 'myroom:10.0.90.10:myorg:SRV:::fileserver::WEB:UNIX:MAIL'
         objects = self.parse_to_objects(data)
 
         self.assertNotIsInstance(objects, Exception,
@@ -120,7 +158,7 @@ class TestNetboxImporter(DjangoTransactionTestCase):
             obj.save()
 
     def test_invalid_master_should_give_error(self):
-        data = 'myroom:10.0.90.10:myorg:SW::::badmaster:functionality'
+        data = 'myroom:10.0.90.10:myorg:SW::badmaster:functionality'
         objects = self.parse_to_objects(data)
         self.assertTrue(isinstance(objects, bulkimport.DoesNotExist))
 
@@ -132,13 +170,30 @@ class TestNetboxImporter(DjangoTransactionTestCase):
         return objects
 
 
+class TestManagementProfileImporter(DjangoTransactionTestCase):
+    def test_import(self):
+        name = "SNMP v1 read profile"
+        data = name + ':SNMP:"{""version"":1, ""community"":""public""}"'
+        objects = self.parse_to_objects(data)
+        self.assertTrue(len(objects) == 1, repr(objects))
+        self.assertTrue(isinstance(objects[0], manage.ManagementProfile))
+        self.assertEqual(objects[0].name, name)
+
+    @staticmethod
+    def parse_to_objects(data):
+        parser = bulkparse.ManagementProfileBulkParser(data)
+        importer = bulkimport.ManagementProfileImporter(parser)
+        _line_num, objects = six.next(importer)
+        return objects
+
+
 class TestLocationImporter(DjangoTransactionTestCase):
     def test_import(self):
         data = "somewhere::Over the rainbow"
         objects = self.parse_to_objects(data)
         self.assertTrue(len(objects) == 1, repr(objects))
         self.assertTrue(isinstance(objects[0], manage.Location))
-        self.assertEquals(objects[0].id, 'somewhere')
+        self.assertEqual(objects[0].id, 'somewhere')
 
     def test_import_no_description(self):
         """Description field was previously mandatory, not optional"""
@@ -146,7 +201,7 @@ class TestLocationImporter(DjangoTransactionTestCase):
         objects = self.parse_to_objects(data)
         self.assertTrue(len(objects) == 1, repr(objects))
         self.assertTrue(isinstance(objects[0], manage.Location))
-        self.assertEquals(objects[0].id, 'somewhere')
+        self.assertEqual(objects[0].id, 'somewhere')
 
     def test_imported_objects_can_be_saved(self):
         data = "somewhere::Over the rainbow"
@@ -170,10 +225,10 @@ class TestLocationImporter(DjangoTransactionTestCase):
 
         data = "otherplace:somewhere:descr"
         objects = self.parse_to_objects(data)
-        self.assertEquals(len(objects), 1)
-        self.assertEquals(objects[0].pk, 'otherplace')
-        self.assertEquals(objects[0].parent, parent)
-        self.assertEquals(objects[0].description, 'descr')
+        self.assertEqual(len(objects), 1)
+        self.assertEqual(objects[0].pk, 'otherplace')
+        self.assertEqual(objects[0].parent, parent)
+        self.assertEqual(objects[0].description, 'descr')
 
     def test_location_nodescr_can_have_parent(self):
         parent, _created = manage.Location.objects.get_or_create(
@@ -181,9 +236,9 @@ class TestLocationImporter(DjangoTransactionTestCase):
 
         data = "otherplace:somewhere"
         objects = self.parse_to_objects(data)
-        self.assertEquals(len(objects), 1)
-        self.assertEquals(objects[0].pk, 'otherplace')
-        self.assertEquals(objects[0].parent, parent)
+        self.assertEqual(len(objects), 1)
+        self.assertEqual(objects[0].pk, 'otherplace')
+        self.assertEqual(objects[0].parent, parent)
         self.assertFalse(objects[0].description)
 
     def test_too_long_locationid_should_raise_error(self):
@@ -216,6 +271,6 @@ class TestPrefixImporter(DjangoTransactionTestCase):
 
         if isinstance(objects, Exception):
             raise objects
-        self.assertEquals(len(objects), 2)
+        self.assertEqual(len(objects), 2)
         self.assertTrue(isinstance(objects[0], manage.Vlan))
         self.assertTrue(isinstance(objects[1], manage.Prefix))

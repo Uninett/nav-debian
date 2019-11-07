@@ -18,12 +18,12 @@
 import operator
 # reduce is removed in python 3, import it from functools
 from functools import reduce as reduce3
-from . import alert_serializers
 from rest_framework import filters
 from django.db.models import Q
 
 from nav import natsort
 from nav.models.manage import Location
+from . import alert_serializers
 
 __all__ = ['NaturalIfnameFilter', 'IfClassFilter', 'AlertHistoryFilterBackend']
 
@@ -156,6 +156,16 @@ class AlertHistoryFilterBackend(filters.BaseFilterBackend):
         return queryset
 
 
+class NetboxIsOnMaintenanceFilterBackend(filters.BaseFilterBackend):
+    """ """
+    def filter_queryset(self, request, queryset, view):
+        show_on_maintenance = request.query_params.get('maintenance', None)
+        if show_on_maintenance not in ('yes', 'no'):
+            return queryset
+        on_maintenance = True if show_on_maintenance == 'yes' else False
+        return queryset.on_maintenance(on_maintenance)
+
+
 def _get_descendants(parents):
     """Returns a list of all descendants for the parents including themselves"""
     locations = []
@@ -169,3 +179,5 @@ def _get_descendants(parents):
                               location.get_descendants(include_self=True)])
 
     return list(set(locations))
+
+

@@ -32,6 +32,8 @@ from collections import namedtuple
 from smtplib import SMTPException
 
 from IPy import IP
+from django.db import connection
+from django.core.mail import EmailMessage
 
 import nav.Snmp
 from nav.Snmp.errors import AgentError
@@ -42,13 +44,11 @@ from nav.errors import GeneralException
 from nav.models.arnold import Identity, Event
 from nav.models.manage import Interface, Prefix
 from nav.portadmin.snmputils import SNMPFactory
-from django.db import connection  # import this after any django models
-from django.core.mail import EmailMessage
 from nav.util import is_valid_ip
 
 CONFIGFILE = os.path.join("arnold", "arnold.conf")
 NONBLOCKFILE = os.path.join("arnold", "nonblock.conf")
-LOGGER = logging.getLogger("nav.arnold")
+_logger = logging.getLogger(__name__)
 
 # pylint: disable=C0103
 Candidate = namedtuple("Candidate", "camid ip mac interface endtime")
@@ -60,27 +60,27 @@ class Memo(object):
         self.func = func
         self.cache = {}
 
-    def __call__(self, *args):
-        if args in self.cache:
-            if self.is_changed(*args):
-                return self.store(*args)
+    def __call__(self, filename):
+        if filename in self.cache:
+            if self.is_changed(filename):
+                return self.store(filename)
             else:
-                return self.cache[args][0]
+                return self.cache[filename][0]
         else:
-            return self.store(*args)
+            return self.store(filename)
 
-    def is_changed(self, *args):
+    def is_changed(self, filename):
         """Check if file is changed since last cache"""
-        mtime = os.path.getmtime(*args)
-        if mtime != self.cache[args][1]:
+        mtime = os.path.getmtime(filename)
+        if mtime != self.cache[filename][1]:
             return True
         return False
 
-    def store(self, *args):
+    def store(self, filename):
         """Run function, store result and modification time in cache"""
-        value = self.func(*args)
-        mtime = os.path.getmtime(*args)
-        self.cache[args] = (value, mtime)
+        value = self.func(filename)
+        mtime = os.path.getmtime(filename)
+        self.cache[filename] = (value, mtime)
         return value
 
 
@@ -269,8 +269,8 @@ def find_computer_info(ip_or_mac, trunk_ok=False):
 
 def disable(candidate, justification, username, comment="", autoenablestep=0):
     """Disable a target by blocking the port"""
-    LOGGER.info('Disabling %s - %s on interface %s',
-                candidate.ip, candidate.mac, candidate.interface)
+    _logger.info('Disabling %s - %s on interface %s',
+                 candidate.ip, candidate.mac, candidate.interface)
 
     if not candidate.interface.netbox.read_write:
         raise NoReadWriteCommunityError(candidate.interface.netbox)
@@ -280,15 +280,15 @@ def disable(candidate, justification, username, comment="", autoenablestep=0):
     update_identity(identity, justification, autoenablestep)
     create_event(identity, comment, username)
 
-    LOGGER.info("Successfully %s %s (%s)",
-                identity.status, identity.ip, identity.mac)
+    _logger.info("Successfully %s %s (%s)",
+                 identity.status, identity.ip, identity.mac)
 
 
 def quarantine(candidate, qvlan, justification, username, comment="",
                autoenablestep=0):
     """Quarantine a target bu changing vlan on port"""
-    LOGGER.info('Quarantining %s - %s on interface %s',
-                candidate.ip, candidate.mac, candidate.interface)
+    _logger.info('Quarantining %s - %s on interface %s',
+                 candidate.ip, candidate.mac, candidate.interface)
 
     if not candidate.interface.netbox.read_write:
         raise NoReadWriteCommunityError(candidate.interface.netbox)
@@ -299,13 +299,13 @@ def quarantine(candidate, qvlan, justification, username, comment="",
     update_identity(identity, justification, autoenablestep)
     create_event(identity, comment, username)
 
-    LOGGER.info("Successfully %s %s (%s)",
-                identity.status, identity.ip, identity.mac)
+    _logger.info("Successfully %s %s (%s)",
+                 identity.status, identity.ip, identity.mac)
 
 
 def check_target(target, trunk_ok=False):
     """Check if target can be blocked or not"""
-    LOGGER.debug('Checking target %s', target)
+    _logger.debug('Checking target %s', target)
     if find_input_type(target) == 'IP':
         check_non_block(target)
     find_computer_info(target, trunk_ok)
@@ -362,11 +362,11 @@ def raise_if_detainment_not_allowed(interface, trunk_ok=False):
                   for x in str(config.get('arnold', 'allowtypes')).split(',')]
 
     if netbox.category.id not in allowtypes:
-        LOGGER.info("Not allowed to detain on %s", netbox.category.id)
+        _logger.info("Not allowed to detain on %s", netbox.category.id)
         raise WrongCatidError(netbox.category)
 
     if not trunk_ok and interface.trunk:
-        LOGGER.info("Cannot detain on a trunk")
+        _logger.info("Cannot detain on a trunk")
         raise BlockonTrunkError
 
 
@@ -384,10 +384,10 @@ def open_port(identity, username, eventcomment=""):
     try:
         identity.interface
     except Interface.DoesNotExist:
-        LOGGER.info("Interface did not exist, enabling in database only")
+        _logger.info("Interface did not exist, enabling in database only")
     else:
-        LOGGER.info("Trying to lift detention for %s on %s",
-                    identity.mac, identity.interface)
+        _logger.info("Trying to lift detention for %s on %s",
+                     identity.mac, identity.interface)
         if identity.status == 'disabled':
             change_port_status('enable', identity)
         elif identity.status == 'quarantined':
@@ -404,7 +404,7 @@ def open_port(identity, username, eventcomment=""):
                   executor=username)
     event.save()
 
-    LOGGER.info("openPort: Port successfully opened")
+    _logger.info("openPort: Port successfully opened")
 
 
 def change_port_status(action, identity):
@@ -430,14 +430,14 @@ def change_port_status(action, identity):
     try:
         if action == 'disable':
             agent.set(query, 'i', 2)
-            LOGGER.info('Setting ifadminstatus down on interface %s',
-                        identity.interface)
+            _logger.info('Setting ifadminstatus down on interface %s',
+                         identity.interface)
         elif action == 'enable':
             agent.set(query, 'i', 1)
-            LOGGER.info('Setting ifadminstatus up on interface %s',
-                        identity.interface)
+            _logger.info('Setting ifadminstatus up on interface %s',
+                         identity.interface)
     except AgentError as why:
-        LOGGER.error("Error when executing snmpquery: %s", why)
+        _logger.error("Error when executing snmpquery: %s", why)
         raise ChangePortStatusError(why)
 
 
@@ -460,7 +460,7 @@ def change_port_vlan(identity, vlan):
     except Exception as error:
         raise ChangePortVlanError(error)
     else:
-        LOGGER.info('Setting vlan %s on interface %s', vlan, interface)
+        _logger.info('Setting vlan %s on interface %s', vlan, interface)
         try:
             agent.set_vlan(interface, vlan)
             agent.restart_if(interface.ifindex)
@@ -477,7 +477,7 @@ def sendmail(from_email, toaddr, subject, msg):
         email = EmailMessage(subject, msg, from_email=from_email, to=[toaddr])
         email.send()
     except (SMTPException, socket.error) as error:
-        LOGGER.error('Failed to send mail to %s: %s', toaddr, error)
+        _logger.error('Failed to send mail to %s: %s', toaddr, error)
 
 
 def get_host_name(ip):
@@ -492,7 +492,7 @@ def get_host_name(ip):
     return hostname
 
 
-#pylint: disable=E1103
+# pylint: disable=E1103
 def get_netbios(ip):
     """Get netbiosname of computer with ip"""
 
@@ -527,7 +527,7 @@ def check_non_block(ip):
 
     # Specific ip-addresses
     if ip in nonblockdict['ip']:
-        LOGGER.info('Computer in nonblock list, skipping')
+        _logger.info('Computer in nonblock list, skipping')
         raise InExceptionListError
 
     # Ip-ranges

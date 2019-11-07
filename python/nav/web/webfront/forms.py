@@ -16,8 +16,8 @@
 #
 
 from django import forms
-from django.core.urlresolvers import reverse
 from django.forms.models import modelformset_factory
+from django.urls import reverse
 from crispy_forms.helper import FormHelper
 from crispy_forms_foundation.layout import (Layout, Fieldset, Row, Column,
                                             HTML, Submit)
@@ -59,6 +59,7 @@ class NavbarlinkForm(forms.ModelForm):
                        CheckBox('DELETE'), css_class='link-delete medium-2'),
             ),
         )
+
 
 NavbarLinkFormSet = modelformset_factory(
     NavbarLink, exclude=('account',),

@@ -16,10 +16,22 @@
 #
 
 """Utility methods for django used in NAV"""
-import django
 from django.db.models.fields import FieldDoesNotExist
+from django.urls import reverse
+from django.utils.http import urlencode
 
 from nav.models.profiles import Account, AccountGroup
+
+
+def reverse_with_query(viewname, **kwargs):
+    """Wrapper for django.urls.reverse, but will adapt query arguments from kwargs"""
+    baseurl = reverse(viewname)
+    getargs = urlencode(kwargs)
+    return "{}?{}".format(baseurl, getargs)
+
+
+def default_account():
+    return Account.objects.get(id=Account.DEFAULT_ACCOUNT)
 
 
 def get_account(request):
@@ -27,7 +39,7 @@ def get_account(request):
     try:
         return request.account
     except AttributeError:
-        return Account.objects.get(id=Account.DEFAULT_ACCOUNT)
+        return default_account()
 
 
 def is_admin(account):
@@ -49,7 +61,11 @@ def get_verbose_name(model, lookup):
 
     foreign_key, lookup = lookup.split('__', 1)
     try:
-        foreign_model = model._meta.get_field(foreign_key).rel.to
+        foreign_model_field = model._meta.get_field(foreign_key)
+        try:
+            foreign_model = foreign_model_field.remote_field.model
+        except AttributeError:  # Django <= 1.8
+            foreign_model = foreign_model_field.rel.to
         return get_verbose_name(foreign_model, lookup)
     except FieldDoesNotExist:
         pass
@@ -66,49 +82,26 @@ def get_verbose_name(model, lookup):
 #
 # Django version differentiated helper functions:
 #
+def get_model_and_name(rel):
+    """Gets model and name based on django version
+
+    rel in 1.8 is either ManyToOneRel or OneToOneRel
+    """
+    return rel.related_model, rel.name
 
 
-if django.VERSION >= (1, 8):
-
-    def get_model_and_name(rel):
-        """Gets model and name based on django version
-
-        rel in 1.8 is either ManyToOneRel or OneToOneRel
-        """
-        return rel.related_model, rel.name
-
-
-    def get_all_related_objects(model):
-        """Gets all related objects based on django version"""
-        return [
-            f for f in model._meta.get_fields()
-            if (f.one_to_many or f.one_to_one)
-            and f.auto_created and not f.concrete
-        ]
+def get_all_related_objects(model):
+    """Gets all related objects based on django version"""
+    return [
+        f for f in model._meta.get_fields()
+        if (f.one_to_many or f.one_to_one)
+        and f.auto_created and not f.concrete
+    ]
 
 
-    def get_all_related_many_to_many_objects(model):
-        """Gets all related many-to-many objects based on django version"""
-        return [
-            f for f in model._meta.get_fields(include_hidden=True)
-            if f.many_to_many and f.auto_created
-        ]
-
-else:  # This section can be removed when support for Django 1.7 is dropped.
-
-    def get_model_and_name(rel):
-        """Gets model and name based on django version
-
-        rel in 1.7 is a RelatedObject
-        """
-        return rel.model, rel.var_name
-
-
-    def get_all_related_objects(model):
-        """Gets all related objects based on django version"""
-        return model._meta.get_all_related_objects()
-
-
-    def get_all_related_many_to_many_objects(model):
-        """Gets all related many-to-many objects based on django version"""
-        return model._meta.get_all_related_many_to_many_objects()
+def get_all_related_many_to_many_objects(model):
+    """Gets all related many-to-many objects based on django version"""
+    return [
+        f for f in model._meta.get_fields(include_hidden=True)
+        if f.many_to_many and f.auto_created
+    ]

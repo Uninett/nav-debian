@@ -13,6 +13,8 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
+import logging
+
 from django.utils.six.moves.urllib.request import Request, urlopen
 from django.utils.six.moves.urllib.error import HTTPError
 from django.utils.six.moves.urllib.parse import urljoin
@@ -20,8 +22,7 @@ from django.conf import settings
 from django.http import HttpResponse, HttpResponseNotAllowed
 from nav.metrics import CONFIG
 
-import logging
-LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def index(request, uri):
@@ -36,13 +37,13 @@ def index(request, uri):
         req = Request(url)
         data = None
     elif request.method == 'POST':
-        data = _inject_default_arguments(request.POST)
+        data = _inject_default_arguments(request.POST).encode('utf-8')
         url = urljoin(base, uri)
         req = Request(url, data)
     else:
         return HttpResponseNotAllowed(['GET', 'POST', 'HEAD'])
 
-    LOGGER.debug("proxying request to %r", url)
+    _logger.debug("proxying request to %r", url)
     try:
         proxy = urlopen(req)
     except HTTPError as error:
@@ -50,15 +51,15 @@ def index(request, uri):
         headers = error.hdrs
         output = error.fp.read()
 
-        LOGGER.error("%s error on graphite render request: "
-                     "%r with arguments: %r", status, url, data)
+        _logger.error("%s error on graphite render request: "
+                      "%r with arguments: %r", status, url, data)
 
     else:
         status = proxy.getcode()
         headers = proxy.info()
         output = proxy.read()
 
-    content_type = headers.getheader('Content-Type', 'text/html')
+    content_type = headers.get('Content-Type', 'text/html')
 
     if request.method == 'HEAD':
         response = HttpResponse(content_type=content_type, status=status)
@@ -78,9 +79,9 @@ def _inject_default_arguments(query):
     format_ = CONFIG.get('graphiteweb', 'format')
     query = query.copy()
 
-    if not 'format' in query:
+    if 'format' not in query:
         query['format'] = format_
-    if not 'tz' in query and settings.TIME_ZONE:
+    if 'tz' not in query and settings.TIME_ZONE:
         query['tz'] = settings.TIME_ZONE
 
     return query.urlencode()

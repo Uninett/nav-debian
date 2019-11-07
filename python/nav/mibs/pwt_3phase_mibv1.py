@@ -36,6 +36,7 @@ from nav.oids import OID
 
 # from .itw_mib import for_table
 
+
 def for_table(table_name):
     """Used for annotating functions to process the returned
     tables"""
@@ -49,6 +50,7 @@ def for_table(table_name):
         return method
 
     return decorate
+
 
 class Pwt3PhaseV1Mib(mibretriever.MibRetriever):
     """A class that tries to retrieve all sensors from Powertek PDU"""
@@ -89,15 +91,13 @@ class Pwt3PhaseV1Mib(mibretriever.MibRetriever):
 
         for sensor in itervalues(internal_sensors):
             serial = sensor.get('inletIndex', None)
-            """
-            The spesification says the value can be 0 - 3 but I am seeing 0 - 7
-            and only 0 has value
-            """
+            # The spesification says the value can be 0 - 3 but I am
+            # seeing 0 - 7 and only 0 has value
             if serial != 0:
                 continue
 
             sensor_oid = sensor.get(0, None)
-            name = 'PWT'# sensor.get('internalName', None)
+            name = 'PWT'  # sensor.get('internalName', None)
             sensors.append(self._make_result_dict(
                 sensor_oid,
                 self._get_oid_for_sensor('inletCurrPhase1'),

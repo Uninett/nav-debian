@@ -61,7 +61,7 @@ class Ipv6Mib(mibretriever.MibRetriever):
             converted_oid = (ipv6_type, length) + oid
         return ip_mib.IpMib.inetaddress_to_ip(converted_oid)
 
-    @defer.deferredGenerator
+    @defer.inlineCallbacks
     def get_ifindex_ip_mac_mappings(self):
         """Retrieve the IPv6->MAC address mappings of this device.
 
@@ -73,9 +73,7 @@ class Ipv6Mib(mibretriever.MibRetriever):
 
         """
         column = 'ipv6NetToMediaPhysAddress'
-        waiter = defer.waitForDeferred(self.retrieve_column(column))
-        yield waiter
-        ipv6_phys_addrs = waiter.getResult()
+        ipv6_phys_addrs = yield self.retrieve_column(column)
 
         mappings = set()
 
@@ -89,9 +87,9 @@ class Ipv6Mib(mibretriever.MibRetriever):
             mappings.add(row)
         self._logger.debug("ip/mac pairs: Got %d rows from %s",
                            len(ipv6_phys_addrs), column)
-        yield mappings
+        defer.returnValue(mappings)
 
-    @defer.deferredGenerator
+    @defer.inlineCallbacks
     def get_interface_addresses(self):
         """Retrieve the IPv6 addresses and prefixes of interfaces.
 
@@ -102,9 +100,7 @@ class Ipv6Mib(mibretriever.MibRetriever):
 
         """
         prefixlen_column = 'ipv6AddrPfxLength'
-        waiter = defer.waitForDeferred(self.retrieve_column(prefixlen_column))
-        yield waiter
-        ipv6_addrs = waiter.getResult()
+        ipv6_addrs = yield self.retrieve_column(prefixlen_column)
 
         addresses = set()
 
@@ -120,4 +116,4 @@ class Ipv6Mib(mibretriever.MibRetriever):
         self._logger.debug("interface addresses: Got %d rows from %s",
                            len(ipv6_addrs), prefixlen_column)
 
-        yield addresses
+        defer.returnValue(addresses)

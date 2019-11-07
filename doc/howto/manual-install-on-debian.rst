@@ -159,7 +159,7 @@ Copy the file :file:`/etc/nav/apache/apache.conf.example` to
 * ``documentation_path`` is where Sphinx put the docs, in
   ``$SOURCE_CODE_DIRECTORY/build/sphinx/html/``.
 * ``nav_uploads_path`` is the upload path you created in step 8.
-* ``nav_python_base`` should be :file:`/usr/local/lib/python2.7/dist-packages` (or wherever the ``nav`` Python module was installed)
+* ``nav_python_base`` should be :file:`/usr/local/lib/python3.5/dist-packages` (or wherever the ``nav`` Python module was installed)
 
 We suggest creating a new Apache site config:
 Inside a ``VirtualHost``-directive, add:
@@ -194,11 +194,11 @@ You should now be able to browse the NAV web interface.
 11. Installing and configuring Graphite
 =======================================
 
-NAV uses Graphite_ to store and retrieve time-series data. See the :doc:`how-to
-guide for installing Graphite for use with NAV on a Debian system
-</howto/installing-graphite-on-debian>`.
+NAV uses :xref:`Graphite` to store and retrieve time-series data. If you do not
+already have a Graphite installation you wish to integrate with NAV, here is a
+:doc:`separate guide on how to install and use Graphite with NAV on your Debian
+system </howto/installing-graphite-on-debian>`.
 
-.. _Graphite: http://graphite.readthedocs.org/
 
 Start using NAV
 ===============

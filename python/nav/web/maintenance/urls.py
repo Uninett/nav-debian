@@ -18,8 +18,6 @@
 from django.conf.urls import url
 from nav.web.maintenance import views
 
-dummy = lambda *args, **kwargs: None
-
 
 urlpatterns = [
     url(r'^$', views.redirect_to_calendar),
@@ -27,7 +25,7 @@ urlpatterns = [
         name='maintenance'),
     url(r'^calendar/$', views.calendar,
         name='maintenance-calendar'),
-    url(r'^calendar/\?year=(?P<year>\d{4})&month=(?P<month>\d{1,2views.})$',
+    url(r'^calendar/(?P<year>\d{4})/(?P<month>\d{1,2})$',
         views.calendar,
         name='maintenance-calendar'),
     url(r'^active/$', views.active,
@@ -48,10 +46,4 @@ urlpatterns = [
         name='maintenance-cancel'),
     url(r'^addnetbox/$', views.add_box_to_maintenance,
         name='maintenance-add-netbox'),
-    url(r'^new\?netbox=(?P<netbox_id>\d+)$', dummy,
-        name='maintenance-new-netbox'),
-    url(r'^new\?service=(?P<service_id>\d+)$', dummy,
-        name='maintenance-new-service'),
-    url(r'^new\?room=(?P<room_id>.+)$', dummy,
-        name='maintenance-new-room'),
 ]

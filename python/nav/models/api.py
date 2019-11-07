@@ -18,7 +18,7 @@
 from datetime import datetime
 
 from django.db import models
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.encoding import python_2_unicode_compatible
 
 from nav.adapters import HStoreField
@@ -40,12 +40,16 @@ class APIToken(models.Model):
     token = VarcharField()
     expires = models.DateTimeField()
     created = models.DateTimeField(auto_now_add=True)
-    client = models.ForeignKey(Account, db_column='client')
+    client = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        db_column='client'
+    )
     scope = models.IntegerField(null=True, default=0)
     comment = models.TextField(null=True, blank=True)
     revoked = models.BooleanField(default=False)
     last_used = models.DateTimeField(null=True)
-    endpoints = HStoreField(null=True, blank=True, default={})
+    endpoints = HStoreField(null=True, blank=True, default=dict)
     permission = VarcharField(choices=permission_choices,
                               help_text=permission_help_text,
                               default='read')
