@@ -151,10 +151,11 @@ class SNMPHandler(object):
     def _get_read_only_handle(self):
         """Get a read only SNMP-handle."""
         if self.read_only_handle is None:
-            self.read_only_handle = Snmp.Snmp(self.netbox.ip, self.netbox.read_only,
-                                         self.netbox.snmp_version,
-                                         retries=self.retries,
-                                         timeout=self.timeout)
+            self.read_only_handle = Snmp.Snmp(self.netbox.ip,
+                                              self.netbox.read_only,
+                                              self.netbox.snmp_version,
+                                              retries=self.retries,
+                                              timeout=self.timeout)
         return self.read_only_handle
 
     def _query_netbox(self, oid, if_index):
@@ -318,11 +319,11 @@ class SNMPHandler(object):
     @staticmethod
     def _get_last_number(oid):
         """Get the last index for an OID."""
-        if not (isinstance(oid, str) or isinstance(oid, unicode)):
+        if not (isinstance(oid, six.string_types)):
             raise TypeError('Illegal value for oid')
         splits = oid.split('.')
         last = splits[-1]
-        if isinstance(last, str):
+        if isinstance(last, six.string_types):
             if last.isdigit():
                 last = int(last)
         return last
@@ -394,8 +395,16 @@ class SNMPHandler(object):
     def set_cisco_voice_vlan(self, interface, voice_vlan):
         """Should not be implemented on anything else than Cisco"""
         raise NotImplementedError
+        
+    def enable_cisco_cdp(self, interface):
+        """Should not be implemented on anything else than Cisco"""
+        raise NotImplementedError
 
     def disable_cisco_voice_vlan(self, interface):
+        """Should not be implemented on anything else than Cisco"""
+        raise NotImplementedError
+        
+    def disable_cisco_cdp(self, interface):
         """Should not be implemented on anything else than Cisco"""
         raise NotImplementedError
 
@@ -557,6 +566,7 @@ class Cisco(SNMPHandler):
     """A specialized class for handling ports in CISCO switches."""
 
     VTPNODES = get_mib('CISCO-VTP-MIB')['nodes']
+    PAENODES = get_mib('CISCO-PAE-MIB')['nodes']
 
     VTPVLANSTATE = VTPNODES['vtpVlanState']['oid']
     VTPVLANTYPE = VTPNODES['vtpVlanType']['oid']
@@ -575,11 +585,16 @@ class Cisco(SNMPHandler):
     ENCAPSULATION_DOT1Q = 4
     ENCAPSULATION_NEGOTIATE = 5
 
+    dot1xPortAuth = PAENODES['cpaePortCapabilitiesEnabled']['oid']
+    DOT1X_AUTHENTICATOR = 0b10000000
+    DOT1X_SUPPLICANT = 0b01000000
+
     def __init__(self, netbox, **kwargs):
         super(Cisco, self).__init__(netbox, **kwargs)
         self.vlan_oid = '1.3.6.1.4.1.9.9.68.1.2.2.1.2'
         self.write_mem_oid = '1.3.6.1.4.1.9.2.1.54.0'
         self.voice_vlan_oid = '1.3.6.1.4.1.9.9.68.1.5.1.1.1'
+        self.cdp_oid = '1.3.6.1.4.1.9.9.23.1.1.1.1.2'
 
     def get_vlan(self, interface):
         return self._query_netbox(self.vlan_oid, interface.ifindex)
@@ -642,6 +657,19 @@ class Cisco(SNMPHandler):
             _logger.error('%s is not a valid voice vlan', voice_vlan)
 
         return status
+        
+    def enable_cisco_cdp(self, interface):
+        """Enable CDP using Cisco specific oid"""
+        status = None
+        try:
+            status = self._set_netbox_value(
+                self.cdp_oid, interface.ifindex, 'i', 1)
+        except SnmpError as error:
+            _logger.error('Error setting cdp on interface: %s', error)
+        except ValueError as error:
+            _logger.error('%s is not a valid option for cdp', 1)
+
+        return status
 
     def disable_cisco_voice_vlan(self, interface):
         """Disable the Cisco Voice vlan on this interface"""
@@ -651,6 +679,19 @@ class Cisco(SNMPHandler):
                 self.voice_vlan_oid, interface.ifindex, 'i', 4096)
         except SnmpError as error:
             _logger.error('Error disabling voice vlan: %s', error)
+
+        return status
+        
+    def disable_cisco_cdp(self, interface):
+        """Disable CDP using Cisco specific oid"""
+        status = None
+        try:
+            status = self._set_netbox_value(
+                self.cdp_oid, interface.ifindex, 'i', 2)
+        except SnmpError as error:
+            _logger.error('Error setting cdp on interface: %s', error)
+        except ValueError as error:
+            _logger.error('%s is not a valid option for cdp', 2)
 
         return status
 
@@ -675,13 +716,13 @@ class Cisco(SNMPHandler):
         native_vlan = self._query_netbox(self.TRUNKPORTNATIVEVLAN, ifindex)
 
         blocks = [
-            self._query_netbox(oid, ifindex) or ''
+            self._query_netbox(oid, ifindex) or b''
             for oid in (self.TRUNKPORTVLANSENABLED,
                         self.TRUNKPORTVLANSENABLED2K,
                         self.TRUNKPORTVLANSENABLED3K,
                         self.TRUNKPORTVLANSENABLED4K)]
-        bitstring = "".join(value.ljust(CHARS_IN_1024_BITS, '\x00')
-                            for value in blocks)
+        bitstring = b"".join(value.ljust(CHARS_IN_1024_BITS, b'\x00')
+                             for value in blocks)
 
         bitvector = BitVector(bitstring)
         return native_vlan, bitvector.get_set_bits()
@@ -694,7 +735,7 @@ class Cisco(SNMPHandler):
         self.set_trunk_vlans(interface, [])
         self.set_native_vlan(interface, access_vlan)
         self.set_vlan(interface, access_vlan)
-        interface.trunk = False # Make sure database is updated
+        interface.trunk = False  # Make sure database is updated
         interface.vlan = access_vlan
         interface.save()
 
@@ -737,7 +778,7 @@ class Cisco(SNMPHandler):
 
         """
         ifindex = interface.ifindex
-        bitvector = BitVector(512 * '\000')  # initialize all-zero bitstring
+        bitvector = BitVector(512 * b'\x00')  # initialize all-zero bitstring
         for vlan in vlans:
             bitvector[int(vlan)] = 1
 
@@ -759,6 +800,22 @@ class Cisco(SNMPHandler):
     def _is_trunk(self, interface):
         state = int(self._query_netbox(self.TRUNKPORTSTATE, interface.ifindex))
         return state in [1, 5]
+
+    def is_dot1x_enabled(self, interface):
+        """Returns True or False based on state of dot1x"""
+        return six.byte2int(self._query_netbox(
+            self.dot1xPortAuth, interface.ifindex)) & self.DOT1X_AUTHENTICATOR
+
+    def get_dot1x_enabled_interfaces(self):
+        """Fetches a dict mapping ifindex to enabled state
+
+        :returns: dict[ifindex, is_enabled]
+        :rtype: dict[int, bool]
+        """
+        _logger.error("Querying for dot1x enabled interfaces on Cisco")
+        return {self._get_last_number(oid):
+                six.byte2int(state) & self.DOT1X_AUTHENTICATOR
+                for oid, state in self._bulkwalk(self.dot1xPortAuth)}
 
 
 class HP(SNMPHandler):

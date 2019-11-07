@@ -25,7 +25,6 @@ from itertools import groupby
 from functools import reduce
 
 from django.utils.six import iteritems
-from django.utils.six.moves import range
 
 
 def identity(obj):
@@ -54,7 +53,7 @@ def avg(lst):
     :return: An average value of the list.
 
     """
-    if len(lst) == 0:
+    if not lst:
         return 0
     return float(sum(lst))/len(lst)
 
@@ -67,7 +66,7 @@ def weighted_avg(lst):
     :return: A weighted average.
 
     """
-    if len(lst) == 0:
+    if not lst:
         return 0
     total = sum(value * weight for value, weight in lst)
     num = sum(weight for value, weight in lst)
@@ -157,7 +156,7 @@ def subdict(dct, keys):
                 del newdct[k]
         return newdct
     else:
-        return dict([(k, dct[k]) for k in keys])
+        return {k: dct[k] for k in keys}
 
 
 def filter_dict(fun, dct):
@@ -255,8 +254,8 @@ class lazy_dict(object):
 
     """
 
-    unevaluated = None # set of keys whose values are not evaluated
-    storage = None # dictionary for storing functions and evaluated values
+    unevaluated = None  # set of keys whose values are not evaluated
+    storage = None  # dictionary for storing functions and evaluated values
 
     def __init__(self, *args, **kwargs):
         self.unevaluated = set([])
@@ -322,7 +321,7 @@ class lazy_dict(object):
         else:
             for key in dict1.keys():
                 self[key] = dict1[key]
-        if len(dict2.keys()) > 0:
+        if dict2:
             self.update(dict2)
 
     def values(self):
@@ -389,7 +388,7 @@ class lazy_dict(object):
         self[k] for each k in key. Otherwise, evaluate d[key].
 
         """
-        if len(self.unevaluated) == 0:
+        if not self.unevaluated:
             return
         if key is None:
             self.force(self.keys())
@@ -425,9 +424,3 @@ def first(lst):
     return lst[0]
 
 
-def chunks(lst, size):
-    """
-    Yields successive `size`-sized chunks from lst.
-    """
-    for i in range(0, len(lst), size):
-        yield lst[i:i+size]

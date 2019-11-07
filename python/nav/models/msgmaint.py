@@ -16,11 +16,12 @@
 #
 """Django ORM wrapper for the NAV manage database"""
 
+from datetime import datetime, timedelta
+
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 
-from datetime import datetime, timedelta
 from nav.models.fields import (VarcharField, LegacyGenericForeignKey,
                                DateTimeInfinityField, INFINITY)
 from nav.models import manage
@@ -42,8 +43,12 @@ class Message(models.Model):
     author = VarcharField()
     last_changed = models.DateTimeField()
     replaces_message = models.ForeignKey(
-        'self', db_column='replaces_message',
-        related_name='replaced_by', null=True)
+        'self',
+        on_delete=models.CASCADE,
+        db_column='replaces_message',
+        related_name='replaced_by',
+        null=True
+    )
     maintenance_tasks = models.ManyToManyField(
         'MaintenanceTask', through='MessageToMaintenanceTask', blank=True)
 
@@ -158,8 +163,11 @@ class MaintenanceComponent(models.Model):
     maintenance tool."""
 
     id = models.AutoField(primary_key=True)  # Serial for faking primary key
-    maintenance_task = models.ForeignKey(MaintenanceTask,
-                                         db_column='maint_taskid')
+    maintenance_task = models.ForeignKey(
+        MaintenanceTask,
+        on_delete=models.CASCADE,
+        db_column='maint_taskid'
+    )
     key = VarcharField()
     value = VarcharField()
     component = LegacyGenericForeignKey('key', 'value')
@@ -178,9 +186,16 @@ class MessageToMaintenanceTask(models.Model):
     tasks."""
 
     id = models.AutoField(primary_key=True)  # Serial for faking primary key
-    message = models.ForeignKey(Message, db_column='messageid')
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        db_column='messageid'
+    )
     maintenance_task = models.ForeignKey(
-        MaintenanceTask, db_column='maint_taskid')
+        MaintenanceTask,
+        on_delete=models.CASCADE,
+        db_column='maint_taskid'
+    )
 
     class Meta(object):
         db_table = 'message_to_maint_task'

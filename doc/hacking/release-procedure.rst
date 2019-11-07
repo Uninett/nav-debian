@@ -16,7 +16,7 @@ Review milestone for next release on GitHub
 -------------------------------------------
 
 * Check the list of issues targeted to the upcoming milestone at
-  https://github.com/UNINETT/nav/milestones .
+  https://github.com/Uninett/nav/milestones .
 * Are all the targeted bugs closed?
 
   * Please remember that the series branch must be merged to ``master`` for
@@ -41,6 +41,10 @@ Updating changelog and release notes
 * Generate a list of referenced issues from the GitHub milestone::
 
     ./tools/buglog.py 4.8.3
+
+  ``buglog`` depends on the ``github`` library, install with
+  ``pip install PyGithub``.
+  (`PyGithub documentation <https://pygithub.readthedocs.io/en/latest/>`_)
 
 * Add a new entry to the CHANGES file for for the new release and paste the
   list produced by the above command. Commit the changes::

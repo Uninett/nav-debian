@@ -21,18 +21,21 @@ contains ad-hoc serializer methods (self.fields) for API purposes.
 """
 
 from __future__ import unicode_literals, absolute_import
+import bisect
 import json
+import functools
 import logging
 from IPy import IP, IPSet
 
-from django.core.urlresolvers import reverse, NoReverseMatch
+from django.urls import reverse, NoReverseMatch
 from django.utils import six
 
 from nav.web.ipam.util import get_available_subnets
 from nav.models.manage import Prefix
 
 
-LOGGER = logging.getLogger('nav.web.ipam.prefix_tree')
+_logger = logging.getLogger(__name__)
+
 
 class PrefixHeap(object):
     "Pseudo-heap ordered topologically by prefixes"
@@ -85,15 +88,13 @@ class PrefixHeap(object):
         assert isinstance(node, PrefixHeap), \
             "Can only add classes inheriting from PrefixHeap"
         # first, try adding to children (recursively)
-        matches = (child for child in self.children if node in child)
-        for child in matches:
+        i = bisect.bisect_left(self.children, node)
+        if i > 0 and node in self.children[i-1]:
+            child = self.children[i-1]
             node.parent = child
             child.add(node)
             return
-        # if this fails, add to self
-        node.parent = self
-        self.children.append(node)
-        self.children.sort()
+        self.children.insert(i, node)
 
     def add_many(self, nodes):
         "Add multiple nodes to heap"
@@ -107,6 +108,7 @@ class PrefixHeap(object):
 # exposes a clean, non-nested attribute contract (we promise that the field 'x'
 # will exist and be populated with some value) etc.
 
+@functools.total_ordering
 class IpNode(PrefixHeap):
     "PrefixHeap node class"
     def __init__(self, ip_addr, net_type):
@@ -143,6 +145,16 @@ class IpNode(PrefixHeap):
         assert isinstance(other, IpNode), \
             "Can only compare with other IpNode elements"
         return self.ip.__cmp__(other.ip)
+
+    def __eq__(self, other):
+        assert isinstance(other, IpNode), \
+            "Can only compare with other IpNode elements"
+        return self.ip == other.ip
+
+    def __lt__(self, other):
+        assert isinstance(other, IpNode), \
+            "Can only compare with other IpNode elements"
+        return self.ip < other.ip
 
 
 class IpNodeFacade(IpNode):
@@ -297,6 +309,7 @@ class FauxNode(IpNodeFacade):
         "Marker propery for declaring the node as fake (templating reasons)"
         return True
 
+
 class FakeVLAN(object):
     "Mock object that quacks like prefix.vlan"
 
@@ -339,7 +352,7 @@ class PrefixNode(IpNodeFacade):
         # issues, in which case we use a filler
         vlan = getattr(prefix, "vlan", None)
         if vlan is None:
-            LOGGER.warning(
+            _logger.warning(
                 "Prefix % id=% does not have a VLAN relation",
                 prefix.net_address, prefix.id)
             vlan = FakeVLAN()
@@ -350,7 +363,7 @@ class PrefixNode(IpNodeFacade):
         self._vlan_number = vlan.vlan
         self._net_ident = vlan.net_ident
         # Export usage field of VLAN
-        if getattr(vlan, "usage"):
+        if getattr(vlan, "usage", None):
             self.vlan_usage = prefix.vlan.usage.description
             self.FIELDS.append("vlan_usage")
 
@@ -392,8 +405,8 @@ def make_prefix_heap(prefixes, initial_children=None, family=None,
         return False
 
     heap = PrefixHeap(initial_children)
-    filtered = [prefix for prefix in prefixes if accept(prefix)]
-    nodes = [PrefixNode(prefix, sort_fn=sort_fn) for prefix in filtered]
+    filtered = (prefix for prefix in prefixes if accept(prefix))
+    nodes = (PrefixNode(prefix, sort_fn=sort_fn) for prefix in filtered)
     for node in sorted(nodes, reverse=False):
         heap.add(node)
     # Add marker nodes for available ranges/prefixes
@@ -411,6 +424,7 @@ def make_prefix_heap(prefixes, initial_children=None, family=None,
             nodes = nodes_from_ips(unused_prefix, klass="empty")
             heap.add_many(nodes)
     return heap
+
 
 SORT_BY = {
     "vlan_number": lambda x: x.vlan_number
@@ -454,7 +468,6 @@ not part of the RFC1918 ranges.
     init = []
 
     if root_ip is not None and root_ip:
-        # pylint: disable=redefined-variable-type
         scope = Prefix.objects.get(net_address=root_ip)
         if scope is not None:
             node = PrefixNode(scope)

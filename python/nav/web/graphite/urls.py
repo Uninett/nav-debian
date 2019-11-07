@@ -18,10 +18,12 @@
 from django.conf.urls import url
 from nav.web.graphite import views
 
-_dummy = lambda x: None
+
+def _dummy(x):
+    return None
+
 
 urlpatterns = [
     url(r'^(?P<uri>.*)$', views.index, name='graphite'),
     url(r'^render', _dummy, name='graphite-render'),
-    url(r'^metrics/find\?query=(?P<path>)$', _dummy, name='graphite-find'),
 ]

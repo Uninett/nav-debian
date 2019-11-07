@@ -22,9 +22,13 @@ def test_alert_templates_can_be_found():
 
 
 def get_template_list(directories=None):
+    templates = getattr(settings, 'TEMPLATES', [{}])
+    template_dirs = list(getattr(templates[0], 'DIRS', []))
+    if not template_dirs:
+        template_dirs = list(getattr(settings, 'TEMPLATE_DIRS', []))  # Outdated, remove when on 1.11
     if not directories:
         ensure_alert_templates_are_available()
-        directories = (settings.TEMPLATE_DIRS + get_nav_app_template_dirs())
+        directories = template_dirs + list(get_nav_app_template_dirs())
 
     for tmpldir in directories:
         for dirname, _subdirs, files in os.walk(tmpldir):
@@ -38,9 +42,6 @@ def get_nav_app_template_dirs():
     This replaces django.template.loads.get_app_template_dirs, to just
     return templates that belong to apps in the nav namespace.
     """
-    if hasattr(app_directories, 'app_template_dirs'):  # Django < 1.8
-        return app_directories.app_template_dirs
-
     from django.apps import apps
     template_dirs = []
     for app_config in apps.get_app_configs():

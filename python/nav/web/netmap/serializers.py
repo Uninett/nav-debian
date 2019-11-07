@@ -14,14 +14,13 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Serializer classes for netmap"""
-from django.forms.widgets import SelectMultiple, Textarea
+from django.forms.widgets import SelectMultiple
 from django.shortcuts import get_object_or_404
 from django.utils.six import iteritems
 
 from rest_framework import serializers
 
 from nav.models import profiles, manage
-from nav.models.manage import Category
 
 
 class MultipleChoiceField(serializers.ChoiceField):
@@ -32,7 +31,7 @@ class MultipleChoiceField(serializers.ChoiceField):
     widget = SelectMultiple
 
     def field_from_native(self, data, files, field_name, into):
-        if type(data) is dict:
+        if isinstance(data, dict):
             into[field_name] = data.get(field_name, [])
         else:
             # If using django rest frameworks api browser

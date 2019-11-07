@@ -39,7 +39,7 @@ from django.utils.six.moves import http_cookies
 from nav.bootstrap import bootstrap_django
 
 from django.contrib.sessions.middleware import SessionMiddleware
-from nav.django.auth import AuthenticationMiddleware, AuthorizationMiddleware
+from nav.web.auth import AuthenticationMiddleware, AuthorizationMiddleware
 from nav.web import loginit
 from django.db import connection
 
@@ -83,6 +83,7 @@ def _get_cookie_dict(req):
         return dict((key, c.value) for key, c in cookie.items())
     else:
         return {}
+
 
 #
 # module initializations

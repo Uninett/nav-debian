@@ -1,15 +1,21 @@
 # This sets up a live NAV development environment in Docker containers.
 #
-# Defaults NAV to a container with Python 2. If you want to work with NAV in a
-# Python 3 environment, add a `docker-compose.override.yml` that sets the
-# dockerfile to Dockerfile3, like so:
+# Defaults NAV to a container with Python 3.
 #
-# version: '2'
-# services:
-#   nav:
-#     build:
-#       dockerfile: Dockerfile3
 version: '2'
+
+# x-forwarder:
+#   &forwarder
+#   build:
+#     context: tools/forward
+#     args:
+#       - USER
+#   volumes:
+#     - /run/user/1000/keyring/ssh:/auth_sock
+#     - /etc/ssh/ssh_known_hosts:/etc/ssh/ssh_known_hosts
+#   environment:
+#     - SSH_AUTH_SOCK=/auth_sock
+
 services:
   nav:
     build: .
@@ -18,14 +24,24 @@ services:
       - PGHOST=postgres
       - PGDATABASE=nav
       - PGUSER=postgres
-    ports:
-      - "80:80"
     volumes:
       - .:/source
     depends_on:
       - postgres
+
+  web:
+    build: .
+    command: ["/source/tools/docker/web.sh"]
+    ports:
+      - "80:80"
+    volumes_from:
+      - nav
+    depends_on:
+      - nav
+
   postgres:
     image: "postgres:9.4"
+
   graphite:
     build: ./tools/docker/graphite
     ports:
@@ -41,3 +57,7 @@ services:
     volumes_from:
       - nav
     command: /source/tools/docker/doc-watch.sh
+
+  # mydevice.mydomain:
+  #   << : *forwarder
+  #   command: /snmp_forward.sh mydevice.mydomain myvk

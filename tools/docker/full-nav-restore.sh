@@ -6,14 +6,21 @@
 # ssh <production-nav> /usr/lib/nav/navpgdump --only-open-arp --only-open-cam | \
 #   docker exec -i <container-id> full-nav-restore.sh
 #
-if [ ! -x /source/bin/navsyncdb ]; then
+if ! which navsyncdb 2>/dev/null; then
     echo "NAV source directory not correctly mounted on /source" > /dev/stderr
     exit 1
 fi
 nav stop
-supervisorctl stop web
 export PGHOST=postgres
 export PGUSER=postgres
-/source/bin/navsyncdb --drop-database --create --restore -
-supervisorctl start web
+
+echo "Forcefully terminating all other connections to the database:"
+psql -c "
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+FROM pg_stat_activity
+WHERE pg_stat_activity.datname = 'nav'
+  AND pid <> pg_backend_pid();
+"
+
+navsyncdb --drop-database --create --restore -
 echo "NOT starting NAV after db restore, please do it manually!"

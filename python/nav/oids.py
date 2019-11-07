@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from django.utils import six
 
 SEPARATOR = '.'
+SEPARATOR_B = b'.'
 
 
 class OID(tuple):
@@ -44,8 +45,9 @@ class OID(tuple):
     """
     def __new__(cls, oid):
         if isinstance(oid, six.string_types):
-            # pylint: disable=W0141  (timeit proves map to be faster here)
             oid = map(int, oid.strip(SEPARATOR).split(SEPARATOR))
+        elif isinstance(oid, six.binary_type):
+            oid = map(int, oid.strip(SEPARATOR_B).split(SEPARATOR_B))
         elif isinstance(oid, OID):
             return oid
         return tuple.__new__(cls, oid)
@@ -91,6 +93,7 @@ def get_enterprise_id(sysobjectid):
 def _test():
     import doctest
     doctest.testmod()
+
 
 if __name__ == "__main__":
     _test()

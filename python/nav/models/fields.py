@@ -24,18 +24,12 @@ from decimal import Decimal
 import django
 from django import forms
 from django.db import models
+from django.db.models import signals
 from django.core import exceptions
 from django.db.models import Q
 from django.utils import six
-
-try:
-    # Django >= 1.8
-    from django.apps import apps
-    get_models = apps.get_models
-    del apps
-except ImportError:
-    # Django < 1.9
-    from django.db.models import get_models
+from django.utils.encoding import python_2_unicode_compatible
+from django.apps import apps
 
 from nav.util import is_valid_cidr, is_valid_ip
 from nav.django import validators, forms as navforms
@@ -71,7 +65,6 @@ class VarcharField(models.TextField):
         return super(VarcharField, self).formfield(**defaults)
 
 
-@six.add_metaclass(models.SubfieldBase)
 class DictAsJsonField(models.TextField):
     """Serializes value to and from json. Has a fallback to pickle for
     historical reasons"""
@@ -80,6 +73,9 @@ class DictAsJsonField(models.TextField):
 
     def db_type(self, connection):
         return 'varchar'
+
+    def from_db_value(self, value, expression, connection, context):
+        return self.to_python(value)
 
     def to_python(self, value):
         if value:
@@ -101,7 +97,6 @@ class DictAsJsonField(models.TextField):
             return json.dumps(value)
 
 
-@six.add_metaclass(models.SubfieldBase)
 class CIDRField(VarcharField):
 
     def to_python(self, value):
@@ -115,7 +110,6 @@ class CIDRField(VarcharField):
         return value
 
 
-@six.add_metaclass(models.SubfieldBase)
 class PointField(models.CharField):
 
     def __init__(self, *args, **kwargs):
@@ -124,6 +118,9 @@ class PointField(models.CharField):
 
     def db_type(self, connection):
         return 'point'
+
+    def from_db_value(self, value, expression, connection, context):
+        return self.to_python(value)
 
     def to_python(self, value):
         if not value or isinstance(value, tuple):
@@ -154,6 +151,7 @@ class PointField(models.CharField):
 # this interfaces with Django model protocols, which generates unnecessary
 # pylint violations:
 # pylint: disable=W0201,W0212
+@python_2_unicode_compatible
 class LegacyGenericForeignKey(object):
     """Generic foreign key for legacy NAV database.
 
@@ -163,27 +161,53 @@ class LegacyGenericForeignKey(object):
 
     """
 
-    def __init__(self, model_name_field, model_fk_field):
+    def __init__(self, model_name_field, model_fk_field, for_concrete_model=True):
         self.mn_field = model_name_field
         self.fk_field = model_fk_field
-        if django.VERSION >= (1, 8):
-            self.is_relation = True
-            self.many_to_many = False
-            self.one_to_many = True
-            self.related_model = None
-            self.auto_created = False
+        self.is_relation = True
+        self.many_to_many = False
+        self.one_to_many = True
+        self.related_model = None
+        self.auto_created = False
+        self.for_concrete_model = for_concrete_model
+        self.editable = False
+
+    def __str__(self):
+        modelname = getattr(self, 'mn_field')
+        fk = getattr(self, 'fk_field')
+        return '{}={}'.format(modelname, fk)
 
     def contribute_to_class(self, cls, name):
         """Add things to the model class using this descriptor"""
         self.name = name
         self.model = cls
         self.cache_attr = "_%s_cache" % name
-        if django.VERSION >= (1, 8):
+        if django.VERSION[:2] == (1, 8):  # Django <= 1.8
             cls._meta.virtual_fields.append(self)
         else:
-            cls._meta.add_virtual_field(self)
+            cls._meta.private_fields.append(self)
+
+        if not cls._meta.abstract:
+            signals.pre_init.connect(self.instance_pre_init, sender=cls)
 
         setattr(cls, name, self)
+
+    def instance_pre_init(self, signal, sender, args, kwargs, **_kwargs):
+        """
+        Handles initializing an object with the generic FK instead of
+        content-type/object-id fields.
+        """
+        if self.name in kwargs:
+            value = kwargs.pop(self.name)
+            if value is not None:
+                kwargs[self.mn_field] = self.get_model_name(value)
+                kwargs[self.fk_field] = value._get_pk_val()
+            else:
+                kwargs[self.mn_field] = None
+                kwargs[self.fk_field] = None
+
+    def is_cached(self, instance):
+        return hasattr(instance, self.cache_attr)
 
     def __get__(self, instance, instance_type=None):
         if instance is None:
@@ -214,7 +238,7 @@ class LegacyGenericForeignKey(object):
         table_name = None
         fkey = None
         if value is not None:
-            table_name = value._meta.db_table
+            table_name = self.get_model_name(value)
             fkey = value._get_pk_val()
 
         setattr(instance, self.mn_field, table_name)
@@ -222,8 +246,12 @@ class LegacyGenericForeignKey(object):
         setattr(instance, self.cache_attr, value)
 
     @staticmethod
+    def get_model_name(obj):
+        return obj._meta.db_table
+
+    @staticmethod
     def get_model_class(table_name):
         """Returns a Model class based on a database table name"""
-        classmap = dict((m._meta.db_table, m) for m in get_models())
+        classmap = {model._meta.db_table: model for model in apps.get_models()}
         if table_name in classmap:
             return classmap[table_name]

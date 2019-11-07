@@ -51,8 +51,6 @@ class NetboxModelForm(forms.ModelForm):
     function = forms.CharField(required=False)
     data = HStoreField(label='Attributes', required=False)
     sysname = forms.CharField(required=False)
-    snmp_version = forms.ChoiceField(choices=[('1', '1'), ('2', '2c')],
-                                     widget=forms.RadioSelect, initial='2')
     virtual_instance = MyModelMultipleChoiceField(
         queryset=Netbox.objects.none(), required=False,
         label='Virtual instances',
@@ -61,9 +59,8 @@ class NetboxModelForm(forms.ModelForm):
     class Meta(object):
         model = Netbox
         fields = ['ip', 'room', 'category', 'organization',
-                  'read_only', 'read_write', 'snmp_version',
                   'groups', 'sysname', 'type', 'data', 'master',
-                  'virtual_instance']
+                  'virtual_instance', 'profiles']
         help_texts = {
             'master': 'Select a master device when this IP Device is a virtual'
                       ' instance'
@@ -112,14 +109,8 @@ class NetboxModelForm(forms.ModelForm):
                              'room', 'category', 'organization'),
                     css_class=css_class),
                 Column(
-                    Fieldset('SNMP ',
-                             Row(
-                                 Column('read_only', css_class='medium-4'),
-                                 Column('read_write', css_class='medium-4'),
-                                 Column(
-                                     Div('snmp_version', css_class='choice-radio-button'),
-                                     css_class='medium-4')
-                             ),
+                    Fieldset('Management profiles',
+                             Field('profiles', css_class='select2'),
                              NavButton('check_connectivity',
                                        'Check connectivity',
                                        css_class='check_connectivity')),
@@ -129,16 +120,17 @@ class NetboxModelForm(forms.ModelForm):
                                  css_id='real_collected_fields')),
                     css_class=css_class),
                 Column(
-                    Fieldset('Meta information',
-                             'function',
-                             Field('groups', css_class='select2'),
-                             'data',
-                             HTML("<a class='advanced-toggle'><i class='fa fa-caret-square-o-right'>&nbsp;</i>Advanced options</a>"),
-                             Div(
-                                 HTML('<small class="alert-box">NB: An IP Device cannot both have a master and have virtual instances</small>'),
-                                 'master', 'virtual_instance',
-                                 css_class='advanced'
-                             )
+                    Fieldset(
+                        'Meta information',
+                        'function',
+                        Field('groups', css_class='select2'),
+                        'data',
+                        HTML("<a class='advanced-toggle'><i class='fa fa-caret-square-o-right'>&nbsp;</i>Advanced options</a>"),
+                        Div(
+                            HTML('<small class="alert-box">NB: An IP Device cannot both have a master and have virtual instances</small>'),
+                            'master', 'virtual_instance',
+                            css_class='advanced'
+                        )
                     ),
                     css_class=css_class),
             ),
@@ -184,31 +176,25 @@ class NetboxModelForm(forms.ModelForm):
             _, sysname = resolve_ip_and_sysname(ip)
         return sysname
 
-    def clean_snmp_version(self):
-        """Set default snmp_version 2"""
-        snmp_version = self.cleaned_data.get('snmp_version', 2)
-        if not snmp_version:
-            snmp_version = 2
-        return snmp_version
-
     def clean(self):
         """Make sure that categories that require communities has that"""
         cleaned_data = self.cleaned_data
         ip = cleaned_data.get('ip')
         cat = cleaned_data.get('category')
-        ro_community = cleaned_data.get('read_only')
+        profiles = cleaned_data.get('profiles')
+        _logger.warning("cleaning profiles: %r", profiles)
 
         if ip:
             try:
                 self._check_existing_ip(ip)
-            except IPExistsException as ex:
-                self._errors['ip'] = self.error_class(ex.message)
+            except IPExistsException as error:
+                self._errors['ip'] = self.error_class(error.message_list)
                 del cleaned_data['ip']
 
-        if cat and cat.req_snmp and not ro_community:
-            self._errors['read_only'] = self.error_class(
-                ["Category %s requires SNMP access." % cat.id])
-            del cleaned_data['read_only']
+        if cat and cat.req_mgmt and not profiles:
+            self._errors['profiles'] = self.error_class(
+                ["Category %s requires a management profile." % cat.id])
+            del cleaned_data['profiles']
 
         return cleaned_data
 
@@ -219,7 +205,7 @@ class NetboxModelForm(forms.ModelForm):
             msg.append("IP (%s) is already in database" % ip)
         if does_sysname_exist(sysname, self.instance.pk):
             msg.append("Sysname (%s) is already in database" % sysname)
-        if len(msg) > 0:
+        if msg:
             raise IPExistsException(msg)
 
     def save(self, commit=True):
@@ -279,4 +265,9 @@ class NetboxMoveForm(forms.Form):
 
 class IPExistsException(Exception):
     """Exception raised when a device with the same IP-address exists"""
-    pass
+    def __init__(self, message_list, **kwargs):
+        """
+        :param message_list: A list of messages associated with this error.
+        """
+        super(IPExistsException, self).__init__(message_list, **kwargs)
+        self.message_list = message_list

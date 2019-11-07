@@ -17,6 +17,7 @@ import sys, os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.join(os.path.abspath('..'), 'python'))
+sys.path.insert(0, os.path.abspath("exts"))
 
 from nav import buildconf
 from nav import bootstrap
@@ -26,7 +27,7 @@ bootstrap.bootstrap_django('doc')
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.todo', 'sphinx.ext.ifconfig']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.todo', 'sphinx.ext.ifconfig', 'xref']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -49,7 +50,7 @@ copyright = u'2012-2019, Uninett AS'
 # built documents.
 #
 # The short X.Y version.
-version = '4.9'
+version = '5.0'
 #version = '.'.join(buildconf.VERSION.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = buildconf.VERSION
@@ -198,7 +199,7 @@ html_theme_options = {
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {'**': ['localtoc.html', 'sourcelink.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -263,3 +264,14 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
+
+
+# External links definitions
+xref_links = {
+    "Graphite": ("Graphite", "https://graphiteapp.org"),
+    "PostgreSQL": ("PostgreSQL", "https://www.postgresql.org"),
+}
+
+def setup(app):
+    app.add_stylesheet("custom.css")
+

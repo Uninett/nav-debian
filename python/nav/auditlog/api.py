@@ -36,7 +36,6 @@ class LGFKRelatedField(serializers.RelatedField):
         return six.text_type(value)
 
 
-
 class LogEntrySerializer(serializers.ModelSerializer):
     actor = LGFKRelatedField(read_only=True)
     object = LGFKRelatedField(read_only=True)
@@ -128,3 +127,4 @@ class LogEntryViewSet(NAVDefaultsMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = LogEntrySerializer
     filter_fields = ('subsystem', 'object_pk', 'verb')
     search_fields = ('summary', )
+    ordering = ('timestamp',)

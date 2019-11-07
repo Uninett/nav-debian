@@ -15,12 +15,14 @@
 #
 """This class serves as an interface for the prefix matrix."""
 
-from django.core.urlresolvers import reverse
+import logging
 
+from django.urls import reverse
+
+from nav.django.templatetags.report import report
 from nav.report import IPtools, metaIP
 from nav.report.matrix import Matrix, Link, Cell
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -137,7 +139,7 @@ class MatrixIPv4(Matrix):
     def _get_column_headers(self):
         netsize = self.end_net.len()
         factor = 32 - self.end_net.prefixlen()
-        return [str((2**factor)*i) for i in range(0, 256/netsize)]
+        return [str((2**factor)*i) for i in range(0, 256//netsize)]
         # return [str((2**lsb)*i) for i in range(0, msb)]
 
     def __repr__(self):
@@ -160,8 +162,7 @@ class MatrixIPv4(Matrix):
                 kwargs={'scope': ip.strNormal().replace('/', '%2F')})
             text = ip.strNormal()
         else:
-            url = reverse('report-prefix-netaddr',
-                          kwargs={'netaddr': nip + '.%'})
+            url = report("prefix", netaddr=nip + ".*", op_netaddr="like")
             text = nip
         return Link(url, text, 'Go to prefix report')
 

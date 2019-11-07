@@ -10,7 +10,7 @@ from __future__ import unicode_literals
 import pytest
 
 from django.http import QueryDict
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from nav import db
 from nav.report.generator import ReportList, Generator

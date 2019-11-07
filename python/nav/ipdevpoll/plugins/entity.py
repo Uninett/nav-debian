@@ -43,7 +43,7 @@ class Entity(Plugin):
     def handle(self):
         self._logger.debug("Collecting physical entity data")
         need_to_collect = yield self._need_to_collect()
-        #if need_to_collect:
+        # if need_to_collect:
         if True:
             physical_table = (
                 yield self.entitymib.get_entity_physical_table())
@@ -63,7 +63,6 @@ class Entity(Plugin):
         """Process the list of collected entities."""
         # be able to look up all entities using entPhysicalIndex
         entities = EntityTable(result)
-        entities.clean_unicode()
         containers = [self._container_from_entity(entity)
                       for entity in entities.values()]
         self._fix_hierarchy(containers)

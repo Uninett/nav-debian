@@ -1,4 +1,4 @@
-# Copyright (C) 2018 UNINETT AS
+# Copyright (C) 2018 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,10 +15,11 @@
 
 from __future__ import absolute_import
 
+# pylint: disable=invalid-name
 try:
     from django.contrib.postgres.fields import HStoreField
     DictionaryField = HStoreField
-except ImportError as e:
+except ImportError:
     from django_hstore.hstore import DictionaryField
     HStoreField = DictionaryField
 

@@ -15,21 +15,19 @@
 # pylint: disable=R0903, R0901, R0904
 """Views for the NAV API"""
 
+from datetime import datetime, timedelta
 import logging
+
 from IPy import IP
-import django
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template import RequestContext
 from django.db.models import Q
-if django.VERSION < (1, 8):
-    from django.db.models.related import RelatedObject as _RelatedObject
-else:
-    from django.db.models.fields.related import ManyToOneRel as _RelatedObject
+from django.db.models.fields.related import ManyToOneRel as _RelatedObject
 from django.db.models.fields import FieldDoesNotExist
-from datetime import datetime, timedelta
 import iso8601
 
-from rest_framework import status, filters, viewsets, exceptions, pagination
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet
+from rest_framework import status, filters, viewsets, exceptions
 from rest_framework.decorators import (api_view, renderer_classes, list_route,
                                        detail_route)
 from rest_framework.reverse import reverse_lazy
@@ -39,18 +37,21 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 from rest_framework.generics import ListAPIView, get_object_or_404
-from nav.models.api import APIToken
+
 from nav.models import manage, event, cabling, rack, profiles
 from nav.models.fields import INFINITY, UNRESOLVED
 from nav.web.servicecheckers import load_checker_classes
 from nav.util import auth_token
 
+from nav.buildconf import VERSION
 from nav.web.api.v1 import serializers, alert_serializers
-from .auth import APIPermission, APIAuthentication, NavBaseAuthentication
-from .helpers import prefix_collector
-from .filter_backends import *
 from nav.web.status2 import STATELESS_THRESHOLD
 from nav.macaddress import MacPrefix
+from .auth import APIPermission, APIAuthentication, NavBaseAuthentication
+from .helpers import prefix_collector
+from .filter_backends import (AlertHistoryFilterBackend, IfClassFilter,
+                              NaturalIfnameFilter,
+                              NetboxIsOnMaintenanceFilterBackend,)
 
 EXPIRE_DELTA = timedelta(days=365)
 MINIMUMPREFIXLENGTH = 4
@@ -130,6 +131,8 @@ def get_endpoints(request=None, version=1):
         'interface': reverse_lazy('{}interface-list'.format(prefix),
                                   **kwargs),
         'location': reverse_lazy('{}location-list'.format(prefix), **kwargs),
+        'management_profile': reverse_lazy('{}management-profile-list'.format(prefix),
+                                           **kwargs),
         'netbox': reverse_lazy('{}netbox-list'.format(prefix), **kwargs),
         'patch': reverse_lazy('{}patch-list'.format(prefix), **kwargs),
         'prefix': reverse_lazy('{}prefix-list'.format(prefix), **kwargs),
@@ -165,8 +168,13 @@ class RelatedOrderingFilter(filters.OrderingFilter):
                 return self.is_valid_field(field.model, components[1])
 
             # foreign key
-            if field.rel and len(components) == 2:
-                return self.is_valid_field(field.rel.to, components[1])
+            if len(components) == 2:
+                try:
+                    remote_model = field.remote_field.model
+                except AttributeError:  # Django <= 1.8
+                    remote_model = field.rel.to
+                if remote_model:
+                    return self.is_valid_field(remote_model, components[1])
             return True
         except FieldDoesNotExist:
             return False
@@ -181,9 +189,10 @@ class NAVAPIMixin(APIView):
     authentication_classes = (NavBaseAuthentication, APIAuthentication)
     permission_classes = (APIPermission,)
     renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
-    filter_backends = (filters.SearchFilter, filters.DjangoFilterBackend,
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend,
                        RelatedOrderingFilter)
     ordering_fields = '__all__'
+    ordering = ('id',)
 
 
 class ServiceHandlerViewSet(NAVAPIMixin, ViewSet):
@@ -334,6 +343,10 @@ class UnrecognizedNeighborViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     filter_fields = ('netbox', 'source')
     search_fields = ('remote_name', )
 
+class ManagementProfileViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
+    """Lists all management profiles"""
+    queryset = manage.ManagementProfile.objects.all()
+    serializer_class = serializers.ManagementProfileSerializer
 
 class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     """Lists all netboxes.
@@ -346,6 +359,8 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     -------
     - category
     - ip
+    - maintenance: "yes" for netboxes on maintenance, "no" for the opposite,
+      unset for everything
     - organization
     - room
     - sysname
@@ -357,6 +372,9 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     serializer_class = serializers.NetboxSerializer
     filter_fields = ('ip', 'sysname', 'room', 'organization', 'category',
                      'room__location')
+    filter_backends = (
+        NAVAPIMixin.filter_backends + (NetboxIsOnMaintenanceFilterBackend,)
+    )
     search_fields = ('sysname', )
 
     def destroy(self, request, *args, **kwargs):
@@ -389,7 +407,7 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
         return qs
 
 
-class InterfaceFilterClass(filters.FilterSet):
+class InterfaceFilterClass(FilterSet):
     """Exists only to have a sane implementation of multiple choice filters"""
     netbox = filters.django_filters.ModelMultipleChoiceFilter(
         queryset=manage.Netbox.objects.all())
@@ -793,7 +811,7 @@ class PrefixUsageList(NAVAPIMixin, ListAPIView):
     serializer_class = serializers.PrefixUsageSerializer
 
     # RelatedOrderingFilter does not work with the custom pagination
-    filter_backends = (filters.SearchFilter, filters.DjangoFilterBackend)
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
 
     def get(self, request, *args, **kwargs):
         """Override get method to verify url parameters"""
@@ -869,7 +887,7 @@ class AlertFragmentRenderer(TemplateHTMLRenderer):
         :param dict data: The serialized alert
         """
 
-        if not 'id' in data:
+        if 'id' not in data:
             return RequestContext(request, data)
 
         # Put the alert object in the context
@@ -981,6 +999,7 @@ def get_or_create_token(request):
     :type request: django.http.HttpRequest
     """
     if request.account.is_admin():
+        from nav.models.api import APIToken
         token, _ = APIToken.objects.get_or_create(
             client=request.account, expires__gte=datetime.now(),
             defaults={'token': auth_token(),
@@ -989,3 +1008,11 @@ def get_or_create_token(request):
     else:
         return HttpResponse('You must log in to get a token',
                             status=status.HTTP_403_FORBIDDEN)
+
+
+def get_nav_version(request):
+    """Returns the version of the running NAV software
+
+    :type request: django.http.HttpRequest
+    """
+    return JsonResponse({"version": VERSION})

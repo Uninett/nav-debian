@@ -38,6 +38,7 @@ from twisted.internet import defer, reactor
 from twisted.internet.defer import returnValue
 from twisted.internet.error import TimeoutError
 
+from nav.Snmp import safestring
 from nav.ipdevpoll import ContextLogger
 from nav.ipdevpoll.utils import fire_eventually
 from nav.errors import GeneralException
@@ -45,6 +46,7 @@ from nav.oids import OID
 from nav.smidumps import get_mib
 
 _logger = logging.getLogger(__name__)
+TEXT_TYPES = ("DisplayString", "SnmpAdminString")
 
 
 class MibRetrieverError(GeneralException):
@@ -104,7 +106,7 @@ class MIBObject(object):
             # Build a two-way dictionary mapping enumerated names
             enums = [(k, int(val['number']))
                      for k, val in typ.items()
-                     if type(val) is dict and 'nodetype' in val and
+                     if isinstance(val, dict) and 'nodetype' in val and
                      val['nodetype'] == 'namednumber'
                      ]
             self.enum = dict(enums)
@@ -118,7 +120,8 @@ class MIBObject(object):
         SNMPv2-TC::TruthValue, it will be translated from int to bool.
 
         """
-        if self.enum and isinstance(value, (int, long)) and value in self.enum:
+        if (self.enum and isinstance(value, six.integer_types)
+                and value in self.enum):
             value = self.enum[value]
         return value
 
@@ -170,8 +173,8 @@ class MibTableDescriptor(object):
         table_name -- the name of the table from the mib.
 
         """
-        if table_name not in mib.nodes or \
-               mib.nodes[table_name].raw_mib_data['nodetype'] != 'table':
+        if (table_name not in mib.nodes or
+                mib.nodes[table_name].raw_mib_data['nodetype'] != 'table'):
             raise MibRetrieverError("%s is not a table" % table_name)
 
         table_object = mib.nodes[table_name]
@@ -261,6 +264,7 @@ class MibRetrieverMaker(type):
 
         MibRetrieverMaker.__make_scalar_getters(cls)
         MibRetrieverMaker.__make_table_getters(cls)
+        MibRetrieverMaker.__prepopulate_text_columns(cls)
 
         MibRetrieverMaker.modules[mib['moduleName']] = cls
 
@@ -329,6 +333,20 @@ class MibRetrieverMaker(type):
         cls.nodes = dict((node_name, MIBObject(cls.mib, node_name))
                          for node_name in cls.mib['nodes'].keys())
 
+    @staticmethod
+    def __prepopulate_text_columns(cls):
+        """Prepopulates the new MibRetriever class' text_columns attribute
+        with a set of names of contained MIB objects that can be considered as
+        text types.
+
+        """
+        nodes = {
+            node_name
+            for node_name in cls.mib['nodes']
+            if is_text_object(cls.mib, node_name)
+        }
+        cls.text_columns = nodes
+
 
 @six.add_metaclass(MibRetrieverMaker)
 class MibRetriever(object):
@@ -350,7 +368,7 @@ class MibRetriever(object):
         return self.mib.get('moduleName', None)
 
     @defer.inlineCallbacks
-    def get_next(self, object_name):
+    def get_next(self, object_name, translate_result=False):
         """Gets next sub-object of the named object"""
         oid = self.nodes[object_name].oid
         result = yield self.agent_proxy.walk(str(oid))
@@ -358,6 +376,8 @@ class MibRetriever(object):
             result = result.items()
         for key, value in result:
             if oid.is_a_prefix_of(key):
+                if translate_result:
+                    value = self.nodes[object_name].to_python(value)
                 defer.returnValue(value)
 
     def retrieve_column(self, column_name):
@@ -386,6 +406,8 @@ class MibRetriever(object):
             for oid, value in varlist.items():
                 # Extract index information from oid
                 row_index = OID(oid).strip_prefix(node.oid)
+                if column_name in self.text_columns:
+                    value = safestring(value)
                 formatted_result[row_index] = value
 
             return formatted_result
@@ -464,9 +486,8 @@ class MibRetriever(object):
                 # Build a table structure
                 for oid in sorted(varlist.keys()):
                     if not table.table.oid.is_a_prefix_of(oid):
-                        raise MibRetrieverError(
-                            "Received wrong response from client,"
-                            "%s is not in %s" % (oid, table.table.oid))
+                        _msg = "Received wrong response from client, %s is not in %s"
+                        raise MibRetrieverError(_msg % (oid, table.table.oid))
 
                     # Extract table position of value
                     oid_suffix = OID(oid).strip_prefix(table.row.oid)
@@ -476,14 +497,23 @@ class MibRetriever(object):
                         self._logger.warning(
                             "device response has bad table index %s in %s::%s, "
                             "ignoring",
-                            oid_suffix, self.mib['moduleName'], table_name)
+                            oid_suffix,
+                            self.mib['moduleName'],
+                            table_name,
+                        )
                         continue
                     column_name = table.reverse_column_index[column_no]
 
                     if row_index not in formatted_result:
-                        formatted_result[row_index] = \
-                            MibTableResultRow(row_index, table.columns.keys())
-                    formatted_result[row_index][column_name] = varlist[oid]
+                        formatted_result[row_index] = MibTableResultRow(
+                            row_index,
+                            table.columns.keys(),
+                        )
+
+                    value = varlist[oid]
+                    if column_name in self.text_columns:
+                        value = safestring(value)
+                    formatted_result[row_index][column_name] = value
 
             return formatted_result
 
@@ -678,3 +708,24 @@ class MultiMibMixIn(MibRetriever):
 
         return alt_agent
 
+
+def is_text_object(mib_dict, obj_name):
+    """Verifies whether a given MIB object has a syntax that can be considered
+    a text type.
+    """
+    if not mib_dict or "nodes" not in mib_dict:
+        return False
+    syntax_type = (
+        mib_dict["nodes"][obj_name]
+        .get("syntax", {})
+        .get("type", {})
+    )
+    type_name = syntax_type.get("name", "")
+    parent_type_name = syntax_type.get(
+        "parent module", {}
+    ).get("type", "")
+
+    return (
+        type_name in TEXT_TYPES
+        or parent_type_name in TEXT_TYPES
+    )

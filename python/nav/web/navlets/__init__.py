@@ -50,16 +50,15 @@ import json
 from operator import attrgetter
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render_to_response, get_object_or_404
-from django.template.context import RequestContext
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic.base import TemplateView
 
 from nav.models.profiles import AccountNavlet, AccountDashboard
 from nav.models.manage import Sensor
-from nav.django.auth import get_sudoer
+from nav.web.auth import get_sudoer
 from nav.django.utils import get_account
 from nav.web.utils import require_param
 from nav.web.webfront import find_dashboard
@@ -106,7 +105,7 @@ class Navlet(TemplateView):
     @property
     def mode(self):
         """Fetch the mode of this request"""
-        return self.request.REQUEST.get('mode', NAVLET_MODE_VIEW)
+        return self.request.GET.get('mode', NAVLET_MODE_VIEW)
 
     def get_template_basename(self):
         """Should return the base template name
@@ -208,8 +207,7 @@ def get_user_navlets(request, dashboard_id=None):
     navlets = []
     for usernavlet in usernavlets:
         navlets.append(create_navlet_object(usernavlet))
-    return HttpResponse(json.dumps(navlets),
-                        content_type="application/json")
+    return JsonResponse({"items": navlets})
 
 
 def create_navlet_object(usernavlet):
@@ -269,8 +267,7 @@ def add_user_navlet(request, dashboard_id=None):
         if can_modify_navlet(account, request):
             navlet_class = request.POST.get('navlet')
             navlet = add_navlet(account, navlet_class, dashboard=dashboard)
-            return HttpResponse(json.dumps(create_navlet_object(navlet)),
-                                content_type="application/json")
+            return JsonResponse(create_navlet_object(navlet))
 
     return HttpResponse(status=400)
 
@@ -287,10 +284,10 @@ def add_navlet(account, navlet, preferences=None, dashboard=None):
                                   dashboard=dashboard)
     accountnavlet.column, accountnavlet.order = find_new_placement()
 
-    default_preferences = get_default_preferences(
+    accountnavlet.preferences = get_default_preferences(
         get_navlet_from_name(navlet)) or {}
-    accountnavlet.preferences = dict(preferences.items() +
-                                     default_preferences.items())
+    accountnavlet.preferences.update(preferences)
+
     accountnavlet.save()
     return accountnavlet
 
@@ -365,7 +362,7 @@ def save_navlet_order(request):
 
 def save_order(account, request):
     """Update navlets with new placement data"""
-    columns = json.loads(request.body)
+    columns = json.loads(request.body.decode('utf-8'))
     for index, column in enumerate(columns):
         index += 1
         for key, value in column.items():
@@ -390,7 +387,7 @@ def render_base_template(request):
 
     """
     try:
-        navlet_id = int(request.REQUEST.get('id'))
+        navlet_id = int(request.GET.get('id'))
     except (ValueError, TypeError):
         # We're fucked
         return HttpResponse(status=400)
@@ -401,8 +398,7 @@ def render_base_template(request):
         _logger.error(accountnavlet)
         cls = get_navlet_from_name(accountnavlet.navlet)
         navlet = cls(request=request)
-        return render_to_response('navlets/base.html', {'navlet': navlet},
-                                  RequestContext(request))
+        return render(request, 'navlets/base.html', {'navlet': navlet})
 
 
 def add_user_navlet_graph(request):
@@ -418,13 +414,34 @@ def add_user_navlet_graph(request):
     return HttpResponse(status=400)
 
 
+ALERT_TYPES = {
+    Sensor.ALERT_TYPE_WARNING: 'warning',
+    Sensor.ALERT_TYPE_ALERT: 'alert',
+}
+
+
 def add_user_navlet_sensor(request):
     """Add a sensor widget with sensor id set"""
     if request.method == 'POST':
         sensor = get_object_or_404(
-            Sensor, pk=int(request.REQUEST.get('sensor_id')))
-        add_navlet(request.account, 'nav.web.navlets.sensor.SensorWidget',
-                   {'sensor_id': sensor.pk, 'title': sensor.netbox.sysname})
+            Sensor, pk=int(request.GET.get('sensor_id')))
+        if sensor.unit_of_measurement == sensor.UNIT_TRUTHVALUE:
+            navlet = 'nav.web.navlets.alert.AlertWidget'
+            preferences = {
+                'sensor': sensor.pk,
+                'title': sensor.netbox.sysname,
+                'on_message': sensor.on_message,
+                'off_message': sensor.off_message,
+                'on_state': sensor.on_state,
+                'alert_type': ALERT_TYPES[sensor.alert_type],
+            }
+        else:
+            navlet = 'nav.web.navlets.sensor.SensorWidget'
+            preferences = {
+                'sensor_id': sensor.pk,
+                'title': sensor.netbox.sysname
+            }
+        add_navlet(request.account, navlet, preferences)
         return HttpResponse(status=200)
 
     return HttpResponse(status=400)

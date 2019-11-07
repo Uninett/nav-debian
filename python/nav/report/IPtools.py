@@ -15,9 +15,10 @@
 #
 """Sorts and does calculations on IP addresses/nets."""
 
+import logging
+
 from IPy import IP
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -50,7 +51,7 @@ def getLastbitsIpMap(ip_list):
 
     Used by the presentation logic for Column-to-IP mapping
     """
-    if ip_list is None or len(ip_list) < 1:
+    if not ip_list:
         return None
 
     version = ip_list[0].version()
@@ -70,7 +71,7 @@ def _ipv4_getLastbitsMap(ip_list):
 
 def _ipv6_getNybblesMap(ip_list):
     """Finds the column where the IPs in the list should be displayed"""
-    nybble_index = (ip_list[0].prefixlen() / 4) - 1
+    nybble_index = (ip_list[0].prefixlen() // 4) - 1
     return dict(
         zip([i.net().strFullsize().replace(':', '')[nybble_index]
              for i in ip_list], ip_list))

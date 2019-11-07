@@ -19,10 +19,9 @@ import copy
 from datetime import datetime
 
 from django.contrib import messages
-from django.core.urlresolvers import reverse, reverse_lazy
 from django.http import HttpResponseRedirect
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse, reverse_lazy
 from django.views import generic
 from django.views.decorators.http import require_POST
 from django.views.decorators.debug import sensitive_post_parameters
@@ -32,35 +31,23 @@ from nav.models.profiles import Account, AccountGroup, Privilege
 from nav.models.manage import Organization
 from nav.models.api import APIToken
 
-from nav.django.auth import sudo
+from nav.web.auth import sudo
 from nav.web.useradmin import forms
 
 
-class UserAdminContext(RequestContext):
-    """Context container for the useradmin requests"""
-    def __init__(self, *args, **kwargs):
-        # account_processor is in the settings file.
-        if 'processors' not in kwargs:
-            kwargs['processors'] = [custom_processor]
-        super(UserAdminContext, self).__init__(*args, **kwargs)
-
-
-def custom_processor(_request):
-    """Return some always available variables"""
-    return {'navpath': [('Home', '/'), ('User Administration', )]}
+DEFAULT_NAVPATH = {'navpath': [('Home', '/'), ('User Administration', )]}
 
 
 def account_list(request):
     """Controller for displaying the account list"""
     accounts = Account.objects.all()
-    return render_to_response(
-        'useradmin/account_list.html',
-        {
-            'active': {'account_list': 1},
-            'accounts': accounts,
-            'auditlog_api_parameters': {'object_model': 'account'}
-        },
-        UserAdminContext(request))
+    context = {
+        'active': {'account_list': 1},
+        'accounts': accounts,
+        'auditlog_api_parameters': {'object_model': 'account'}
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/account_list.html', context)
 
 
 @sensitive_post_parameters('password1', 'password2')
@@ -101,15 +88,16 @@ def account_detail(request, account_id=None):
         'object_pk': account.pk
     } if account else {}
 
-    return render_to_response('useradmin/account_detail.html',
-                  {
-                      'auditlog_api_parameters': auditlog_api_parameters,
-                      'active': active,
-                      'account': account,
-                      'account_form': account_form,
-                      'org_form': org_form,
-                      'group_form': group_form,
-                  }, UserAdminContext(request))
+    context = {
+        'auditlog_api_parameters': auditlog_api_parameters,
+        'active': active,
+        'account': account,
+        'account_form': account_form,
+        'org_form': org_form,
+        'group_form': group_form,
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/account_detail.html', context)
 
 
 def save_account(request, account_form, old_account):
@@ -139,7 +127,8 @@ def save_account_org(request, account, org_form):
     try:
         account.organizations.get(id=organization.id)
         messages.warning(request,
-            'Organization was not added as it has already been added.')
+                         'Organization was not added as it has '
+                         'already been added.')
     except Organization.DoesNotExist:
         account.organizations.add(organization)
         log_add_account_to_org(request, organization, account)
@@ -165,7 +154,8 @@ def save_account_group(request, account, group_form):
         try:
             account.accountgroup_set.get(id=group.id)
             messages.warning(request,
-                'Group was not added as it has already been added.')
+                             'Group was not added as it has already '
+                             'been added.')
         except AccountGroup.DoesNotExist:
             account.accountgroup_set.add(group)
             messages.success(
@@ -210,14 +200,14 @@ def account_delete(request, account_id):
                          'Account %s has been deleted.' % (account.name))
         return HttpResponseRedirect(reverse('useradmin-account_list'))
 
-    return render_to_response('useradmin/delete.html',
-                        {
-                            'name': '%s (%s)' % (account.name, account.login),
-                            'type': 'account',
-                            'action': 'delete account',
-                            'back': reverse('useradmin-account_detail',
-                                            args=[account.id]),
-                        }, UserAdminContext(request))
+    context = {
+        'name': '%s (%s)' % (account.name, account.login),
+        'type': 'account',
+        'action': 'delete account',
+        'back': reverse('useradmin-account_detail', args=[account.id]),
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/delete.html', context)
 
 
 def account_organization_remove(request, account_id, org_id):
@@ -232,16 +222,16 @@ def account_organization_remove(request, account_id, org_id):
         organization = account.organizations.get(id=org_id)
     except Organization.DoesNotExist:
         messages.error(request,
-                    'Organization %s does not exist or it is not associated '
-                    'with %s.' % (org_id, account))
+                       'Organization %s does not exist or it is not associated '
+                       'with %s.' % (org_id, account))
         return HttpResponseRedirect(reverse('useradmin-account_detail',
                                             args=[account.id]))
 
     if request.method == 'POST':
         account.organizations.remove(organization)
         messages.success(request,
-                    'Organization %s has been removed from account %s.' %
-                    (organization, account))
+                         'Organization %s has been removed from account %s.' %
+                         (organization, account))
 
         LogEntry.add_log_entry(
             request.account,
@@ -253,14 +243,14 @@ def account_organization_remove(request, account_id, org_id):
         return HttpResponseRedirect(reverse('useradmin-account_detail',
                                             args=[account.id]))
 
-    return render_to_response('useradmin/delete.html',
-                        {
-                            'name': 'in %s from %s' % (organization, account),
-                            'type': 'organization',
-                            'action': 'remove organization membership',
-                            'back': reverse('useradmin-account_detail',
-                                            args=[account.id]),
-                        }, UserAdminContext(request))
+    context = {
+        'name': 'in %s from %s' % (organization, account),
+        'type': 'organization',
+        'action': 'remove organization membership',
+        'back': reverse('useradmin-account_detail', args=[account.id]),
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/delete.html', context)
 
 
 def account_group_remove(request, account_id, group_id, caller='account'):
@@ -288,14 +278,14 @@ def account_group_remove(request, account_id, group_id, caller='account'):
         group = account.accountgroup_set.get(id=group_id)
     except AccountGroup.DoesNotExist:
         messages.warning(request,
-            'Group %s does not exist or it is not '
-            'associated with %s.' % (group_id, account))
+                         'Group %s does not exist or it is not '
+                         'associated with %s.' % (group_id, account))
         return detail_redirect
 
     if group.is_protected_group():
         messages.error(request,
-            '%s can not be removed from %s as it is a '
-            'protected group.' % (account, group))
+                       '%s can not be removed from %s as it is a '
+                       'protected group.' % (account, group))
         return detail_redirect
 
     if group.is_admin_group() and account.is_admin_account():
@@ -317,22 +307,25 @@ def account_group_remove(request, account_id, group_id, caller='account'):
 
         return detail_redirect
 
-    return render_to_response('useradmin/delete.html',
-        {
-            'name': '%s from the group %s' % (account, group),
-            'type': 'account',
-            'action': 'remove group member',
-            'back': back_url,
-        }, UserAdminContext(request))
+    context = {
+        'name': '%s from the group %s' % (account, group),
+        'type': 'account',
+        'action': 'remove group member',
+        'back': back_url,
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/delete.html', context)
 
 
 def group_list(request):
     """Controller for listing all user groups in NAV"""
     groups = AccountGroup.objects.all()
-    return render_to_response('useradmin/group_list.html',
-                              {'active': {'group_list': True},
-                               'groups': groups},
-                              UserAdminContext(request))
+    context = {
+        'active': {'group_list': True},
+        'groups': groups,
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/group_list.html', context)
 
 
 def group_detail(request, group_id=None):
@@ -368,7 +361,8 @@ def group_detail(request, group_id=None):
                 try:
                     group.privilege_set.get(type=message_type, target=target)
                     messages.warning(request,
-                        'Privilege was not added as it already exists.')
+                                     'Privilege was not added as it '
+                                     'already exists.')
                 except Privilege.DoesNotExist:
                     group.privilege_set.create(type=message_type, target=target)
                     messages.success(request, 'Privilege has been added.')
@@ -383,8 +377,8 @@ def group_detail(request, group_id=None):
                     account = account_form.cleaned_data['account']
                     group.accounts.get(login=account.login)
                     messages.warning(request,
-                        'Account %s was not added as it is already '
-                        'a member of the group.' % account)
+                                     'Account %s was not added as it is '
+                                     'already a member of the group.' % account)
                 except Account.DoesNotExist:
                     group.accounts.add(account)
                     log_add_account_to_group(request, group, account)
@@ -396,14 +390,15 @@ def group_detail(request, group_id=None):
 
     active = {'group_detail': True} if group else {'group_new': True}
 
-    return render_to_response('useradmin/group_detail.html',
-        {
+    context = {
             'active': active,
             'group': group,
             'group_form': group_form,
             'account_form': account_form,
             'privilege_form': privilege_form,
-        }, UserAdminContext(request))
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/group_detail.html', context)
 
 
 def group_delete(request, group_id):
@@ -426,13 +421,14 @@ def group_delete(request, group_id):
         messages.success(request, 'Group %s has been deleted.' % (group))
         return HttpResponseRedirect(reverse('useradmin-group_list'))
 
-    return render_to_response('useradmin/delete.html',
-        {
-            'name': group,
-            'type': 'group',
-            'action': 'delete group',
-            'back': reverse('useradmin-group_detail', args=[group.id]),
-        }, UserAdminContext(request))
+    context = {
+        'name': group,
+        'type': 'group',
+        'action': 'delete group',
+        'back': reverse('useradmin-group_detail', args=[group.id]),
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/delete.html', context)
 
 
 def group_account_remove(request, group_id, account_id):
@@ -465,26 +461,27 @@ def group_privilege_remove(request, group_id, privilege_id):
         return HttpResponseRedirect(reverse('useradmin-group_detail',
                                             args=[group.id]))
 
-    return render_to_response('useradmin/delete.html',
-        {
-            'name': '%s from %s' % (privilege, group),
-            'type': 'privilege',
-            'action': 'revoke privilege',
-            'back': reverse('useradmin-group_detail', args=[group.id]),
-        }, UserAdminContext(request))
+    context = {
+        'name': '%s from %s' % (privilege, group),
+        'type': 'privilege',
+        'action': 'revoke privilege',
+        'back': reverse('useradmin-group_detail', args=[group.id]),
+    }
+    context.update(DEFAULT_NAVPATH)
+    return render(request, 'useradmin/delete.html', context)
 
 
 # The Django generic views are heavy on mixins - disable warning about ancestors
 # pylint: disable=too-many-ancestors
 
-class ProcessorMixin(object):
+class NavPathMixin(object):
     def get_context_data(self, **kwargs):
-        context = super(ProcessorMixin, self).get_context_data(**kwargs)
-        context.update(custom_processor(None))
+        context = super(NavPathMixin, self).get_context_data(**kwargs)
+        context.update(DEFAULT_NAVPATH)
         return context
 
 
-class TokenList(ProcessorMixin, generic.ListView):
+class TokenList(NavPathMixin, generic.ListView):
     """Class based view for a token listing"""
 
     model = APIToken
@@ -496,7 +493,7 @@ class TokenList(ProcessorMixin, generic.ListView):
         return context
 
 
-class TokenCreate(ProcessorMixin, generic.CreateView):
+class TokenCreate(NavPathMixin, generic.CreateView):
     """Class based view for creating a new token"""
 
     model = APIToken
@@ -510,7 +507,7 @@ class TokenCreate(ProcessorMixin, generic.CreateView):
         return response
 
 
-class TokenEdit(ProcessorMixin, generic.UpdateView):
+class TokenEdit(NavPathMixin, generic.UpdateView):
     """Class based view for editing a token"""
 
     model = APIToken
@@ -544,7 +541,7 @@ class TokenDelete(generic.DeleteView):
         return response
 
 
-class TokenDetail(ProcessorMixin, generic.DetailView):
+class TokenDetail(NavPathMixin, generic.DetailView):
     """Display details for a token"""
 
     model = APIToken

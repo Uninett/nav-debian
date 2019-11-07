@@ -18,15 +18,15 @@ import datetime
 import operator
 from itertools import groupby
 
+from django.db.models import Q
+from django.db import transaction
+
 from nav.models import manage
 from nav.models.event import EventQueue as Event, EventQueueVar as EventVar
 from nav.models.event import AlertHistory
 from nav import natsort
 
 from nav.ipdevpoll.storage import Shadow, DefaultManager
-
-from django.db.models import Q
-from django.db import transaction
 
 from .netbox import Netbox
 
@@ -349,10 +349,6 @@ class Interface(Shadow):
         self._set_netbox_if_unset(containers)
         self._set_ifindex_if_unset(containers)
         self.gone_since = None
-        # Sometimes, people are able to sneak non-ASCII strings into interface
-        # descriptions; fix that before saving to the db
-        if isinstance(self.ifalias, str):
-            self.ifalias = self.ifalias.decode('utf-8', errors='replace')
 
     def _set_netbox_if_unset(self, containers):
         """Sets this Interface's netbox reference if unset by plugins."""
@@ -374,6 +370,7 @@ class Interface(Shadow):
 
         """
         containers.setdefault(cls, {})[cls.sentinel] = cls.sentinel
+
 
 InterfaceManager.sentinel = Interface.sentinel = Interface()
 

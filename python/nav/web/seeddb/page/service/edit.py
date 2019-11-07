@@ -16,11 +16,10 @@
 #
 
 from django import forms
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
 from django.http import HttpResponseRedirect
 from django.db import transaction
+from django.urls import reverse
 
 from crispy_forms.helper import FormHelper
 
@@ -136,8 +135,7 @@ def service_edit(request, service_id=None):
                 'netbox': netbox.pk,
                 'handler': handler,
             })
-            initial = dict(
-                [(prop.property, prop.value) for prop in service_prop])
+            initial = {prop.property: prop.value for prop in service_prop}
             property_form = ServicePropertyForm(
                 service_args=get_description(service.handler),
                 initial=initial)
@@ -152,8 +150,7 @@ def service_edit(request, service_id=None):
         'service_form': service_form,
         'property_form': property_form,
     })
-    return render_to_response('seeddb/service_property_form.html',
-                              context, RequestContext(request))
+    return render(request, 'seeddb/service_property_form.html', context)
 
 
 def service_add(request):
@@ -182,8 +179,7 @@ def service_add(request):
                 'handler': service_id,
                 'netbox': netbox,
             })
-            return render_to_response('seeddb/service_property_form.html',
-                                      context, RequestContext(request))
+            return render(request, 'seeddb/service_property_form.html', context)
     else:
         choice_form = ServiceChoiceForm()
 
@@ -192,8 +188,7 @@ def service_add(request):
         'choice_form': choice_form,
         'sub_active': {'add': True},
     })
-    return render_to_response('seeddb/service_netbox_form.html',
-                              context, RequestContext(request))
+    return render(request, 'seeddb/service_netbox_form.html', context)
 
 
 @transaction.atomic()

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2018 UNINETT
+# Copyright (C) 2018 Uninett AS
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -13,9 +13,10 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-from nav.web.geomap.utils import is_nan
 
 from django import template
+
+from nav.web.geomap.utils import is_nan
 
 register = template.Library()
 

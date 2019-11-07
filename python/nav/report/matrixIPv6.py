@@ -15,12 +15,14 @@
 #
 """This class serves as an interface for the prefix matrix."""
 
-from django.core.urlresolvers import reverse
+import logging
 
+from django.urls import reverse
+
+from nav.django.templatetags.report import report
 from nav.report import IPtools, metaIP
 from nav.report.matrix import Matrix, Link
 
-import logging
 _logger = logging.getLogger(__name__)
 
 
@@ -71,6 +73,6 @@ class MatrixIPv6(Matrix):
     def _netlink(ip, append_term_and_prefix=False):
         """Creates the content for the index row"""
         ip = metaIP.MetaIP(ip).getTreeNet()
-        url = reverse('report-prefix-netaddr', kwargs={'netaddr': ip + '*'})
+        url = report("prefix", netaddr=ip + '*', op_netaddr="like")
         text = ip + 'x'
         return Link(url, text, 'Go to prefix report')

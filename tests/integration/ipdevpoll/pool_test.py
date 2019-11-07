@@ -1,56 +1,54 @@
 import os
 
 import pytest
+import pytest_twisted
 
 from mock import patch
 
-from nav.bootstrap import bootstrap_django
-bootstrap_django(__file__)
-
+from nav.models.manage import NetboxProfile
 from nav.config import find_configfile
 from nav.ipdevpoll import config, jobs, plugins
 from nav.ipdevpoll.pool import InlinePool, WorkerPool
 
 
 @pytest.mark.twisted
-@pytest.inlineCallbacks
+@pytest_twisted.inlineCallbacks
 def test_reschedule(localhost, ipdevpoll_test_config, pool):
     with pytest.raises(jobs.SuggestedReschedule):
         yield pool.execute_job('noop', localhost.pk, ['snmpcheck', ], 0)
 
 
 @pytest.mark.twisted
-@pytest.inlineCallbacks
+@pytest_twisted.inlineCallbacks
 def test_success(localhost, ipdevpoll_test_config, pool):
     res = yield pool.execute_job('noop', localhost.pk, ['noop', ], 0)
     assert res is True
 
 
 @pytest.mark.twisted
-@pytest.inlineCallbacks
+@pytest_twisted.inlineCallbacks
 def test_fail(localhost, ipdevpoll_test_config, pool):
     res = yield pool.execute_job('noop', localhost.pk, ['fail', ], 0)
     assert res is True  # TODO: Check job status in database
 
 
 @pytest.mark.twisted
-@pytest.inlineCallbacks
+@pytest_twisted.inlineCallbacks
 def test_not_done(localhost, ipdevpoll_test_config, pool):
-    localhost.read_only = None
-    localhost.save()
+    NetboxProfile.objects.filter(netbox=localhost).delete()
     res = yield pool.execute_job('noop', localhost.pk, ['snmpcheck', ], 0)
     assert res is False
 
 
 @pytest.mark.twisted
-@pytest.inlineCallbacks
+@pytest_twisted.inlineCallbacks
 def test_crash(localhost, ipdevpoll_test_config, pool):
     with pytest.raises(jobs.AbortedJobError):
         yield pool.execute_job('noop', localhost.pk, ['crash', ], 0)
 
 
 @pytest.mark.twisted
-@pytest.inlineCallbacks
+@pytest_twisted.inlineCallbacks
 def test_cancel(localhost, ipdevpoll_test_config, pool):
     with pytest.raises(jobs.AbortedJobError):
         defered = pool.execute_job('noop', localhost.pk, ['sleep', ], 0)

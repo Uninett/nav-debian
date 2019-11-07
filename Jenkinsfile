@@ -3,17 +3,14 @@
  * Work in tandem with tests/docker/Dockerfile & Co to run a full CI run in
  * Jenkins.
 */
+properties([disableConcurrentBuilds()])
 def lastStage = ''
-def requirementsChanged = false
 node {
   setDisplayNameIfPullRequest()
 
   stage("Checkout") {
       lastStage = env.STAGE_NAME
       def scmVars = checkout scm
-      requirementsChanged = sh(
-                               returnStatus: true,
-                               script: "git diff --name-only ${scmVars.GIT_PREVIOUS_SUCCESSFUL_COMMIT} ${scmVars.GIT_COMMIT} | egrep '^(tests/)?requirements.*txt\$'") == 0
   }
 
   try {
@@ -23,7 +20,7 @@ node {
     echo "Acceptable image name: ${acceptableName}"
     def imageTag = "nav/${acceptableName}:${env.BUILD_NUMBER}".toLowerCase()
     echo "Docker image tag: ${imageTag}"
-    docker.build("${imageTag}", "-f ${dockerfile} .").inside("--tmpfs /var/lib/postgresql --volume ${WORKSPACE}:/source:rw,z --volume ${HUDSON_HOME}/.cache:/source/.cache:rw,z") {
+    docker.build("${imageTag}", "-f ${dockerfile} tests/docker").inside("--tmpfs /var/lib/postgresql --volume ${WORKSPACE}:/source:rw,z --volume ${HUDSON_HOME}/.cache:/source/.cache:rw,z") {
         env.WORKSPACE = "${WORKSPACE}"
 
         stage("Prepare build") {
@@ -31,11 +28,8 @@ node {
             sh "env"  // debug print environment
             sh "git fetch --tags" // seems tags arent't cloned by Jenkins :P
             sh "rm -rf ${WORKSPACE}/reports/*"  // remove old, potentially stale reports
-            if (requirementsChanged) {
-              echo '============================= Some requirements files changed, recreating tox environments ============================='
-              sh "tox --recreate --notest"
-            }
-        }
+            sh "mkdir -p ${WORKSPACE}/reports"  // ensure the reports directory is actually there
+        } // Prepare build
 
         try {
             def toxEnvirons = sh(returnStdout: true,
@@ -53,28 +47,25 @@ node {
         } finally {
             junit "reports/**/*-results.xml"
             step([$class: 'CoberturaPublisher', coberturaReportFile: 'reports/**/*coverage.xml'])
-        }
+        } // testing stages
 
         stage("PyLint") {
             lastStage = env.STAGE_NAME
             sh "tox -e pylint"
-            step([
-                $class                     : 'WarningsPublisher',
-                parserConfigurations       : [[
-                                              parserName: 'PYLint',
-                                                pattern   : 'reports/pylint.txt'
-                                            ]],
-                unstableTotalAll           : '1680',
-                failedTotalAll             : '1730',
-                usePreviousBuildAsReference: true
-            ])
-        }
+            recordIssues      tool: pyLint(pattern: 'reports/pylint.txt'),
+                sourceCodeEncoding: 'UTF-8',
+                      qualityGates: [
+                                     [threshold: 1300, type: 'TOTAL', unstable: true],
+                                     [threshold: 1350, type: 'TOTAL', unstable: false]
+                                    ]
+
+        } // PyLint
 
         stage("Lines of code") {
             lastStage = env.STAGE_NAME
             sh "/count-lines-of-code.sh"
             sloccountPublish encoding: '', pattern: 'reports/cloc.xml'
-        }
+        } // Lines of code
 
     }
 

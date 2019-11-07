@@ -16,24 +16,24 @@
 """View definitions for info/vlan"""
 
 import logging
-from IPy import IP
 from operator import methodcaller, attrgetter
 from functools import partial
 
-from django.core.urlresolvers import reverse
+from IPy import IP
+
 from django.db.models import Q
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template.context import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.http import HttpResponse
 
-from ..forms import SearchForm
 from nav.models.manage import Prefix, Vlan
 from nav.web.utils import create_title
 from nav.metrics.graphs import get_simple_graph_url
 from nav.metrics.names import join_series
 from nav.metrics.templates import metric_path_for_prefix
+from ..forms import SearchForm
 
-LOGGER = logging.getLogger('nav.web.info.vlan')
+_logger = logging.getLogger(__name__)
 ADDRESS_RESERVED_SPACE = 18
 
 
@@ -66,20 +66,24 @@ def index(request):
     else:
         searchform = VlanSearchForm()
 
-    LOGGER.debug(vlans)
+    _logger.debug(vlans)
 
-    return render_to_response("info/vlan/base.html",
-                              {'navpath': navpath,
-                               'title': create_title(navpath),
-                               'form': searchform,
-                               'vlans': vlans},
-                              context_instance=RequestContext(request))
+    return render(
+        request,
+        "info/vlan/base.html",
+        {
+            'navpath': navpath,
+            'title': create_title(navpath),
+            'form': searchform,
+            'vlans': vlans
+        }
+    )
 
 
 def process_searchform(form):
     """Find and return vlans based on searchform"""
     query = form.cleaned_data['query']
-    LOGGER.debug('Processing searchform for vlans with query: %s', query)
+    _logger.debug('Processing searchform for vlans with query: %s', query)
     if query is None:
         return Vlan.objects.all()
     else:
@@ -108,15 +112,19 @@ def vlan_details(request, vlanid):
 
     navpath = get_path([(str(vlan), '')])
 
-    return render_to_response('info/vlan/vlandetails.html',
-                              {'vlan': vlan,
-                               'prefixes': prefixes,
-                               'gwportprefixes': find_gwportprefixes(vlan),
-                               'navpath': navpath,
-                               'has_v4': has_v4,
-                               'has_v6': has_v6,
-                               'title': create_title(navpath)},
-                              context_instance=RequestContext(request))
+    return render(
+        request,
+        'info/vlan/vlandetails.html',
+        {
+            'vlan': vlan,
+            'prefixes': prefixes,
+            'gwportprefixes': find_gwportprefixes(vlan),
+            'navpath': navpath,
+            'has_v4': has_v4,
+            'has_v6': has_v6,
+            'title': create_title(navpath)
+        }
+    )
 
 
 def create_prefix_graph(request, prefixid):

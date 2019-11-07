@@ -18,9 +18,9 @@ from __future__ import absolute_import
 import socket
 from collections import namedtuple
 
-from nav.ip import IP
 from twisted.internet import defer
 
+from nav.ip import IP
 from nav.mibs import reduce_index
 
 from nav.smidumps import get_mib
@@ -79,6 +79,7 @@ class CiscoCDPMib(mibretriever.MibRetriever):
             # we have no idea how to identify this record, ignore it
             return
         return CDPNeighbor(ifindex, ip, deviceid, deviceport)
+
 
 # pylint: disable=C0103
 CDPNeighbor = namedtuple('CDPNeighbor', 'ifindex ip deviceid deviceport')

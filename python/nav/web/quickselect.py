@@ -17,7 +17,6 @@
 """QuickSelect widget for use in various web forms."""
 
 from django.template.loader import get_template
-from django.template import Context
 from django.utils.six import iteritems
 from django.utils.encoding import python_2_unicode_compatible
 
@@ -55,7 +54,7 @@ class QuickSelect(object):
         self.service_multi = kwargs.pop('service_multiple', True)
         self.module_multi = kwargs.pop('module_multiple', True)
 
-        for key in kwargs.keys():
+        for key in kwargs:
             raise TypeError('__init__() got an unexpected keyword argument '
                             '%s' % key)
 
@@ -74,62 +73,6 @@ class QuickSelect(object):
         self.netboxgroup_set = NetboxGroup.objects.order_by('id').values()
 
         self.output = []
-
-    def handle_post(self, request):
-        """Handles a post request from a quickselect form"""
-        # Django requests has post and get data stored in an attribute called
-        # REQUEST, while mod_python request stores it in form.
-        #
-        # This little if/else makes sure we can use both.
-        if hasattr(request, 'REQUEST'):
-            form = request.REQUEST
-        else:
-            form = request.form
-
-        result = {
-            'location': [],
-            'service': [],
-            'netbox': [],
-            'module': [],
-            'room': [],
-            'netboxgroup': [],
-        }
-
-        for field in result.keys():
-            submit = 'submit_%s' % field
-            key = field
-
-            if hasattr(request, 'form'):
-                form = request.form
-            else:
-                form = request.REQUEST
-
-            if field == 'location':
-                # Hack to work around noscript XSS protection that triggers on
-                # location
-                key = key.replace('location', 'loc')
-                submit = submit.replace('location', 'loc')
-
-            if getattr(self, field):
-                if submit in form and key in form:
-                    result[field] = form.getlist(key)
-                elif 'add_%s' % key in form:
-                    result[field] = form.getlist('add_%s' % key)
-                elif 'view_%s' % key in form:
-                    result[field] = form.getlist('view_%s' % key)
-                elif key != field:
-                    # Extra check that allows add_loc in addtion to
-                    # add_location
-                    if 'add_%s' % field in form:
-                        result[field] = form.getlist('add_%s' % field)
-                    elif 'view_%s' % field in form:
-                        result[field] = form.getlist('view_%s' % field)
-
-                if not getattr(self, '%s_multi' % field):
-                    # Limit to first element if multi is not set.
-                    result[field] = result[field][:1]
-
-        return result
 
     def __str__(self):
         if not self.output:
@@ -251,6 +194,6 @@ class QuickSelect(object):
             self.output = output
 
         template = get_template('webfront/quickselect.html')
-        context = Context({'output': self.output})
+        context = {'output': self.output}
 
         return template.render(context)

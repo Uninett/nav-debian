@@ -17,9 +17,6 @@
 
 from nav.models.manage import Netbox
 from nav.topology import vlan
-import logging
-
-_LOGGER = logging.getLogger(__name__)
 
 STATUS_IMAGE_MAP = {
     Netbox.UP_DOWN: 'red.png',
@@ -36,7 +33,7 @@ TRAFFIC_META = {
     'gb': 1000000000,
     'mb': 1000000,
     'kb': 1000
-} # pylint: disable=C0103
+}  # pylint: disable=C0103
 
 
 def convert_bits_to_si(bits):
@@ -99,6 +96,7 @@ def get_traffic_rgb(percent):
 
     return int(rgb[0]), int(rgb[1]), int(rgb[2])
 
+
 GRADIENT_MAP_INTENSITY = 2.0
 
 
@@ -145,7 +143,7 @@ def get_status_image_link(status):
     """
     try:
         return STATUS_IMAGE_MAP[status]
-    except:
+    except Exception:
         return STATUS_IMAGE_MAP[Netbox.UP_DOWN]
 
 

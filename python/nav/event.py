@@ -16,11 +16,13 @@
 """Simple API to interface with NAVs event queue."""
 
 from __future__ import absolute_import
+
+from django.db import transaction
+
 import nav.db
 from nav.errors import GeneralException
 
 from nav.models.event import EventType, AlertType
-from django.db import transaction
 
 
 class Event(dict):
@@ -111,10 +113,10 @@ class EventQ(object):
         values = []
         for attr in ('source', 'target', 'deviceid', 'netboxid', 'subid',
                      'time', 'eventtypeid', 'state', 'value', 'severity'):
-            if hasattr(event, attr) and getattr(event, attr):
+            if getattr(event, attr, None):
                 fields.append(attr)
                 values.append(getattr(event, attr))
-        if len(fields) == 0:
+        if not fields:
             raise EventIncompleteError
         field_string = ','.join(fields)
         placeholders = ', %s' * len(values)
@@ -126,7 +128,7 @@ class EventQ(object):
         cursor.execute(eventsql, (eventqid,) + tuple(values))
 
         # Prepare an SQL statement to post the variables, if any
-        if len(event) > 0:
+        if event:
             varsql = ("INSERT INTO eventqvar (eventqid, var, val)"
                       "VALUES (%s, %s, %s)")
             values = [(eventqid,) + i for i in event.items()]
@@ -242,7 +244,7 @@ def create_type_hierarchy(hierarchy):
         event_type_name, event_descr, stateful = event_type
         if stateful not in ('y', 'n'):
             # Parse the stateful var as a boolean
-            stateful = stateful and 'y' or 'n'
+            stateful = 'y' if stateful else 'n'
 
         try:
             etype = EventType.objects.get(id=event_type_name)

@@ -22,21 +22,22 @@ import json
 import logging
 from operator import attrgetter
 
-from django.core.urlresolvers import reverse
 from django.http import (HttpResponseForbidden, HttpResponseRedirect,
                          HttpResponse, JsonResponse)
 from django.views.decorators.http import require_POST
 from django.views.decorators.debug import (sensitive_variables,
                                            sensitive_post_parameters)
 from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 from django.utils.http import urlquote
 
 from django.utils import six
 
 from nav.auditlog.models import LogEntry
-from nav.django.auth import ACCOUNT_ID_VAR, desudo
 from nav.django.utils import get_account
 from nav.models.profiles import NavbarLink, AccountDashboard, AccountNavlet
+from nav.web.auth import ACCOUNT_ID_VAR
+from nav.web.auth import logout as auth_logout
 from nav.web import ldapauth, auth
 from nav.web.utils import require_param
 from nav.web.webfront.utils import quick_read, tool_list
@@ -48,7 +49,6 @@ from nav.web.webfront import (get_widget_columns, find_dashboard,
                               WELCOME_ANONYMOUS_PATH, WELCOME_REGISTERED_PATH)
 
 _logger = logging.getLogger('nav.web.tools')
-
 
 
 def index(request, did=None):
@@ -245,18 +245,8 @@ def do_login(request):
 
 def logout(request):
     """Controller for doing a logout"""
-    if request.method == 'POST' and 'submit_desudo' in request.POST:
-        desudo(request)
-        return HttpResponseRedirect(reverse('webfront-index'))
-    else:
-        account = request.account
-        del request.session[ACCOUNT_ID_VAR]
-        del request.account
-        request.session.set_expiry(datetime.now())
-        request.session.save()
-        LogEntry.add_log_entry(account, 'log-out', '{actor} logged out',
-                               before=account)
-    return HttpResponseRedirect('/')
+    nexthop = auth_logout(request)
+    return HttpResponseRedirect(nexthop)
 
 
 def about(request):

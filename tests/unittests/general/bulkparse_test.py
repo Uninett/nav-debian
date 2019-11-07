@@ -2,19 +2,17 @@
 
 # pylint: disable=C0111, C0103, W0614
 
-from io import BytesIO
-from unittest import TestCase
-
+import pytest
 from django.utils import six
 
 from nav import bulkparse
 
 
-class TestBulkParser(TestCase):
+class TestBulkParser(object):
     def test_init(self):
         data = b"room1:10.0.0.186:myorg:OTHER::parrot::"
         b = bulkparse.BulkParser(data)
-        self.assertTrue(isinstance(b, bulkparse.BulkParser))
+        assert isinstance(b, bulkparse.BulkParser)
 
     def test_overriden_validator(self):
         class TestParser(bulkparse.BulkParser):
@@ -29,70 +27,72 @@ class TestBulkParser(TestCase):
         try:
             list(b)
         except bulkparse.InvalidFieldValue as error:
-            self.assertEquals(error.line_num, 2)
-            self.assertEquals(error.field, 'one')
-            self.assertEquals(error.value, 'once')
+            assert error.line_num == 2
+            assert error.field == 'one'
+            assert error.value == 'once'
         else:
             self.fail("No exception raised")
 
 
-class TestNetboxBulkParser(TestCase):
+class TestNetboxBulkParser(object):
     def test_parse_returns_iterator(self):
-        data = b"room1:10.0.0.186:myorg:OTHER::parrot::"
+        data = b"room1:10.0.0.186:myorg:OTHER:SNMP v1 read profile:::"
         b = bulkparse.NetboxBulkParser(data)
-        self.assertTrue(hasattr(b, '__next__'))
+        assert (hasattr(b, '__next__'))
 
     def test_parse_single_line_should_yield_value(self):
-        data = b"room1:10.0.0.186:myorg:OTHER::parrot::"
+        data = b"room1:10.0.0.186:myorg:OTHER:SNMP v2c read profile:::"
         b = bulkparse.NetboxBulkParser(data)
         out_data = six.next(b)
-        self.assertTrue(out_data is not None)
+        assert (out_data is not None)
 
     def test_parse_single_line_yields_columns(self):
-        data = (b"room1:10.0.0.186:myorg:SW:1:public:secret:amaster:doesthings:"
+        data = (b"room1:10.0.0.186:myorg:SW:SNMP v2c read profile:amaster:doesthings:"
                 b"key=value:blah1:blah2")
         b = bulkparse.NetboxBulkParser(data)
         out_data = six.next(b)
-        self.assertTrue(isinstance(out_data, dict), out_data)
-        self.assertEquals(out_data['roomid'], 'room1')
-        self.assertEquals(out_data['ip'], '10.0.0.186')
-        self.assertEquals(out_data['orgid'], 'myorg')
-        self.assertEquals(out_data['catid'], 'SW')
-        self.assertEquals(out_data['master'], 'amaster')
-        self.assertEquals(out_data['data'], 'key=value')
-        self.assertEquals(out_data['netboxgroup'], ['blah1', 'blah2'])
+        assert isinstance(out_data, dict)
+        assert out_data['roomid'] == 'room1'
+        assert out_data['ip'] == '10.0.0.186'
+        assert out_data['orgid'] == 'myorg'
+        assert out_data['catid'] == 'SW'
+        assert out_data['master'] == 'amaster'
+        assert out_data['data'] == 'key=value'
+        assert out_data['netboxgroup'] == ['blah1', 'blah2']
 
     def test_get_header(self):
-        self.assertEquals(
-            bulkparse.NetboxBulkParser.get_header(),
+        assert (
+            bulkparse.NetboxBulkParser.get_header() ==
             "#roomid:ip:orgid:catid"
-            "[:snmp_version:ro:rw:master:function:data:netboxgroup:...]")
+            "[:management_profiles:master:function:data:netboxgroup:...]")
 
     def test_two_rows_returned_with_empty_lines_in_input(self):
-        data = (b"room1:10.0.0.186:myorg:SW:1:public:parrot::\n"
+        data = (b"room1:10.0.0.186:myorg:SW:SNMP v1 read profile::\n"
                 b"\n"
-                b"room1:10.0.0.187:myorg:OTHER::parrot::\n")
+                b"room1:10.0.0.187:myorg:OTHER:SNMP v1 read profile::\n")
         b = bulkparse.NetboxBulkParser(data)
         out_data = list(b)
-        self.assertEquals(len(out_data), 2)
+        assert len(out_data) == 2
 
     def test_three_lines_with_two_rows_should_be_counted_as_three(self):
-        data = (b"room1:10.0.0.186:myorg:SW:1:public:parrot::\n"
+        data = (b"room1:10.0.0.186:myorg:SW:SNMP v1 read profile::\n"
                 b"\n"
-                b"room1:10.0.0.187:myorg:OTHER::parrot::\n")
+                b"room1:10.0.0.187:myorg:OTHER:SNMP v2c read profile::\n")
         b = bulkparse.NetboxBulkParser(data)
         out_data = list(b)
-        self.assertEquals(b.line_num, 3)
+        assert b.line_num == 3
 
     def test_short_line_should_raise_error(self):
         data = b"room1:10.0.0.8"
         b = bulkparse.NetboxBulkParser(data)
-        self.assertRaises(bulkparse.RequiredFieldMissing, b.__next__)
+        with pytest.raises(bulkparse.RequiredFieldMissing):
+            b.__next__()
 
     def test_invalid_ip_should_raise_error(self):
-        data = b"room1:10.0.x.x:myorg:SW:public:parrot::\n"
+        data = b"room1:10.0.x.x:myorg:SW:SNMP v2c read profile::\n"
         b = bulkparse.NetboxBulkParser(data)
-        self.assertRaises(bulkparse.InvalidFieldValue, lambda: six.next(b))
+        with pytest.raises(bulkparse.InvalidFieldValue):
+            six.next(b)
 
     def test_short_line_should_raise_error_with_correct_details(self):
         data = b"room1:10.0.0.8"
@@ -100,84 +100,96 @@ class TestNetboxBulkParser(TestCase):
         try:
             six.next(b)
         except bulkparse.RequiredFieldMissing as error:
-            self.assertEquals(error.line_num, 1)
-            self.assertEquals(error.missing_field, 'orgid')
+            assert error.line_num == 1
+            assert error.missing_field == 'orgid'
         else:
             self.fail("No exception raised")
 
 
-class TestUsageBulkParser(TestCase):
+class TestManagementProfileBulkParser(object):
+    def test_configuration_should_be_parsed(self):
+        config = b'{"version":1, "community":"public"}'
+        data = b'SNMP v1 read profile:SNMP:"' + config.replace(b'"', b'""') + b'"'
+        b = bulkparse.ManagementProfileBulkParser(data)
+        first_row = six.next(b)
+        assert 'configuration' in first_row
+        assert first_row['configuration'] == config.decode('utf-8')
+
+
+class TestUsageBulkParser(object):
     def test_get_header(self):
-        self.assertEquals(
-            bulkparse.UsageBulkParser.get_header(),
+        assert (
+            bulkparse.UsageBulkParser.get_header() ==
             "#usageid:descr")
 
     def test_leading_comments_should_be_stripped(self):
         data = b"#comment\nsby:student village"
         b = bulkparse.UsageBulkParser(data)
         first_row = six.next(b)
-        self.assertEquals(first_row['usageid'], 'sby')
+        assert first_row['usageid'] == 'sby'
 
 
-class TestPrefixBulkParser(TestCase):
+class TestPrefixBulkParser(object):
     def test_invalid_prefix_should_raise_error(self):
         data = b"10.0.0.x/3f:scope"
         b = bulkparse.PrefixBulkParser(data)
-        self.assertRaises(bulkparse.InvalidFieldValue, lambda: six.next(b))
+        with pytest.raises(bulkparse.InvalidFieldValue):
+            six.next(b)
 
     def test_valid_prefix_should_not_raise_error(self):
         data = b"10.0.0.0/8:scope"
         b = bulkparse.PrefixBulkParser(data)
-        self.assertTrue(six.next(b))
+        assert (six.next(b))
 
 
-class TestServiceBulkParser(TestCase):
+class TestServiceBulkParser(object):
     def test_invalid_service_arguments_should_raise_error(self):
         data = b"host.example.org;http;port80"
         b = bulkparse.ServiceBulkParser(data)
-        self.assertRaises(bulkparse.InvalidFieldValue, lambda: six.next(b))
+        with pytest.raises(bulkparse.InvalidFieldValue):
+            six.next(b)
 
     def test_valid_service_arguments_should_not_raise_error(self):
         data = b"host.example.org;http;port=80;uri=/"
         b = bulkparse.ServiceBulkParser(data)
-        self.assertTrue(six.next(b))
+        assert (six.next(b))
 
 
-class TestCommentStripper(TestCase):
+class TestCommentStripper(object):
     def test_leading_comment_should_be_stripped(self):
         data = iter(['#leadingcomment\n', 'something\n'])
         stripper = bulkparse.CommentStripper(data)
-        self.assertEquals(six.next(stripper), '\n')
-        self.assertEquals(six.next(stripper), 'something\n')
+        assert six.next(stripper) == '\n'
+        assert six.next(stripper) == 'something\n'
 
     def test_suffix_comment_should_be_stripped(self):
         data = iter(['somedata\n', 'otherdata    # ignore this\n'])
         stripper = bulkparse.CommentStripper(data)
-        self.assertEquals(six.next(stripper), 'somedata\n')
-        self.assertEquals(six.next(stripper), 'otherdata\n')
+        assert six.next(stripper) == 'somedata\n'
+        assert six.next(stripper) == 'otherdata\n'
 
 
-class TestHeaderGenerator(TestCase):
+class TestHeaderGenerator(object):
     def test_simple(self):
         class C(bulkparse.BulkParser):
             format = ('one', 'two', 'three')
             required = 3
 
-        self.assertEquals(C.get_header(), "#one:two:three")
+        assert C.get_header() == "#one:two:three"
 
     def test_one_optional(self):
         class C(bulkparse.BulkParser):
             format = ('one', 'two', 'three', 'optional')
             required = 3
 
-        self.assertEquals(C.get_header(), "#one:two:three[:optional]")
+        assert C.get_header() == "#one:two:three[:optional]"
 
     def test_two_optional(self):
         class C(bulkparse.BulkParser):
             format = ('one', 'two', 'three', 'opt1', 'opt2')
             required = 3
 
-        self.assertEquals(C.get_header(), "#one:two:three[:opt1:opt2]")
+        assert C.get_header() == "#one:two:three[:opt1:opt2]"
 
     def test_optional_with_restkey(self):
         class C(bulkparse.BulkParser):
@@ -185,7 +197,7 @@ class TestHeaderGenerator(TestCase):
             restkey = 'arg'
             required = 3
 
-        self.assertEquals(C.get_header(), "#one:two:three[:optional:arg:...]")
+        assert C.get_header() == "#one:two:three[:optional:arg:...]"
 
     def test_two_required_plus_restkey(self):
         class C(bulkparse.BulkParser):
@@ -193,7 +205,7 @@ class TestHeaderGenerator(TestCase):
             restkey = 'rest'
             required = 2
 
-        self.assertEquals(C.get_header(), "#one:two[:rest:...]")
+        assert C.get_header() == "#one:two[:rest:...]"
 
     def test_two_required_plus_restkey_format(self):
         class C(bulkparse.BulkParser):
@@ -202,4 +214,4 @@ class TestHeaderGenerator(TestCase):
             restkey_format = 'thing=value'
             required = 2
 
-        self.assertEquals(C.get_header(), "#one:two[:thing=value:...]")
+        assert C.get_header() == "#one:two[:thing=value:...]"

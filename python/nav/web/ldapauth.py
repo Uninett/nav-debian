@@ -204,7 +204,6 @@ class LDAPUser(object):
 
     def bind(self, password):
         """Performs an authenticated bind for this user using password"""
-        encoding = _config.get('ldap', 'encoding')
         suffix = _config.get('ldap', 'suffix')
 
         if not suffix:
@@ -306,7 +305,6 @@ class LDAPUser(object):
         former should work well for groupOfNames and groupOfUniqueNames
         objects, the latter should work for posixGroup objects.
         """
-        encoding = _config.get('ldap', 'encoding')
         group_search = _config.get('ldap', 'group_search')
         user_dn = self.get_user_dn()
         # Match groupOfNames/groupOfUniqueNames objects
@@ -314,7 +312,7 @@ class LDAPUser(object):
             filterstr = group_search % escape_filter_chars(user_dn)
             result = self.ldap.search_s(group_dn, ldap.SCOPE_BASE, filterstr)
             _logger.debug("groupOfNames results: %s", result)
-            if len(result) < 1:
+            if not result:
                 # If no match, match posixGroup objects
                 filterstr = (
                     '(memberUid=%s)' % escape_filter_chars(self.username))

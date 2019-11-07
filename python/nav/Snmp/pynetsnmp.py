@@ -15,12 +15,13 @@
 #
 """High level synchronouse NAV API for NetSNMP"""
 
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 from collections import namedtuple
 from ctypes import (c_int, sizeof, byref, cast, POINTER, c_char, c_char_p,
                     c_uint, c_ulong, c_uint64)
 
+from django.utils import six
 from IPy import IP
 from pynetsnmp import netsnmp
 from pynetsnmp.netsnmp import (Session, SNMP_MSG_GETNEXT, mkoid, lib,
@@ -28,7 +29,13 @@ from pynetsnmp.netsnmp import (Session, SNMP_MSG_GETNEXT, mkoid, lib,
                                SNMP_MSG_GETBULK, SNMP_MSG_SET, SNMP_MSG_GET)
 
 from nav.oids import OID
-from .errors import *
+from .errors import (
+    EndOfMibViewError,
+    NoSuchObjectError,
+    SnmpError,
+    TimeOutException,
+    UnsupportedSnmpVersionError
+)
 
 PDUVarbind = namedtuple("PDUVarbind", ['oid', 'type', 'value'])
 
@@ -106,7 +113,7 @@ class Snmp(object):
         """Performs an SNMP GET query.
 
         :param query: OID to query for.
-        :returns: The response value as a string.
+        :returns: The response value
 
         """
         oid = OID(query)
@@ -114,11 +121,10 @@ class Snmp(object):
         if response:
             value = response.get(oid, None)
             if isinstance(value, tuple):
-                return str(OID(value))[1:]
-            else:
-                return value
+                return OID(value)
+            return value
         else:
-            return ''
+            return None
 
     @staticmethod
     def translate_type(type):
@@ -320,10 +326,11 @@ class _MySnmpSession(Session):
         else:
             _raise_on_error(self.sess.contents.s_snmp_errno)
 
-##
-## Functions for converting Python values to C data types suitable for ASN
-## and BER encoding in the NET-SNMP library.
-##
+#
+# Functions for converting Python values to C data types suitable for ASN
+# and BER encoding in the NET-SNMP library.
+#
+
 
 CONVERTER_MAP = {}
 
@@ -372,6 +379,8 @@ def asn_object_id(value):
 
 @converts(netsnmp.ASN_OCTET_STR)
 def asn_octet_str(value):
+    if not isinstance(value, six.binary_type):
+        raise TypeError("Byte string expected")
     string = c_char_p(value)
     return string, len(value)
 
@@ -380,6 +389,7 @@ def asn_octet_str(value):
 def asn_counter64(value):
     value = c_uint64(value)
     return byref(value), sizeof(value)
+
 
 # Some global ctypes initializations needed for the snmp_api_errstring function
 _charptr = POINTER(c_char)
@@ -390,13 +400,13 @@ netsnmp.lib.snmp_errstring.restype = _charptr
 def snmp_api_errstring(err_code):
     """Converts an SNMP API error code to an error string"""
     buf = netsnmp.lib.snmp_api_errstring(err_code)
-    return cast(buf, c_char_p).value
+    return cast(buf, c_char_p).value.decode('utf-8')
 
 
 def snmp_errstring(err_status):
     """Converts an SNMP protocol error status to an error string"""
     buf = netsnmp.lib.snmp_errstring(err_status)
-    return cast(buf, c_char_p).value
+    return cast(buf, c_char_p).value.decode('utf-8')
 
 
 def _raise_on_error(err_code):
@@ -411,7 +421,7 @@ def _raise_on_error(err_code):
         raise TimeOutException(snmp_api_errstring(err_code))
     else:
         raise SnmpError("%s: %s" % (SNMPERR_MAP.get(err_code, ''),
-                                           snmp_api_errstring(err_code)))
+                                    snmp_api_errstring(err_code)))
 
 
 def _raise_on_protocol_error(response):

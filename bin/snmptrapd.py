@@ -45,8 +45,8 @@ from nav.snmptrapd import agent
 logfile_path = os.path.join(NAV_CONFIG['LOG_DIR'], 'snmptrapd.log')
 pidfile = 'snmptrapd.pid'
 logging.raiseExceptions = False  # don't raise exceptions for logging issues
-logger = logging.getLogger('nav.snmptrapd')
-traplogger = logging.getLogger('nav.snmptrapd.traplog')
+_logger = logging.getLogger('nav.snmptrapd')
+_traplogger = logging.getLogger('nav.snmptrapd.traplog')
 handlermodules = None
 config = None
 
@@ -107,15 +107,15 @@ def main():
 
     nav.logs.init_stderr_logging()
 
-    logger.debug("using %r as SNMP backend", agent.BACKEND)
+    _logger.debug("using %r as SNMP backend", agent.BACKEND)
 
     # Load handlermodules
     try:
-        logger.debug('Trying to load handlermodules')
+        _logger.debug('Trying to load handlermodules')
         handlermodules = load_handler_modules(
             config.get('snmptrapd', 'handlermodules').split(','))
     except ModuleLoadError as why:
-        logger.error("Could not load handlermodules %s" % why)
+        _logger.error("Could not load handlermodules %s" % why)
         sys.exit(1)
 
     addresses_text = ", ".join(address_to_string(*addr)
@@ -123,16 +123,16 @@ def main():
     if not opts.foreground:
         # Daemonize and listen for traps
         try:
-            logger.debug("Going into daemon mode...")
+            _logger.debug("Going into daemon mode...")
             logfile = open(logfile_path, 'a')
             daemon.daemonize(pidfile, stderr=logfile, stdout=logfile)
         except daemon.DaemonError as why:
-            logger.error("Could not daemonize: %s", why)
+            _logger.error("Could not daemonize: %s", why)
             server.close()
             sys.exit(1)
 
         # Daemonized
-        logger.info('snmptrapd is now running in daemon mode')
+        _logger.info('snmptrapd is now running in daemon mode')
 
         # Reopen lost db connection
         # This is a workaround for a double free bug in psycopg 2.0.7
@@ -140,27 +140,27 @@ def main():
         getConnection('default')
 
         # Reopen log files on SIGHUP
-        logger.debug('Adding signal handler for reopening log files on SIGHUP.')
+        _logger.debug('Adding signal handler for reopening log files on SIGHUP.')
         signal.signal(signal.SIGHUP, signal_handler)
         # Exit on SIGTERM
         signal.signal(signal.SIGTERM, signal_handler)
 
-        logger.info("Snmptrapd started, listening on %s", addresses_text)
+        _logger.info("Snmptrapd started, listening on %s", addresses_text)
         try:
             server.listen(opts.community, trap_handler)
         except SystemExit:
             raise
         except Exception as why:
-            logger.critical("Fatal exception ocurred", exc_info=True)
+            _logger.critical("Fatal exception ocurred", exc_info=True)
 
     else:
         daemon.writepidfile(pidfile)
         # Start listening and exit cleanly if interrupted.
         try:
-            logger.info("Listening on %s", addresses_text)
+            _logger.info("Listening on %s", addresses_text)
             server.listen(opts.community, trap_handler)
         except KeyboardInterrupt as why:
-            logger.error("Received keyboard interrupt, exiting.")
+            _logger.error("Received keyboard interrupt, exiting.")
             server.close()
 
 
@@ -204,24 +204,24 @@ def trap_handler(trap):
     :type trap: SNMPTrap
 
     """
-    traplogger.debug("%s", trap)
+    _traplogger.debug("%s", trap)
     connection = getConnection('default')
     handled_by = []
 
     for mod in handlermodules:
-        logger.debug("Offering trap (%s) to %s", id(trap), mod)
+        _logger.debug("Offering trap (%s) to %s", id(trap), mod)
         try:
             accepted = mod.handleTrap(trap, config=config)
             if accepted:
                 handled_by.append(mod.__name__)
-            logger.debug(
+            _logger.debug(
                 "Module %s %s trap (%s)",
                 mod.__name__,
                 'accepted' if accepted else 'ignored',
                 id(trap),
             )
         except Exception as why:
-            logger.exception(
+            _logger.exception(
                 "Unhandled exception when handling trap (%s) with %s: %s",
                 id(trap),
                 mod.__name__,
@@ -241,14 +241,14 @@ def _log_trap_handle_result(handled_by, trap):
         if trap.netbox else trap.agent
     )
     if handled_by:
-        logger.info(
+        _logger.info(
             "v%s trap received from %s, handled by %s",
             trap.version,
             agent_string,
             handled_by,
         )
     else:
-        logger.info(
+        _logger.info(
             "v%s trap received from %s, no handlers wanted it: %s",
             trap.version,
             agent_string,
@@ -270,15 +270,15 @@ def verify_subsystem():
 def signal_handler(signum, _):
     """Signal handler to close and reopen log file(s) on HUP and exit on TERM"""
     if signum == signal.SIGHUP:
-        logger.info("SIGHUP received; reopening log files.")
+        _logger.info("SIGHUP received; reopening log files.")
         nav.logs.reopen_log_files()
         logfile = open(logfile_path, 'a')
         daemon.redirect_std_fds(stdout=logfile, stderr=logfile)
         nav.logs.reset_log_levels()
         nav.logs.set_log_config()
-        logger.info('Log files reopened.')
+        _logger.info('Log files reopened.')
     elif signum == signal.SIGTERM:
-        logger.warning('SIGTERM received: Shutting down.')
+        _logger.warning('SIGTERM received: Shutting down.')
         sys.exit(0)
 
 

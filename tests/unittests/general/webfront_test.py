@@ -1,80 +1,180 @@
 # -*- coding: utf-8 -*-
-from unittest import TestCase
-from mock import patch, Mock
+from mock import patch, MagicMock, Mock
 from django.utils import six
+from django.test import RequestFactory
 
 import pytest
 
 import nav.web.ldapauth
 from nav.web import auth
 
+LDAP_ACCOUNT = auth.Account(login='knight', ext_sync='ldap',
+                            password='shrubbery')
+PLAIN_ACCOUNT = auth.Account(login='knight', password='shrubbery')
+REMOTE_USER_ACCOUNT = auth.Account(login='knight', ext_sync='REMOTE_USER',
+                                   password='shrubbery')
 
-class LdapAuthenticateTest(TestCase):
-    def setUp(self):
-        self.ldap_available = nav.web.ldapauth.available
-        nav.web.ldapauth.available = True
 
-        self.patched_save = patch("nav.web.auth.Account.save",
-                                  return_value=True)
-        self.patched_save.start()
+class FakeSession(dict):
 
-        self.mock_account = auth.Account(login='knight', ext_sync='ldap',
-                                         password='shrubbery')
-        self.patched_get = patch("nav.web.auth.Account.objects.get",
-                                 return_value=self.mock_account)
-        self.patched_get.start()
+    def set_expiry(self, *_):
+        pass
 
-    def tearDown(self):
-        nav.web.ldapauth.available = self.ldap_available
-        self.patched_save.stop()
-        self.patched_get.stop()
+    def save(self, *_):
+        pass
 
+
+@patch("nav.web.auth.Account.save", new=MagicMock(return_value=True))
+@patch("nav.web.auth.Account.objects.get",
+       new=MagicMock(return_value=LDAP_ACCOUNT))
+class TestLdapAuthenticate(object):
     def test_authenticate_should_return_account_when_ldap_says_yes(self):
         ldap_user = Mock()
         ldap_user.is_admin.return_value = None  # mock to avoid database access
-        with patch("nav.web.ldapauth.authenticate", return_value=ldap_user):
-            self.assertEquals(auth.authenticate('knight', 'shrubbery'),
-                              self.mock_account)
+        with patch("nav.web.ldapauth.available", new=True):
+            with patch("nav.web.ldapauth.authenticate", return_value=ldap_user):
+                assert auth.authenticate('knight', 'shrubbery') == LDAP_ACCOUNT
 
     def test_authenticate_should_return_false_when_ldap_says_no(self):
-        with patch("nav.web.ldapauth.authenticate", return_value=False):
-            self.assertFalse(auth.authenticate('knight', 'shrubbery'))
+        with patch("nav.web.ldapauth.available", new=True):
+            with patch("nav.web.ldapauth.authenticate", return_value=False):
+                assert not auth.authenticate('knight', 'shrubbery')
 
     def test_authenticate_should_fallback_when_ldap_is_disabled(self):
-        nav.web.ldapauth.available = False
-        self.assertEquals(auth.authenticate('knight', 'shrubbery'),
-                          self.mock_account)
+        with patch("nav.web.ldapauth.available", new=False):
+            assert auth.authenticate('knight', 'shrubbery') == LDAP_ACCOUNT
 
 
-class NormalAuthenticateTest(TestCase):
-    def setUp(self):
-        self.ldap_available = nav.web.ldapauth.available
-        nav.web.ldapauth.available = False
-        self.patched_save = patch("nav.web.auth.Account.save",
-                                  return_value=True)
-        self.patched_save.start()
-
-        self.mock_account = auth.Account(login='knight', password='shrubbery')
-        self.patched_get = patch("nav.web.auth.Account.objects.get",
-                                 return_value=self.mock_account)
-        self.patched_get.start()
-
-    def tearDown(self):
-        nav.web.ldapauth.available = self.ldap_available
-        self.patched_save.stop()
-        self.patched_get.stop()
-
+@patch("nav.web.auth.Account.save", new=MagicMock(return_value=True))
+@patch("nav.web.auth.Account.objects.get",
+       new=MagicMock(return_value=PLAIN_ACCOUNT))
+@patch("nav.web.ldapauth.available", new=False)
+class TestNormalAuthenticate(object):
     def test_authenticate_should_return_account_when_password_is_ok(self):
         with patch("nav.web.auth.Account.check_password", return_value=True):
-            self.assertEquals(auth.authenticate('knight', 'shrubbery'),
-                              self.mock_account)
+            assert auth.authenticate('knight', 'shrubbery') == PLAIN_ACCOUNT
 
     def test_authenticate_should_return_false_when_ldap_says_no(self):
         with patch("nav.web.auth.Account.check_password", return_value=False):
-            self.assertFalse(auth.authenticate('knight', 'rabbit'))
+            assert not auth.authenticate('knight', 'rabbit')
 
 
-class LdapUserTestCase(TestCase):
+class TestRemoteUserAuthenticate(object):
+    def test_authenticate_remote_user_should_return_account_if_header_set(self):
+        r = RequestFactory()
+        request = r.get('/')
+        request.META['REMOTE_USER'] = 'knight'
+        with patch("nav.web.auth._config.getboolean", return_value=True):
+            with patch("nav.web.auth.Account.objects.get",
+                       new=MagicMock(return_value=REMOTE_USER_ACCOUNT)):
+                assert auth.authenticate_remote_user(request) == REMOTE_USER_ACCOUNT
+
+    def test_authenticate_remote_user_should_return_none_if_header_not_set(self):
+        r = RequestFactory()
+        request = r.get('/')
+        with patch("nav.web.auth._config.getboolean", return_value=True):
+            assert auth.authenticate_remote_user(request) == None
+
+    def test_authenticate_remote_user_should_return_false_if_account_locked(self):
+        r = RequestFactory()
+        request = r.get('/')
+        request.META['REMOTE_USER'] = 'knight'
+        with patch("nav.web.auth._config.getboolean", return_value=True):
+            with patch("nav.web.auth.Account.objects.get", return_value=REMOTE_USER_ACCOUNT):
+                with patch("nav.web.auth.LogEntry.add_log_entry"):
+                    with patch("nav.web.auth.Account.locked", return_value=True):
+                        assert auth.authenticate_remote_user(request) == False
+
+
+class TestGetStandardUrls(object):
+
+    def test_get_login_url_default(self):
+        r = RequestFactory()
+        request = r.get('/')
+        raw_login_url = auth.LOGIN_URL
+        result = auth.get_login_url(request)
+        assert result.startswith(raw_login_url)
+
+    def test_get_login_url_remote_login_url(self):
+        r = RequestFactory()
+        request = r.get('/')
+        request.META['REMOTE_USER'] = 'knight'
+        with patch("nav.web.auth._config.getboolean", return_value=True):
+            with patch("nav.web.auth._config.get", return_value='foo'):
+                result = auth.get_login_url(request)
+                assert result == 'foo'
+
+    def test_get_logout_url_default(self):
+        r = RequestFactory()
+        request = r.get('/')
+        result = auth.get_logout_url(request)
+        assert result == auth.LOGOUT_URL
+
+    def test_get_logout_url_remote_logout_url(self):
+        r = RequestFactory()
+        request = r.get('/')
+        request.META['REMOTE_USER'] = 'knight'
+        with patch("nav.web.auth._config.getboolean", return_value=True):
+            with patch("nav.web.auth._config.get", return_value='foo'):
+                result = auth.get_logout_url(request)
+                assert result == 'foo'
+
+
+class TestGetRemoteUsername(object):
+
+    def test_no_request(self):
+        with patch("nav.web.auth._config.getboolean", return_value=False):
+            result = auth.get_remote_username(None)
+            assert result is None
+
+    def test_not_enabled(self):
+        r = RequestFactory()
+        request = r.get('/')
+        with patch("nav.web.auth._config.getboolean", return_value=False):
+            result = auth.get_remote_username(request)
+            assert result is None
+
+    def test_enabled_but_remote_user_unset(self):
+        r = RequestFactory()
+        request = r.get('/')
+        with patch("nav.web.auth._config.getboolean", return_value=True):
+            result = auth.get_remote_username(request)
+            assert result is None
+
+    def test_enabled_and_remote_user_set(self):
+        r = RequestFactory()
+        request = r.get('/')
+        request.META['REMOTE_USER'] = 'knight'
+        with patch("nav.web.auth._config.getboolean", return_value=True):
+            result = auth.get_remote_username(request)
+            assert result == 'knight'
+
+
+class TestLoginRemoteUser(object):
+
+    def test_remote_user_unset(self):
+        r = RequestFactory()
+        request = r.get('/')
+        request.session = FakeSession()
+        with patch("nav.web.auth.get_remote_username", return_value=False):
+            auth.login_remote_user(request)
+            assert not getattr(request, 'account', False)
+            assert auth.ACCOUNT_ID_VAR not in request.session
+
+    def test_remote_user_set(self):
+        r = RequestFactory()
+        request = r.get('/')
+        request.session = FakeSession()
+        with patch("nav.web.auth.get_remote_username", return_value=True):
+            with patch("nav.web.auth.authenticate_remote_user", return_value=REMOTE_USER_ACCOUNT):
+                auth.login_remote_user(request)
+                assert hasattr(request, 'account')
+                assert request.account == REMOTE_USER_ACCOUNT
+                assert auth.ACCOUNT_ID_VAR in request.session
+                assert request.session.get(auth.ACCOUNT_ID_VAR, None) == REMOTE_USER_ACCOUNT.id
+
+
+class TestLdapUser(object):
     @patch.dict("nav.web.ldapauth._config._sections",
                 {'ldap': {'__name__': 'ldap',
                           'basedn': 'empty',
@@ -90,7 +190,8 @@ class LdapUserTestCase(TestCase):
                                       (None, "at the end of the universe")]
         })
         u = nav.web.ldapauth.LDAPUser("zaphod", conn)
-        self.assertRaises(nav.web.ldapauth.UserNotFound, u.search_dn)
+        with pytest.raises(nav.web.ldapauth.UserNotFound):
+            u.search_dn()
 
     @patch.dict("nav.web.ldapauth._config._sections",
                 {'ldap': {'__name__': 'ldap',

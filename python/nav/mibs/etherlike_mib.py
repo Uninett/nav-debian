@@ -25,14 +25,12 @@ class EtherLikeMib(mibretriever.MibRetriever):
     """MibRetriever for EtherLike-MIB"""
     mib = get_mib('EtherLike-MIB')
 
-    @defer.deferredGenerator
+    @defer.inlineCallbacks
     def get_duplex(self):
         """Get a mapping of ifindexes->duplex status."""
-        dw = defer.waitForDeferred(
-            self.retrieve_columns(('dot3StatsDuplexStatus',)))
-        yield dw
-        duplex = self.translate_result(dw.getResult())
+        data = yield self.retrieve_columns(('dot3StatsDuplexStatus',))
+        duplex = self.translate_result(data)
 
-        result = dict([(index[0], row['dot3StatsDuplexStatus'])
-                      for index, row in duplex.items()])
-        yield result
+        result = {index[0]: row['dot3StatsDuplexStatus']
+                  for index, row in duplex.items()}
+        defer.returnValue(result)

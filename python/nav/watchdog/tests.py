@@ -29,7 +29,7 @@ from nav.asyncdns import reverse_lookup
 from nav.models.manage import IpdevpollJobLog, Netbox, Arp, Cam
 from nav.models.fields import INFINITY
 
-LOGGER = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 STATUS_OK = 'ok'
@@ -69,8 +69,8 @@ class Test(object):
         starttime = datetime.now()
         self.errors = self._get_errors()
         runtime = datetime.now() - starttime
-        LOGGER.debug('%s used %s', type(self).__name__, runtime)
-        self.status = (STATUS_OK if len(self.errors) == 0
+        _logger.debug('%s used %s', type(self).__name__, runtime)
+        self.status = (STATUS_OK if not self.errors
                        else STATUS_NOT_OK)
 
     def get_status(self):
@@ -170,10 +170,14 @@ class TestDuplicateHostnameForIP(Test):
 
     def _get_errors(self):
         """Fetches duplicate hostnames"""
-        ip_addresses = [n.ip for n in Netbox.objects.all()]
-        reverse_names = reverse_lookup(ip_addresses)
+        ip_addresses = Netbox.objects.values_list("ip", flat=True)
+        reverse_names = {
+            _key: _value
+            for _key, _value in reverse_lookup(ip_addresses).items()
+            if not isinstance(_value, Exception)  # Ignore DNS lookup failures
+        }
         flatten = list(itertools.chain(*reverse_names.values()))
-        duplicates = set([x for x in flatten if flatten.count(x) > 1])
+        duplicates = {x for x in flatten if flatten.count(x) > 1}
         results = collections.defaultdict(list)
 
         for hostname in duplicates:

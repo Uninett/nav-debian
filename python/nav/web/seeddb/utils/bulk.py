@@ -15,10 +15,9 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Module for handling bulk import requests"""
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 from nav.bulkimport import reset_object_foreignkeys
 from nav.bulkparse import BulkParseError
@@ -53,11 +52,7 @@ def render_bulkimport(request, parser_cls, importer_cls, redirect,
         'sub_active': {'bulk': True},
     }
     info_dict.update(extra_context)
-    return render_to_response(
-        'seeddb/bulk_import.html',
-        info_dict,
-        RequestContext(request)
-    )
+    return render(request, 'seeddb/bulk_import.html', info_dict)
 
 
 def bulk_save(importer):

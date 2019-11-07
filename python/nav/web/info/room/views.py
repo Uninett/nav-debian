@@ -19,15 +19,16 @@ import datetime
 import logging
 import csv
 
-from django.core.urlresolvers import reverse
 from django.db import IntegrityError
 from django.db.models import Q, Max
 from django.http import HttpResponse
-from django.shortcuts import (render_to_response, redirect, get_object_or_404,
+from django.shortcuts import (redirect, get_object_or_404,
                               render)
-from django.template import RequestContext
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
 from nav.django.decorators import require_admin
+from nav.metrics.errors import GraphiteUnreachableError
 
 from nav.models.manage import Room, Sensor, Interface
 from nav.models.rack import (Rack, SensorRackItem, SensorsDiffRackItem,
@@ -81,12 +82,16 @@ def search(request):
     else:
         searchform = RoomSearchForm()
 
-    return render_to_response("info/room/base.html",
-                              {"searchform": searchform,
-                               "rooms": rooms,
-                               "navpath": navpath,
-                               "title": create_title(titles)},
-                              context_instance=RequestContext(request))
+    return render(
+        request,
+        "info/room/base.html",
+        {
+            "searchform": searchform,
+            "rooms": rooms,
+            "navpath": navpath,
+            "title": create_title(titles)
+        }
+    )
 
 
 def process_searchform(form):
@@ -114,12 +119,16 @@ def roominfo(request, roomid):
     navpath = get_path() + [(room.id,)]
     room.sorted_data = sorted(room.data.items())
     room.meta_data = get_room_meta(room)
-    return render_to_response("info/room/roominfo.html",
-                              {"room": room,
-                               "navpath": navpath,
-                               "title": create_title(navpath),
-                               "images": images},
-                              context_instance=RequestContext(request))
+    return render(
+        request,
+        "info/room/roominfo.html",
+        {
+            "room": room,
+            "navpath": navpath,
+            "title": create_title(navpath),
+            "images": images
+        }
+    )
 
 
 def get_room_meta(room):
@@ -137,13 +146,21 @@ def render_deviceinfo(request, roomid):
     """Controller for rendering device info"""
     room = get_object_or_404(Room, id=roomid)
     all_netboxes = room.netbox_set.select_related(
-        'type', 'category', 'organization').order_by('sysname')
-    return render(request, 'info/room/roominfo_devices.html', {
-        'netboxes': all_netboxes,
-        'availabilities': get_netboxes_availability(
-            all_netboxes, data_sources=['availability'],
-            time_frames=['week', 'month'])
-    })
+        "type", "category", "organization"
+    ).order_by("sysname")
+
+    try:
+        availabilities = get_netboxes_availability(
+            all_netboxes, data_sources=["availability"], time_frames=["week", "month"]
+        )
+    except GraphiteUnreachableError:
+        availabilities = None
+
+    return render(
+        request,
+        "info/room/roominfo_devices.html",
+        {"netboxes": all_netboxes, "availabilities": availabilities},
+    )
 
 
 def upload_image(request, roomid):
@@ -160,10 +177,14 @@ def upload_image(request, roomid):
         handle_image_upload(request, room=room)
         return redirect("room-info-upload", roomid=room.id)
 
-    return render_to_response("info/room/upload.html",
-                              {"object": room, "room": room, "navpath": navpath,
-                               "title": create_title(navpath)},
-                              context_instance=RequestContext(request))
+    return render(
+        request,
+        "info/room/upload.html",
+        {
+            "object": room, "room": room, "navpath": navpath,
+            "title": create_title(navpath)
+        }
+    )
 
 
 def render_netboxes(request, roomid):
@@ -184,16 +205,21 @@ def render_netboxes(request, roomid):
         netbox.interfaces = netbox.interface_set.filter(
             iftype=6).order_by("ifindex").extra(select=cam_query)
 
-    return render_to_response("info/room/netboxview.html",
-                              {"netboxes": netboxes,
-                               "maxtime": datetime.datetime.max,
-                               "room": room},
-                              context_instance=RequestContext(request))
+    return render(
+        request,
+        "info/room/netboxview.html",
+        {
+            "netboxes": netboxes,
+            "maxtime": datetime.datetime.max,
+            "room": room
+        }
+    )
 
 
+@require_http_methods(['POST'])
 def create_csv(request):
     """Create csv-file from form data"""
-    roomname = request.REQUEST.get('roomid', 'room').encode('utf-8')
+    roomname = request.POST.get('roomid', 'room').encode('utf-8')
     filename = "{}.csv".format(roomname)
 
     response = HttpResponse(content_type='text/csv')
@@ -201,7 +227,7 @@ def create_csv(request):
         filename)
 
     writer = csv.writer(response)
-    rows = request.REQUEST.get('rows', '').encode('utf-8')
+    rows = request.POST.get('rows', '').encode('utf-8')
     for row in rows.splitlines():
         writer.writerow(row.split(';'))
     return response
@@ -394,7 +420,7 @@ def save_rack_order(request, roomid):
 @require_admin
 def save_rack_color(request, roomid):
     """Saves the background color for the rack as a class"""
-    _room = get_object_or_404(Room, pk=roomid)
+    get_object_or_404(Room, pk=roomid)
     rackid = request.POST.get('rackid')
     rack = get_object_or_404(Rack, pk=rackid)
     rack.configuration['body_class'] = request.POST.get('class')
@@ -417,5 +443,5 @@ def remove_sensor(request, roomid):
     try:
         rack.save()
         return HttpResponse()
-    except:
+    except Exception:
         return HttpResponse(status=500)

@@ -105,11 +105,11 @@
       {% endif %}
       {% if current_user_data.account.is_default_account %}
         <li>
-          <a class="navbar login button secondary" href="/index/login">Login</a>
+            <a class="navbar login button secondary" href="{{ login_url }}">Login</a>
         </li>
       {% else %}
         <li>
-          <a class="navbar logout button secondary" href="/index/logout">Logout {{ current_user_data.account.login }}</a>
+            <a class="navbar logout button secondary" href="{{ logout_url }}">Logout {{ current_user_data.account.login }}</a>
         </li>
       {% endif %}
     </ul>
@@ -176,11 +176,11 @@
 
 {% comment %} BREADCRUMB {% endcomment %}
 <ul id="nav-breadcrumbs" class="breadcrumbs">
-  {% for title, url in navpath %}
-    {% if url %}
-      <li><a href="{{ url }}">{{ title }}</a></li>
+  {% for element in navpath %}
+    {% if element|length > 1 and element.1 %}
+      <li><a href="{{ element.1 }}">{{ element.0 }}</a></li>
     {% else %}
-      <li class="current"><a href="#">{{ title }}</a></li>
+      <li class="current"><a href="#">{{ element.0 }}</a></li>
     {% endif %}
   {% endfor %}
 </ul>
