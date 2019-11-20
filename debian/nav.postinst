@@ -310,6 +310,11 @@ EOF
 	    disable_RUN_NAV_warning "$msg"
 	fi
 
+	# psuwatch cronjob is obsolete
+	if dpkg --compare-versions "$OLDVERSION" lt "5.0.0-2"; then
+            rm_conffile nav /etc/nav/cron.d/psuwatch
+	fi
+
 	if [ -n "$OLDVERSION" ]; then
 	    rm -rf /tmp/nav_cache  # remove old cache data on upgrade
 	fi

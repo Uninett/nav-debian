@@ -1,8 +1,14 @@
-nav (5.0.0-2buster) stretch; urgency=medium
+nav (5.0.0-3buster) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Buster
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 07 Nov 2019 11:10:31 +0000
+
+nav (5.0.0-2) stretch; urgency=medium
+
+  * Remove obsolete psuwatch cronjob on upgrades.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Wed, 20 Nov 2019 13:47:19 +0000
 
 nav (5.0.0-1) stretch; urgency=medium
 
