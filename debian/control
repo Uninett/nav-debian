@@ -18,6 +18,8 @@ Build-Depends:
  libz-dev,
  libldap2-dev,
  libsasl2-dev,
+# This is needed to ensure building of the docs without error
+ libsnmp30,
 Standards-Version: 3.9.6
 X-Python-Version: 2.7
 Homepage: https://nav.uninett.no/
