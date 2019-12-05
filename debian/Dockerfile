@@ -19,6 +19,7 @@ RUN  apt-get -y update && \
        python3-dev \
        python-all \
        python3-all \
+       libsnmp30 \
      && \
      apt-get clean
 
