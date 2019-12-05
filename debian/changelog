@@ -1,3 +1,10 @@
+nav (5.0.1-1) stretch; urgency=medium
+
+  * New upstream release.
+  * Remove obsolete psuwatch cronjob on upgrades.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 05 Dec 2019 09:30:27 +0000
+
 nav (5.0.0-2) stretch; urgency=medium
 
   * Remove obsolete psuwatch cronjob on upgrades.
