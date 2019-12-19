@@ -1,3 +1,10 @@
+nav (5.0.3-2) stretch; urgency=medium
+
+  * Patched for #2074
+    - https://github.com/Uninett/nav/issues/2074
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 19 Dec 2019 15:26:45 +0100
+
 nav (5.0.3-1) stretch; urgency=medium
 
   * New upstream release.
