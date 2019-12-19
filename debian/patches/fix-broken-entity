@@ -1,0 +1,23 @@
+From cc46962c75dad2b099f6af945745e33669830605 Mon Sep 17 00:00:00 2001
+From: Morten Brekkevold <morten.brekkevold@uninett.no>
+Date: Thu, 19 Dec 2019 15:19:04 +0100
+Subject: [PATCH] Only make saef string if there is an actual value
+
+Fixes #2074
+---
+ python/nav/ipdevpoll/plugins/entity.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/python/nav/ipdevpoll/plugins/entity.py b/python/nav/ipdevpoll/plugins/entity.py
+index 986deded9..c8e6f6336 100644
+--- a/python/nav/ipdevpoll/plugins/entity.py
++++ b/python/nav/ipdevpoll/plugins/entity.py
+@@ -125,7 +125,7 @@ def _container_from_entity(self, ent):
+             value = ent.get(column)
+             if column in EntityMib.text_columns and value and "\x00" in value:
+                 value = value.replace("\x00", "")  # Remove broken stuff from text
+-            if column in ("entPhysicalVendorType", "entPhysicalUris"):
++            if column in ("entPhysicalVendorType", "entPhysicalUris") and value:
+                 value = safestring(value).replace("\x00", "")
+             if column == 'entPhysicalClass':
+                 value = self.class_map.get(value)
