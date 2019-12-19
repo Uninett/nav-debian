@@ -62,9 +62,11 @@ class EntityMib(mibretriever.MibRetriever):
                         and OID(row['entLogicalType']) == bridge_mib_oid
                         and b'\x00' not in row['entLogicalCommunity'])
 
-            new_result = [(r['entLogicalDescr'], r['entLogicalCommunity'])
-                          for r in result.values()
-                          if _is_bridge_mib_instance_with_valid_community(r)]
+            new_result = [
+                (r["entLogicalDescr"], r["entLogicalCommunity"].decode("utf-8"))
+                for r in result.values()
+                if _is_bridge_mib_instance_with_valid_community(r)
+            ]
             return new_result
 
         df = self.retrieve_columns([
@@ -122,12 +124,16 @@ class EntityMib(mibretriever.MibRetriever):
 
     def _process_alias_mapping(self, alias_mapping):
         mapping = defaultdict(list)
-        for (phys_index, _logical), rowpointer in alias_mapping.items():
-            # Last element is ifindex. Preceding elements is an OID.
-            ifindex = OID(rowpointer)[-1]
+        try:
+            for (phys_index, _logical), rowpointer in alias_mapping.items():
+                # Last element is ifindex. Preceding elements is an OID.
+                ifindex = OID(rowpointer)[-1]
 
-            mapping[phys_index].append(ifindex)
-
+                mapping[phys_index].append(ifindex)
+        except ValueError:
+            self._logger.warning(
+                "device has broken entAliasMappingTable implementation"
+            )
         self._logger.debug("alias mapping: %r", mapping)
         return mapping
 
@@ -282,7 +288,9 @@ class EntityTable(dict):
             mfg_date = entity.get('entPhysicalMfgDate')
             if mfg_date:
                 mfg_date = parse_dateandtime_tc(mfg_date)
-                entity['entPhysicalMfgDate'] = mfg_date
+            else:
+                mfg_date = None  # protect against potential empty bytestrings
+            entity['entPhysicalMfgDate'] = mfg_date
 
     def _strip_whitespace(self):
         """Strips leading/trailing whitespace from all string data within"""

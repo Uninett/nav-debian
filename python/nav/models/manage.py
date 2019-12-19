@@ -276,14 +276,18 @@ class Netbox(models.Model):
 
     @property
     def snmp_version(self):
-        """Returns the configured SNMP version"""
+        """Returns the configured SNMP version as an integer"""
         warnings.warn(
             "The Netbox.snmp_version attribute will be removed in the next "
             "feature release",
             category=DeprecationWarning,
             stacklevel=2,
         )
-        return self._get_snmp_config('version')
+        value = self._get_snmp_config('version')
+        if value or value == 0:
+            if value == "2c":
+                return 2
+            return int(value)
 
     def _get_snmp_config(self, variable='community', writeable=None):
         """Returns SNMP profile configuration variables, preferring the profile
