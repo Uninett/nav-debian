@@ -1,8 +1,15 @@
-nav (5.0.3-3buster) buster; urgency=medium
+nav (5.0.4-2buster) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Buster
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 19 Dec 2019 15:35:16 +0100
+
+nav (5.0.4-1) stretch; urgency=medium
+
+  * New upstream release.
+    - Removed obsolete patches.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 16 Jan 2020 10:58:45 +0100
 
 nav (5.0.3-2) stretch; urgency=medium
 
