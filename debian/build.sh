@@ -1,5 +1,6 @@
 #!/bin/sh -e
-./dev.sh gbp buildpackage --git-ignore-new --git-builder="debuild --no-lintian -i -I -us -uc"
+
+NONINTERACTIVE=1 ./dev.sh gbp buildpackage --git-ignore-new --git-builder="debuild --no-lintian -i -I -us -uc"
 
 output=$(dirname $(dirname "$PWD"))
 cat <<EOF
