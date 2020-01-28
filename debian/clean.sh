@@ -1,2 +1,2 @@
 #!/bin/sh -e
-./dev.sh debclean
+NONINTERACTIVE=1 ./dev.sh debclean

@@ -1,10 +1,15 @@
 #!/bin/sh -x
 TAG=debdev:buster
 projdir=$(basename $(dirname $PWD))
+if [ -n "$NONINTERACTIVE" ]; then
+    TTYARGS="--tty"
+else
+    TTYARGS="--tty --interactive"
+fi
 
 docker build -t "$TAG" .
 docker run \
-       --tty --interactive \
+       $TTYARGS \
        --user $(id -u):$(id -g) \
        --volume "$PWD/../..:/deb" \
        --volume "$HOME/.pip:/home/.pip" \
