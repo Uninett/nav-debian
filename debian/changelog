@@ -1,4 +1,4 @@
-nav (5.0.5-2buster) UNRELEASED; urgency=medium
+nav (5.0.5-2buster) buster; urgency=medium
 
   * Repackaged for Debian Buster
 
