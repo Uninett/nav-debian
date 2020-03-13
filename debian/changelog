@@ -1,3 +1,9 @@
+nav (5.0.5-1) stretch; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 13 Mar 2020 13:28:55 +0000
+
 nav (5.0.4-1) stretch; urgency=medium
 
   * New upstream release.
