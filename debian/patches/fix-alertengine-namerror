@@ -1,0 +1,13 @@
+diff --git a/python/nav/alertengine/base.py b/python/nav/alertengine/base.py
+index b0f48c959..50eaec743 100644
+--- a/python/nav/alertengine/base.py
++++ b/python/nav/alertengine/base.py
+@@ -20,7 +20,7 @@
+ 
+ import gc
+ import logging
+-from datetime import datetime
++from datetime import datetime, timedelta
+ 
+ from django.db import transaction, reset_queries
+ from django.utils.lru_cache import lru_cache
