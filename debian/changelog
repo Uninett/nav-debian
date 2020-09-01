@@ -1,3 +1,9 @@
+nav (5.0.6-2) stretch; urgency=medium
+
+  * Hotfix for Uninett/nav#2182
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 01 Sep 2020 09:13:09 +0000
+
 nav (5.0.6-1) stretch; urgency=medium
 
   * New upstream release.
