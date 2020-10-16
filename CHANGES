@@ -1,3 +1,67 @@
+Version 5.0.7
+(released 15 Oct 2020)
+
+Fixed GitHub issues in this release:
+
+  * #2106 ([BUG] Cached LLDP/CDP records are never re-evaluated)
+  * #2182 ([BUG] Delayed delivery alert subscriptions crash Alert
+           Engine with a NameError)
+  * #2184 ([BUG] Unrecognized Neighbors are never removed when all
+           neighbors have been identified)
+  * #2187 ([BUG] Locked accounts with a NULL value for a password cannot
+           be edited)
+  * #2188 ([BUG] Useradmin user listing becomes excruciatingly slow when
+           many users have password issues)
+  * #2189 ([BUG] Regression - ftp service check in 5.X does not work)
+
+Version 5.0.6
+(released 27 Aug 2020)
+
+Fixed GitHub issues in this release:
+
+  * #2144 (Prevent ipdevinfo from crashing on weird device names)
+  * #2149 (Inventory failing on DLink DGS-1100 : 'TypeError: argument of
+           type 'int' is not iterable')
+  * #2150 ([BUG] Interface down is causing widget 'status' to display
+           'Could not load widget' due to HTTP 500)
+  * #2165 ([BUG] Delayed delivery alert subscriptions in single time
+           period alert profiles are never sent)
+  * #2167 (Fix potential typecast issue with SQL migration to NAV 5.0)
+  * #2169 ([BUG] macwatch.py crashes when logging notifications about
+           found MAC addresses)
+  * #2170 ([BUG] Alertengine stops dispatching Slack notifications
+           indefinitely if Slack complains of too many requests)
+  * #2171 (Warn about user accounts that have issues with their
+           passwords)
+  * #2172 (Prevent login/password changes to default account)
+  * #2177 ([BUG] Attempting to move IP devices to another room crashes
+           SeedDB)
+  * #2178 ([BUG] PDU widget stops displaying properly if room is
+           deleted)
+  * #2179 ([BUG] UPS widget does not display properly if UPS is deleted
+           from NAV)
+  * #2180 ([BUG] Entering invalid dates in Device History search form
+           causes crash)
+
+Version 5.0.5
+(released 13 Mar 2020)
+
+Fixed GitHub issues in this release:
+
+  * #1994 (snmptrapd linkupdown plugin does not handle v2 traps)
+  * #2101 ([BUG] Geomap data API endpoint crashes with a TypeError)
+  * #2109 ([BUG] ipdevinfo sensor details page crashes with
+           AttributeError on unit-less sensors)
+  * #2111 ([BUG] Logging non-ASCII characters crashes NAV programs)
+  * #2113 (Document advice for robust e-mail)
+  * #2114 ([BUG] Unable to save status filter in [Status] page)
+  * #2119 ([BUG] Latitude/Longitude is displayed weirdly in the SeedDB
+           room list)
+  * #2123 (Drop support for legacy status preference pickles)
+  * #2129 (Euthanize unresponsive ipdevpoll workers)
+  * #2130 ([BUG] Cannot import dashboard)
+
+
 Version 5.0.4
 (released 16 Jan 2020)
 

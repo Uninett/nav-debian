@@ -1,3 +1,34 @@
+nav (5.0.7-2buster) stretch; urgency=medium
+
+  * Repackaged for Debian Buster
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 15 Oct 2020 12:25:00 +0000
+
+nav (5.0.7-1) stretch; urgency=medium
+
+  * New upstream release
+    - Hotfix patches removed
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 15 Oct 2020 12:08:43 +0000
+
+nav (5.0.6-2) stretch; urgency=medium
+
+  * Hotfix for Uninett/nav#2182
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 01 Sep 2020 09:13:09 +0000
+
+nav (5.0.6-1) stretch; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 27 Aug 2020 13:08:43 +0000
+
+nav (5.0.5-1) stretch; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 13 Mar 2020 13:28:55 +0000
+
 nav (5.0.4-1) stretch; urgency=medium
 
   * New upstream release.

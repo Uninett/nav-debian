@@ -91,6 +91,9 @@ def _is_valid_ip_socket(ip):
             return False
         else:
             return True
+    except UnicodeError:
+        # Definitely not an IP address!
+        return False
     else:
         return True
 
@@ -213,7 +216,7 @@ def first_true(iterable, default=None, pred=None):
     :param pred: Optional predicate function to evaluate the truthfulness of
                  elements.
     """
-    return next(six.filter(pred, iterable), default)
+    return next(six.moves.filter(pred, iterable), default)
 
 
 def chunks(iterable, size):

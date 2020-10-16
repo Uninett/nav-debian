@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:buster
 
 RUN  apt-get -y update && \
      apt-get install -y \
@@ -26,6 +26,7 @@ RUN  apt-get -y update && \
 RUN  apt-get -y update && \
      apt-get install -y \
          dh-virtualenv \
+         dh-python \
          python3-setuptools
 
 ENV  HOME /home
