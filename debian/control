@@ -21,7 +21,7 @@ Build-Depends:
 # This is needed to ensure building of the docs without error
  libsnmp30,
 Standards-Version: 3.9.6
-X-Python-Version: 2.7
+X-Python-Version: 3.7
 Homepage: https://nav.uninett.no/
 
 Package: nav
@@ -31,7 +31,7 @@ Depends:
   ${misc:Depends},
   systemd,
   adduser,
-  python3 (>= 3.5),
+  python3 (>= 3.7),
   nbtscan,
   logrotate,
   postgresql (>= 9.4),
