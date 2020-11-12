@@ -1,4 +1,5 @@
 {% extends "seeddb/base.html" %}
+{% load crispy_forms_tags %}
 
 
 {% block base_header_additional_head %}
@@ -21,50 +22,34 @@
   {% endcomment %}
 
   <div class="row">
+    <div class="small-12 column">
+      <h4>{{ title }}</h4>
+    </div>
 
-    <div class="{% if map %}large-6{% else %}small-12{% endif %} column">
+    <div class="large-6 column{% if not map %} end{% endif %}">
       <form class="seeddb-edit" action="" method="post">
         <fieldset>
-          <legend>{{ title }}</legend>
-          <table class="listtable {% if map %}expand{% endif %} edit">
-            {% if object %}
-              <caption>
-                {{ object }}
-              </caption>
-            {% endif %}
-            {% block formfields %}
-              {% for field in form %}
-                <tr>
-                  <th>
-                    <label for="{{ field.auto_id }}">
-                      <span class="{{ field.field.required|yesno:"required," }}">
-                        {{ field.label }}
-                      </span>
-                    </label>
-                  </th>
-                  <td>
-                    {{ field }}
-                    {% if field.errors %}
-                      {{ field.errors }}
-                    {% endif %}
-                  </td>
-                </tr>
-              {% endfor %}
-              <tr>
-                <th></th>
-                <td><input type="submit" value="Save" class="button small"></td>
-              </tr>
-            {% endblock %}
-          </table>
+          <legend>Attributes</legend>
+          {% block crispyfields %}
+          {{ form|crispy }}
+          {% endblock %}
         </fieldset>
+        <input type="submit" name="submit" value="Save {{ verbose_name }}" class="submit button small left" id="submit-id-submit">
       </form>
 
-      {% if delete_url and object %}
-        <form action="{{ delete_url }}" method="post">
-          <input type="hidden" name="object" value="{{ object.pk }}">
-          <input type="submit" name="delete" value="Delete this {{ verbose_name }}"
-                 class="button small">
-        </form>
+      {% if object and object.pk %}
+      <ul class="button-group right">
+        {% if delete_url_name %}
+        <li>
+          <a href="{% url delete_url_name object_id=object.pk %}" class="button small secondary" title="Delete this {{ verbose_name }}">Delete</a>
+        </li>
+        {% endif %}
+        {% if copy_url %}
+        <li>
+          <a href="{{ copy_url }}" class="button small secondary" title="{{ copy_title }}">Copy</a>
+        </li>
+        {% endif %}
+      </ul>
       {% endif %}
 
     </div>
