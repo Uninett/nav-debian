@@ -30,8 +30,8 @@ import twisted.internet.endpoints
 
 from django.utils import six
 
-from . import control, jobs
 from nav.ipdevpoll.config import ipdevpoll_conf
+from . import control, jobs
 
 
 def initialize_worker():
@@ -134,6 +134,7 @@ class JobHandler(amp.CommandLocator):
         self.done = True
         return {}
 
+    # pylint: disable=no-self-use
     @Ping.responder
     def ping(self):
         """Returns the string "pong" as a response to a ping"""
@@ -297,7 +298,7 @@ class Worker(object):
             except twisted.internet.defer.TimeoutError:
                 self._logger.warning("PING: Timed out for %r", self)
                 is_alive = False
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 self._logger.exception(
                     "PING: Unhandled exception while pinging %r", self
                 )
@@ -311,7 +312,7 @@ class Worker(object):
                         "PING: Not responding, attempting to kill: %r", self
                     )
                     os.kill(self.pid, signal.SIGTERM)
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 self._logger.exception(
                     "PING: Ignoring unhandled exception when killing worker %r", self
                 )
