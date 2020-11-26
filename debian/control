@@ -37,6 +37,7 @@ Depends:
   postgresql (>= 9.4),
   postgresql-contrib (>= 9.4),
   python3-gammu,
+  python3-distutils,
   rrdtool,
   makepasswd,
   rsync,

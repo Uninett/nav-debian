@@ -1,3 +1,11 @@
+nav (5.1.0-2) buster; urgency=medium
+
+  * Add python3-distutils dependency
+    - It appears it is required now to get virtualenvs working on Debian
+      Buster 
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Nov 2020 15:18:59 +0000
+
 nav (5.1.0-1buster) buster; urgency=medium
 
   * New upstream release.
