@@ -1,3 +1,9 @@
+nav (5.1.0-1buster) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Nov 2020 14:25:14 +0000
+
 nav (5.0.8-2buster) stretch; urgency=medium
 
   * Repackaged for Debian Buster
