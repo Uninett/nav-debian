@@ -142,7 +142,7 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
 
         if name:
             try:
-                if is_valid_ip(name, use_socket_lib=True):
+                if is_valid_ip(name, strict=True):
                     netbox = netboxes.get(Q(sysname=name) | Q(ip=name))
                 else:
                     netbox = netboxes.get(sysname=name)
@@ -737,6 +737,7 @@ def render_affected(request, netboxid):
         request,
         'ipdevinfo/frag-affected.html',
         {
+            'netbox': netbox,
             'unreachable': unreachable,
             'affected': affected,
             'services': services,

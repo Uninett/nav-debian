@@ -44,7 +44,7 @@ from nav.errors import GeneralException
 from nav.models.arnold import Identity, Event
 from nav.models.manage import Interface, Prefix
 from nav.netbiostracker.tracker import scan, parse_get_workstations
-from nav.portadmin.snmputils import SNMPFactory
+from nav.portadmin.management import ManagementFactory
 from nav.util import is_valid_ip
 
 CONFIGFILE = os.path.join("arnold", "arnold.conf")
@@ -228,7 +228,7 @@ def find_input_type(ip_or_mac):
     mac = ip_or_mac.replace(':', '')
 
     input_type = "UNKNOWN"
-    if is_valid_ip(ip_or_mac, use_socket_lib=True):
+    if is_valid_ip(ip_or_mac, strict=True):
         input_type = "IP"
     elif re.match("^[A-Fa-f0-9]{12}$", mac):
         input_type = "MAC"
@@ -455,16 +455,16 @@ def change_port_vlan(identity, vlan):
     interface = identity.interface
     netbox = interface.netbox
 
-    agent = SNMPFactory().get_instance(netbox)
+    agent = ManagementFactory().get_instance(netbox)
     try:
-        fromvlan = agent.get_vlan(interface)
+        fromvlan = agent.get_interface_native_vlan(interface)
     except Exception as error:
         raise ChangePortVlanError(error)
     else:
         _logger.info('Setting vlan %s on interface %s', vlan, interface)
         try:
             agent.set_vlan(interface, vlan)
-            agent.restart_if(interface.ifindex)
+            agent.cycle_interfaces([interface])
         except Exception as error:
             raise ChangePortVlanError(error)
         else:

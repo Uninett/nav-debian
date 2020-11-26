@@ -8,6 +8,106 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+NAV 5.1
+=======
+
+Dependency changes
+------------------
+
+Changed versions
+~~~~~~~~~~~~~~~~
+
+NAV 5.1 moves to Django 2.2, resulting in several changes in version
+dependencies of related libraries:
+
+* :mod:`Django`>=2.2,<2.3
+* :mod:`django-filter`>=2
+* :mod:`django-crispy-forms`>=1.7,<1.8
+* :mod:`crispy-forms-foundation`>=0.7,<0.8
+* :mod:`djangorestframework`>=3.9,<3.10
+
+Also, the Python library :mod:`Pillow` requirement has been moved to version
+8.0 (In reality, NAV is compatible with all versions from 3 through 8, as only
+the thumbnail API call is used, but the latest version is recommended due to
+reported security vulnerabilities in the older versions).
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+For NAPALM management profiles and Juniper support in PortAdmin, a dependency
+on the NAPALM_ library has been added:
+
+* :mod:`napalm` version 3.0
+
+Removed dependencies
+~~~~~~~~~~~~~~~~~~~~
+
+NAV no longer requires the :mod:`configparser` or :mod:`py2-ipaddress` Python
+modules. They were only needed under Python 2 to keep compatibility with both
+Python 2 and 3, but NAV 5.1 drops support for Python 2, as previously
+announced.
+
+Changed configuration files
+---------------------------
+
+These configuration files changed:
+
+* :file:`portadmin/portadmin.conf`: The option ``write_mem`` has been renamed
+  to ``commit``, for the sake of a a more platform and management protocol
+  agnostic view of the world.
+
+
+New features
+------------
+
+Juniper support in PortAdmin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PortAdmin has gained the ability to configure Juniper switches. Juniper does
+not support configuration through SNMP writes, so the new management profile
+type NAPALM_ has been introduced, which enables PortAdmin to use Juniper
+specific NETCONF and RPC calls to get and set switch port configuration.
+
+Please read the :doc:`management profiles reference docs
+</reference/management-profiles>` for more details.
+
+.. _`NAPALM`: https://napalm.readthedocs.io/en/latest/
+
+
+Device filter options for distributed monitoring with pping and ipdevpoll
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :program:`pping` and :program:`ipdevpoll` daemons have gained support for
+device filtering options. Using these options can limit the set of devices a
+pping or ipdevpoll instance will work with, based on your already configured
+device groups.
+
+This enables a form of distributed monitoring that wasn't previously possible:
+If you have a group of devices that are only accesible from the inside of some
+VLAN or secure zone, you can install NAV inside this zone and configure pping
+and ipdevpoll there to only monitor the devices within that zone, while telling
+other pping/ipdevpoll instances to ignore those device groups.
+
+This can also be used for low-level and manual horizontal scaling of NAV's
+monitoring functions.
+
+The new options are documented in the daemons' example config files,
+:file:`ipdevpoll.conf` and :file:`pping.conf`, respectively.
+
+
+New type sync script
+~~~~~~~~~~~~~~~~~~~~
+
+:program:`navsynctypes` is a new command line program to dump the NAV IP device
+type registry as a series of PostgreSQL compatible commands that will update
+the type registry of another NAV installation. Missing types will be added,
+while existing types will have their names and descriptions updated to reflect
+the names and descriptions of the source NAV installation.
+
+Its primary use may be for someone who operates multiple NAV installations to
+easily synchronize the type registry between those installations.
+
+
 NAV 5.0
 =======
 
@@ -45,6 +145,27 @@ Removed features
 The ability to send Jabber notifications has been removed from the alert
 profiles system, due to lack of demand and the no-longer maintained
 :mod:`xmpppy` library.
+
+Backwards incompatible changes
+------------------------------
+
+Daemon startup privileges
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By accident, some of NAV's daemons have been running as the privileged ``root``
+user since NAV 4.9.0, due to changes in the process control system.  NAV 5.0.4
+introduces the :option:`privileged` option in the :file:`daemons.yml` configuration
+file, to signal which daemons actually need to be started with root privileges.
+
+Only :program:`snmptrapd` and :program:`pping` need root privileges on startup,
+as these daemons create privileged communication sockets, but they will drop
+root privileges immediately after these sockets are created.
+
+Please ensure your :file:`daemon.yml` configuration file is updated. Also, be
+aware that after upgrading to NAV 5.0.4 from any version from 4.9.0 and up, you
+may have some NAV log files that are owned by ``root``, which will cause some
+of the daemons to fail on startup. Please ensure all NAV log files are writable
+for the user defined as :option:`NAV_USER` in :file:`nav.conf`.
 
 
 New features

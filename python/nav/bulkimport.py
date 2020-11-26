@@ -24,6 +24,7 @@ import json
 from django.core.exceptions import ValidationError
 from django.utils import six
 
+from nav.models.fields import PointField
 from nav.models.manage import Netbox, Room, Organization
 from nav.models.manage import Category, NetboxInfo, NetboxGroup
 from nav.models.manage import NetboxCategory, Interface
@@ -112,7 +113,7 @@ class NetboxImporter(BulkImporter):
 
         master = row.get('master')
         if master:
-            if is_valid_ip(master, use_socket_lib=True):
+            if is_valid_ip(master, strict=True):
                 netbox.master = get_object_or_fail(Netbox, ip=master)
             else:
                 netbox.master = get_object_or_fail(Netbox,
@@ -233,7 +234,7 @@ class RoomImporter(BulkImporter):
         room = Room(id=row['roomid'], location=location,
                     description=row['descr'], data=attributes)
         try:
-            room.position = row['position']
+            room.position = PointField().to_python(row['position'])
         except (ValidationError, ValueError):
             raise InvalidValue(row['position'])
         return [room]
