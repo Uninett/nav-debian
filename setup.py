@@ -1,7 +1,6 @@
 import os
 from glob import glob
 from setuptools import setup, find_packages
-from distutils.command.build import build
 
 TOP_SRCDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -20,10 +19,6 @@ def find_scripts():
         with open(candidate) as handle:
             if handle.readline().startswith("#!"):
                 yield candidate
-
-
-# Ensure CSS files are built every time build is invoked
-build.sub_commands = [('build_sass', None)] + build.sub_commands
 
 
 setup(
