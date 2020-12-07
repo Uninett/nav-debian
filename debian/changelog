@@ -1,3 +1,9 @@
+nav (5.1.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 07 Dec 2020 11:47:26 +0000
+
 nav (5.1.0-2) buster; urgency=medium
 
   * Add python3-distutils dependency
