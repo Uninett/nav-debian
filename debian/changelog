@@ -1,3 +1,10 @@
+nav (5.1.1-2) buster; urgency=medium
+
+  * Rebuilt without unintended experimental virtualenv build options.
+  * Update permissions on existing log files on upgrade.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 08 Dec 2020 11:02:29 +0000
+
 nav (5.1.1-1) buster; urgency=medium
 
   * New upstream release.
