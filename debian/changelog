@@ -1,3 +1,9 @@
+nav (5.1.1-3) buster; urgency=medium
+
+  * Ensure updating log file permissions doesn't crash.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 05 Jan 2021 13:50:01 +0000
+
 nav (5.1.1-2) buster; urgency=medium
 
   * Rebuilt without unintended experimental virtualenv build options.
