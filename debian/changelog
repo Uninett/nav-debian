@@ -1,3 +1,9 @@
+nav (5.2.0-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 16 Sep 2021 08:49:13 +0000
+
 nav (5.1.4-1) buster; urgency=medium
 
   * New upstream release.
