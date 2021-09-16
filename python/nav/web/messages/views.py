@@ -32,12 +32,24 @@ HISTORIC_TITLE = 'NAV - Messages - Archive'
 SAVE_TITLE = 'NAV - Messages - Save'
 VIEW_TITLE = 'NAV - Messages - View message - '
 
-ACTIVE_DEFAULTS = {'title': ACTIVE_TITLE, 'navpath': NAVBAR,
-                   'active': {'active': True}, 'caption': 'Active'}
-PLANNED_DEFAULTS = {'title': PLANNED_TITLE, 'navpath': NAVBAR,
-                    'active': {'scheduled': True}, 'caption': 'Scheduled'}
-HISTORIC_DEFAULTS = {'title': HISTORIC_TITLE, 'navpath': NAVBAR,
-                     'active': {'archive': True}, 'caption': 'Archive'}
+ACTIVE_DEFAULTS = {
+    'title': ACTIVE_TITLE,
+    'navpath': NAVBAR,
+    'active': {'active': True},
+    'caption': 'Active',
+}
+PLANNED_DEFAULTS = {
+    'title': PLANNED_TITLE,
+    'navpath': NAVBAR,
+    'active': {'scheduled': True},
+    'caption': 'Scheduled',
+}
+HISTORIC_DEFAULTS = {
+    'title': HISTORIC_TITLE,
+    'navpath': NAVBAR,
+    'active': {'archive': True},
+    'caption': 'Archive',
+}
 SAVE_DEFAULTS = {'title': SAVE_TITLE, 'navpath': NAVBAR}
 VIEW_DEFAULTS = {'title': VIEW_TITLE, 'navpath': NAVBAR}
 
@@ -52,7 +64,7 @@ def redirect_to_active(_request):
 
 
 def active(request):
-    """ Displays active messages that is not replaced """
+    """Displays active messages that is not replaced"""
     active_messages = Message.objects.filter(
         publish_start__lte=datetime.datetime.now(),
         publish_end__gte=datetime.datetime.now(),
@@ -66,7 +78,7 @@ def active(request):
 
 
 def planned(request):
-    """ Displays messages that are planned in the future"""
+    """Displays messages that are planned in the future"""
     planned_messages = Message.objects.filter(
         publish_start__gte=datetime.datetime.now(),
         publish_end__gte=datetime.datetime.now(),
@@ -80,10 +92,10 @@ def planned(request):
 
 
 def historic(request):
-    """ Displays ended or replaced messages """
+    """Displays ended or replaced messages"""
     historic_messages = Message.objects.filter(
-        Q(publish_end__lt=datetime.datetime.now()) |
-        Q(replaced_by__isnull=False))
+        Q(publish_end__lt=datetime.datetime.now()) | Q(replaced_by__isnull=False)
+    )
 
     info_dict = {'messages': historic_messages}
     info_dict.update(HISTORIC_DEFAULTS)
@@ -92,26 +104,28 @@ def historic(request):
 
 
 def view(request, message_id):
-    """ Displays details about a single message """
+    """Displays details about a single message"""
     message = get_object_or_404(Message, pk=message_id)
 
     info_dict = {'message': message, 'now': datetime.datetime.now()}
     info_dict.update(VIEW_DEFAULTS)
-    info_dict['navpath'] = [NAVBAR[0], ('Messages', reverse('messages-home')),
-                            (message,)]
+    info_dict['navpath'] = [
+        NAVBAR[0],
+        ('Messages', reverse('messages-home')),
+        (message,),
+    ]
     info_dict['title'] += message.title
 
     return render(request, 'messages/view.html', info_dict)
 
 
 def expire(_request, message_id):
-    """ Expires a message. Sets the end date to now """
+    """Expires a message. Sets the end date to now"""
     message = get_object_or_404(Message, pk=message_id)
     message.publish_end = datetime.datetime.now()
     message.save()
 
-    return HttpResponseRedirect(
-        reverse('messages-view', args=(message_id,)))
+    return HttpResponseRedirect(reverse('messages-view', args=(message_id,)))
 
 
 def followup(request, message_id):
@@ -125,7 +139,7 @@ def followup(request, message_id):
 
 
 def save(request, message_id=None, replaces=None):
-    """ Displays the form for create, edit and followup, and saves them """
+    """Displays the form for create, edit and followup, and saves them"""
     account = get_account(request)
     info_dict = SAVE_DEFAULTS.copy()
     navpath = [NAVBAR[0], ('Messages', reverse('messages-home'))]
@@ -161,7 +175,8 @@ def save(request, message_id=None, replaces=None):
             form.instance.author = account.login
             form.save()
             return HttpResponseRedirect(
-                reverse('messages-view', args=(form.instance.id,)))
+                reverse('messages-view', args=(form.instance.id,))
+            )
 
     info_dict.update({'form': form, 'navpath': navpath})
 

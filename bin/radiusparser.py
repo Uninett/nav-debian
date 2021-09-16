@@ -41,11 +41,11 @@ import datetime
 
 # Configuration settings.
 # Update these for your setup.
-dbhost = ""      # Hostname where the nav-database runs
-dbport = 5432    # Port the PostgreSQL database listens to
-dbname = "nav"   # Name of the NAV database
-dbuser = "nav"   # Username for the nav-database, usually 'nav'
-dbpasswd = ""    # Password for nav-user
+dbhost = ""  # Hostname where the nav-database runs
+dbport = 5432  # Port the PostgreSQL database listens to
+dbname = "nav"  # Name of the NAV database
+dbuser = "nav"  # Username for the nav-database, usually 'nav'
+dbpasswd = ""  # Password for nav-user
 db_radiuslog_table = "radiuslog"
 
 radius_logfile = ""  # Location of the freeradius-logfile to parse
@@ -56,10 +56,14 @@ def main(args):
 
     try:
         db_params = (dbhost, dbport, dbname, dbuser, dbpasswd)
-        connection = psycopg2.connect("host=%s port=%s dbname=%s user=%s "
-                                      "password=%s" % db_params)
+        connection = psycopg2.connect(
+            "host=%s port=%s dbname=%s user=%s " "password=%s" % db_params
+        )
     except psycopg2.OperationalError as e:
-        print("An error occured while connecting to the database:\n\n\'%s\'" % (str(e)[:-1]))
+        print(
+            "An error occured while connecting to the database:\n\n\'%s\'"
+            % (str(e)[:-1])
+        )
         sys.exit(1)
 
     connection.set_isolation_level(0)
@@ -134,8 +138,19 @@ def main(args):
             # Don't insert successful logins in the database
             if row.message != "rlm_eap_mschapv2: Issuing Challenge":
                 if row.status != "Login OK":
-                    sqlQuery = "INSERT INTO %s (time, type, message, status, username, client, port) VALUES (timestamp '%%s', %%s, %%s, %%s, %%s, %%s, %%s)" % (db_radiuslog_table)
-                    sqlParameters = (row.time, row.type, row.message, row.status, row.user, row.client, row.port)
+                    sqlQuery = (
+                        "INSERT INTO %s (time, type, message, status, username, client, port) VALUES (timestamp '%%s', %%s, %%s, %%s, %%s, %%s, %%s)"
+                        % (db_radiuslog_table)
+                    )
+                    sqlParameters = (
+                        row.time,
+                        row.type,
+                        row.message,
+                        row.status,
+                        row.user,
+                        row.client,
+                        row.port,
+                    )
                     try:
                         database.execute(sqlQuery, sqlParameters)
                     except psycopg2.ProgrammingError as e:
@@ -153,7 +168,6 @@ def main(args):
 
 # Parses octals from the freeradius-server
 def parse_octals(line):
-
     def suboct(match):
         return eval("'" + match.group(1) + "'")
         # Consider: eval(func,{"__builtins__":None},{})
@@ -209,30 +223,29 @@ from time import sleep, time
 class Tail(object):
     """The Tail monitor object."""
 
-    def __init__(self, path, only_new=False,
-                 min_sleep=1,
-                 sleep_interval=1,
-                 max_sleep=60):
+    def __init__(
+        self, path, only_new=False, min_sleep=1, sleep_interval=1, max_sleep=60
+    ):
         """Initialize a tail monitor.
-             path: filename to open
-             only_new: By default, the tail monitor will start reading from
-               the beginning of the file when first opened. Set only_new to
-               True to have it skip to the end when it first opens, so that
-               you only get the new additions that arrive after you start
-               monitoring.
-             min_sleep: Shortest interval in seconds to sleep when waiting
-               for more input to arrive. Defaults to 1.0 second.
-             sleep_interval: The tail monitor will dynamically recompute an
-               appropriate sleep interval based on a sliding window of data
-               arrival rate. You can set sleep_interval here to seed it
-               initially if the default of 1.0 second doesn't work for you
-               and you don't want to wait for it to converge.
-             max_sleep: Maximum interval in seconds to sleep when waiting
-               for more input to arrive. Also, if this many seconds have
-               elapsed without getting any new data, the tail monitor will
-               check to see if the log got truncated (rotated) and will
-               quietly reopen itself if this was the case. Defaults to 60.0
-               seconds.
+        path: filename to open
+        only_new: By default, the tail monitor will start reading from
+          the beginning of the file when first opened. Set only_new to
+          True to have it skip to the end when it first opens, so that
+          you only get the new additions that arrive after you start
+          monitoring.
+        min_sleep: Shortest interval in seconds to sleep when waiting
+          for more input to arrive. Defaults to 1.0 second.
+        sleep_interval: The tail monitor will dynamically recompute an
+          appropriate sleep interval based on a sliding window of data
+          arrival rate. You can set sleep_interval here to seed it
+          initially if the default of 1.0 second doesn't work for you
+          and you don't want to wait for it to converge.
+        max_sleep: Maximum interval in seconds to sleep when waiting
+          for more input to arrive. Also, if this many seconds have
+          elapsed without getting any new data, the tail monitor will
+          check to see if the log got truncated (rotated) and will
+          quietly reopen itself if this was the case. Defaults to 60.0
+          seconds.
         """
 
         # remember path to file in case I need to reopen
@@ -245,11 +258,11 @@ class Tail(object):
             # seek to current end of file
             file_len = stat(path)[ST_SIZE]
             self.f.seek(file_len)
-        self.pos = self.f.tell()        # where am I in the file?
-        self.last_read = time()         # when did I last get some data?
-        self.queue = []                 # queue of lines that are ready
-        self.window = []                # sliding window for dynamically
-                                        # adjusting the sleep_interval
+        self.pos = self.f.tell()  # where am I in the file?
+        self.last_read = time()  # when did I last get some data?
+        self.queue = []  # queue of lines that are ready
+        self.window = []  # sliding window for dynamically
+        # adjusting the sleep_interval
 
     def _recompute_rate(self, n, start, stop):
         """Internal function for recomputing the sleep interval. I get
@@ -258,10 +271,10 @@ class Tail(object):
         recompute the average interarrival rate over the last window.
         """
         self.window.append((n, start, stop))
-        purge_idx = -1                  # index of the highest old record
-        tot_n = 0                       # total arrivals in the window
-        tot_start = stop                # earliest time in the window
-        tot_stop = start                # latest time in the window
+        purge_idx = -1  # index of the highest old record
+        tot_n = 0  # total arrivals in the window
+        tot_start = stop  # earliest time in the window
+        tot_stop = start  # latest time in the window
         for i, record in enumerate(self.window):
             (i_n, i_start, i_stop) = record
             if i_stop < start - self.max_sleep:
@@ -276,7 +289,7 @@ class Tail(object):
                     tot_stop = i_stop
         if purge_idx >= 0:
             # clean the old records out of the window (slide the window)
-            self.window = self.window[purge_idx+1:]
+            self.window = self.window[purge_idx + 1 :]
         if tot_n > 0:
             # recompute; stay within bounds
             self.sleep_interval = (tot_stop - tot_start) / tot_n
@@ -342,7 +355,7 @@ class Tail(object):
             if self._fill_cache() > 0:
                 return self._dequeue()
             now = time()
-            if (now - self.last_read > self.max_sleep):
+            if now - self.last_read > self.max_sleep:
                 # maybe the log got rotated out from under us?
                 if stat(self.path)[ST_SIZE] < self.pos:
                     # file got truncated and/or re-created
@@ -375,9 +388,12 @@ class Tail(object):
         """
         return self.nextline()
 
+
 ###############################################################################
 
-auth_pattern = re.compile('^(?P<time>.*) : (?P<type>Auth): (?P<message>(?P<status>.*?): \[(?P<user>.*?)\] \(from client (?P<client>[^ ]+) port (?P<port>[^ ]+)( cli (?P<cli>[^ ]+)|)\))\s*$')
+auth_pattern = re.compile(
+    '^(?P<time>.*) : (?P<type>Auth): (?P<message>(?P<status>.*?): \[(?P<user>.*?)\] \(from client (?P<client>[^ ]+) port (?P<port>[^ ]+)( cli (?P<cli>[^ ]+)|)\))\s*$'
+)
 other_pattern = re.compile('^(?P<time>.*) : (?P<type>[^:]+): (?P<message>.*?)\s*$')
 ignore_rlmsql = re.compile('Error: rlm_sql')
 
@@ -437,6 +453,7 @@ def iter_lines(file):
         m = parse_line(line)
         if m:
             yield Row(m)
+
 
 ###########
 # Start   #

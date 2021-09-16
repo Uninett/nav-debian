@@ -69,10 +69,10 @@ def update_interfaces_with_collected_data(
 
 
 def find_and_populate_allowed_vlans(
-        account: profiles.Account,
-        netbox: manage.Netbox,
-        interfaces: Sequence[manage.Interface],
-        handler: ManagementHandler
+    account: profiles.Account,
+    netbox: manage.Netbox,
+    interfaces: Sequence[manage.Interface],
+    handler: ManagementHandler,
 ):
     """Finds allowed vlans and indicate which interfaces can be edited"""
     allowed_vlans = find_allowed_vlans_for_user_on_netbox(account, netbox, handler)
@@ -81,9 +81,7 @@ def find_and_populate_allowed_vlans(
 
 
 def find_allowed_vlans_for_user_on_netbox(
-        account: profiles.Account,
-        netbox: manage.Netbox,
-        handler: ManagementHandler = None
+    account: profiles.Account, netbox: manage.Netbox, handler: ManagementHandler = None
 ) -> List[FantasyVlan]:
     """Finds allowed vlans for this user on this netbox"""
     netbox_vlans = find_vlans_on_netbox(netbox, handler=handler)
@@ -128,18 +126,23 @@ def find_allowed_vlans_for_user(account):
 
 
 def set_editable_flag_on_interfaces(
-        interfaces: Sequence[manage.Interface], vlans: Sequence[FantasyVlan]
+    interfaces: Sequence[manage.Interface], vlans: Sequence[FantasyVlan]
 ):
     """Sets the pseudo-attribute `iseditable` on each interface in the interfaces
     list, indicating whether the PortAdmin UI should allow edits to it or not.
 
     An interface will be considered "editable" only if its native vlan matches one of
-    the vlan tags from `vlans`.
+    the vlan tags from `vlans`. An interface may be considered non-editable if it is
+    an uplink, depending on how portadmin is configured.
     """
     vlan_tags = {vlan.vlan for vlan in vlans}
 
     for interface in interfaces:
-        interface.iseditable = interface.vlan in vlan_tags
+        vlan_is_acceptable = interface.vlan in vlan_tags
+        is_link = bool(interface.to_netbox)
+        refuse_link_edit = not CONFIG.get_link_edit() and is_link
+
+        interface.iseditable = vlan_is_acceptable and not refuse_link_edit
 
 
 def intersect(list_a, list_b):
@@ -156,8 +159,7 @@ def find_vlans_in_org(org):
     vlans = list(org.vlan_set.all())
     for child_org in org.organization_set.all():
         vlans.extend(find_vlans_in_org(child_org))
-    return [FantasyVlan(x.vlan, x.net_ident) for x in list(set(vlans)) if
-            x.vlan]
+    return [FantasyVlan(x.vlan, x.net_ident) for x in list(set(vlans)) if x.vlan]
 
 
 def check_format_on_ifalias(ifalias):
@@ -193,14 +195,14 @@ def filter_vlans(target_vlans, old_vlans, allowed_vlans):
     - All target vlans should be set if the vlan is in allowed_vlans
     - Remove the old_vlans if they are in allowed_vlans
     """
-    return list((set(target_vlans) & set(allowed_vlans)) |
-                (set(old_vlans) - set(allowed_vlans)))
+    return list(
+        (set(target_vlans) & set(allowed_vlans)) | (set(old_vlans) - set(allowed_vlans))
+    )
 
 
 def should_check_access_rights(account):
     """Return boolean indicating that this user is restricted"""
-    return (CONFIG.is_vlan_authorization_enabled() and
-            not is_admin(account))
+    return CONFIG.is_vlan_authorization_enabled() and not is_admin(account)
 
 
 def mark_detained_interfaces(interfaces):
@@ -209,8 +211,10 @@ def mark_detained_interfaces(interfaces):
     """
     for interface in interfaces:
         # If interface is administratively down, check if Arnold is the source
-        if interface.ifadminstatus == 2 and interface.identity_set.filter(
-                status='disabled').count() > 0:
+        if (
+            interface.ifadminstatus == 2
+            and interface.identity_set.filter(status='disabled').count() > 0
+        ):
             interface.detained = True
         if interface.identity_set.filter(status='quarantined').count() > 0:
             interface.detained = True
@@ -230,8 +234,8 @@ def add_dot1x_info(interfaces, handler):
         interface.dot1xenabled = dot1x_states.get(interface.ifname)
         if url_template:
             interface.dot1x_external_url = url_template.format(
-                netbox=interface.netbox,
-                interface=interface)
+                netbox=interface.netbox, interface=interface
+            )
 
 
 def is_cisco(netbox):

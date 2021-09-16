@@ -233,7 +233,7 @@ OpenLayers_
 ~~~~~~~~~~~
 
 The OpenLayers_ library is included directly from the http://openlayers.org
-site.  The URL we use always points to the newest version.  
+site.  The URL we use always points to the newest version.
 
 .. NOTE:: This may cause the NAV side of things to break if the OpenLayers API
    changes in a non-compatible way. On the other hand, keeping it at a fixed
@@ -422,9 +422,10 @@ Various small issues
   with no error message given to the user.  This is probably not
   ideal, although users may not be very interested in hearing that a
   "GargleException occured on line 42 of obscurities.py" either.  For
-  development, the Firebug extension to Firefox is very convenient --
-  its console lists all the URLs requested by the script, so it is
-  easy to follow the last one in order to see what the server said.
+  development, the Web Developer Tools in either Firefox or Chrome are
+  very convenient -- its console lists all the URLs requested by the
+  script, so it is easy to follow the last one in order to see what the
+  server said.
 
 * When loading the Geomap page, then waiting for a long time without
   doing anything, the `next` and `last` buttons in the time selection
@@ -469,9 +470,6 @@ unfamiliar with JavaScript:
   that it may not be very incompatible with old or obscure JavaScript
   implementations).
 
-* The Firebug_ extension to Firefox is **very** helpful when debugging
-  JavaScript code.
-
 
 
 .. _OpenLayers: http://openlayers.org/
@@ -480,4 +478,3 @@ unfamiliar with JavaScript:
 .. _rrdfetch: http://oss.oetiker.ch/rrdtool/doc/rrdfetch.en.html
 .. _Proj4js: http://proj4js.org/
 .. _Core JavaScript Reference: https://developer.mozilla.org/en/Core_JavaScript_1.5_Reference
-.. _Firebug: http://getfirebug.com/

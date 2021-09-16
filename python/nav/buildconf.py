@@ -15,4 +15,5 @@ try:
 except pkg_resources.DistributionNotFound:
     # If we're not installed, try to get the current version from Git tags
     import setuptools_scm
+
     VERSION = setuptools_scm.get_version()

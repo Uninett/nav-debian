@@ -23,17 +23,22 @@ from django.http import HttpResponseServerError
 
 
 def custom_500(request):
-    """ View that renders the HTTP 500 template and passes the exception """
+    """View that renders the HTTP 500 template and passes the exception"""
 
     template = loader.get_template('500.html')
 
     type, value, tb = sys.exc_info()
 
-    return HttpResponseServerError(template.render(context={
-        'type': type.__name__,
-        'value': value,
-        'traceback': traceback.format_exception(type, value, tb)
-        }, request=request))
+    return HttpResponseServerError(
+        template.render(
+            context={
+                'type': type.__name__,
+                'value': value,
+                'traceback': traceback.format_exception(type, value, tb),
+            },
+            request=request,
+        )
+    )
 
 
 def force_500(request):
@@ -41,4 +46,3 @@ def force_500(request):
     error handler
     """
     raise Exception("This error was thrown on purpose, please ignore")
-

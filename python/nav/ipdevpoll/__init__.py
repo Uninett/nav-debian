@@ -32,10 +32,11 @@ class Plugin(object):
     Do *NOT* create instances of the base class.
 
     """
+
     _logger = ContextLogger()
     RESTRICT_TO_VENDORS = []
 
-    def __init__(self, netbox, agent, containers, config:IpdevpollConfig = None):
+    def __init__(self, netbox, agent, containers, config: IpdevpollConfig = None):
         """
 
         :type netbox: nav.ipdevpoll.shadows.Netbox
@@ -83,8 +84,10 @@ class Plugin(object):
     @classmethod
     def _verify_vendor_restriction(cls, netbox):
         if cls.RESTRICT_TO_VENDORS:
-            return (netbox.type and
-                    netbox.type.get_enterprise_id() in cls.RESTRICT_TO_VENDORS)
+            return (
+                netbox.type
+                and netbox.type.get_enterprise_id() in cls.RESTRICT_TO_VENDORS
+            )
         else:
             return True
 
@@ -104,8 +107,7 @@ class Plugin(object):
 
     def full_name(self):
         """Return the full module and class name of this instance."""
-        return "%s.%s" % (self.__class__.__module__,
-                          self.__class__.__name__)
+        return "%s.%s" % (self.__class__.__module__, self.__class__.__name__)
 
     def _get_netbox_list(self):
         """Returns a list of netbox names to make metrics for. Will return just
@@ -114,9 +116,9 @@ class Plugin(object):
 
         """
         netboxes = [self.netbox.sysname]
-        instances = manage.Netbox.objects.filter(
-            master=self.netbox.id).values_list('sysname', flat=True)
+        instances = manage.Netbox.objects.filter(master=self.netbox.id).values_list(
+            'sysname', flat=True
+        )
         netboxes.extend(instances)
-        self._logger.debug("duplicating metrics for these netboxes: %s",
-                           netboxes)
+        self._logger.debug("duplicating metrics for these netboxes: %s", netboxes)
         return netboxes

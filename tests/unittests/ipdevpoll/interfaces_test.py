@@ -20,10 +20,17 @@ class EncodingTests(TestCase):
             'ifDescr': 'GigabitEthernet0/1',
             'ifName': 'Gi0/1',
             'ifAlias': 'The Larch',
-            }
-        required_keys = ('ifType', 'ifSpeed', 'ifSpeed', 'ifHighSpeed',
-                         'ifAdminStatus', 'ifOperStatus', 'ifPhysAddress',
-                         'ifConnectorPresent')
+        }
+        required_keys = (
+            'ifType',
+            'ifSpeed',
+            'ifSpeed',
+            'ifHighSpeed',
+            'ifAdminStatus',
+            'ifOperStatus',
+            'ifPhysAddress',
+            'ifConnectorPresent',
+        )
         for k in required_keys:
             row[k] = None
 
@@ -56,4 +63,5 @@ class FakeConfig(IpdevpollConfig):
     """Represents the default ipdevpoll config, but prevents the parent from attempting
     a read from the file system
     """
+
     DEFAULT_CONFIG_FILES = []

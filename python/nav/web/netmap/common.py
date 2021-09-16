@@ -22,7 +22,7 @@ STATUS_IMAGE_MAP = {
     Netbox.UP_DOWN: 'red.png',
     Netbox.UP_UP: 'green.png',
     Netbox.UP_SHADOW: 'yellow.png',
-    }
+}
 
 TRAFFIC_META = {
     'tib': 1099511627776,
@@ -32,13 +32,12 @@ TRAFFIC_META = {
     'tb': 1000000000000,
     'gb': 1000000000,
     'mb': 1000000,
-    'kb': 1000
+    'kb': 1000,
 }  # pylint: disable=C0103
 
 
 def convert_bits_to_si(bits):
-    """ SI Units, http://en.wikipedia.org/wiki/SI_prefix
-    """
+    """SI Units, http://en.wikipedia.org/wiki/SI_prefix"""
     if bits >= TRAFFIC_META['tb']:
         return '%.2fTbps' % (bits / TRAFFIC_META['tb'])
     elif bits >= TRAFFIC_META['gb']:
@@ -61,9 +60,9 @@ MEGABIT = 1e6
 def get_traffic_load_in_percent(bps, capacity=None):
     """Calculates the load percentage of a link.
 
-     :param bps: bits per second
-     :param capacity: capacity on link in Mbps. (ie 1Gbit = 1000 mbps)
-     :returns: A
+    :param bps: bits per second
+    :param capacity: capacity on link in Mbps. (ie 1Gbit = 1000 mbps)
+    :returns: A
     """
     if not capacity or not bps:
         return None
@@ -105,8 +104,9 @@ def traffic_gradient_map():
 
     data = []
     for i in reversed(range(42, 236)):
-        data.append(_traffic_gradient(
-            GRADIENT_MAP_INTENSITY * (i - 236.0) / (42.0 - 237)))
+        data.append(
+            _traffic_gradient(GRADIENT_MAP_INTENSITY * (i - 236.0) / (42.0 - 237))
+        )
     return data
 
 
@@ -127,10 +127,14 @@ def _traffic_gradient(intensity):
         return (
             255 * ((4.0 - intensity) ** gamma),
             255 * ((4.0 - intensity) ** gamma),
-            255 * ((4.0 - intensity) ** gamma))
+            255 * ((4.0 - intensity) ** gamma),
+        )
     elif intensity > 2.0:
-        return (255, 255 * ((intensity - 2.0) ** gamma),
-                255 * ((intensity - 2.0) ** gamma))
+        return (
+            255,
+            255 * ((intensity - 2.0) ** gamma),
+            255 * ((intensity - 2.0) ** gamma),
+        )
     elif intensity > 1.0:
         return (255, 255 * ((2.0 - intensity) ** gamma), 0)
     else:
@@ -139,8 +143,7 @@ def _traffic_gradient(intensity):
 
 # pylint: disable=W0702
 def get_status_image_link(status):
-    """ uplink icon for status
-    """
+    """uplink icon for status"""
     try:
         return STATUS_IMAGE_MAP[status]
     except Exception:

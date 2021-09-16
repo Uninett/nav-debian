@@ -21,6 +21,7 @@ from nav.enterprise.ids import VENDOR_ID_HEWLETT_PACKARD
 
 class HP(SNMPHandler):
     """A specialized class for handling ports in HP switches."""
+
     VENDOR = VENDOR_ID_HEWLETT_PACKARD
 
     # From HP-DOT1X-EXTENSIONS-MIB
@@ -33,8 +34,7 @@ class HP(SNMPHandler):
     @translate_protocol_errors
     def is_dot1x_enabled(self, interface):
         """Returns True or False based on state of dot1x"""
-        return int(self._query_netbox(
-            self.dot1xPortAuth, interface.ifindex)) == 1
+        return int(self._query_netbox(self.dot1xPortAuth, interface.ifindex)) == 1
 
     @translate_protocol_errors
     def get_dot1x_enabled_interfaces(self):

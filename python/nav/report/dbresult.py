@@ -56,13 +56,17 @@ class DatabaseResult(object):
             self.rowcount = len(self.result)
 
         except psycopg2.ProgrammingError as error:
-            self.error = ("There was an unhandled SQL error! There may be "
-                          "something wrong with the definition of the '{}' "
-                          "report: {}".format(report_config.title, error))
+            self.error = (
+                "There was an unhandled SQL error! There may be "
+                "something wrong with the definition of the '{}' "
+                "report: {}".format(report_config.title, error)
+            )
 
         except psycopg2.DataError as error:
-            self.error = ("Data error! Some of your input data is of an "
-                          "invalid type: {}".format(error))
+            self.error = (
+                "Data error! Some of your input data is of an "
+                "invalid type: {}".format(error)
+            )
         else:
             self.error = report_config.error
 

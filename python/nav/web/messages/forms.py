@@ -24,7 +24,7 @@ from nav.models.msgmaint import MessageToMaintenanceTask
 
 
 class MessageForm(ModelForm):
-    """ Model form class for a Message object """
+    """Model form class for a Message object"""
 
     def __init__(self, *args, **kwargs):
         super(MessageForm, self).__init__(*args, **kwargs)
@@ -32,8 +32,7 @@ class MessageForm(ModelForm):
         self.helper = FormHelper()
         self.helper.form_action = ""
         self.helper.form_method = 'POST'
-        self.helper.add_input(Submit('submit', 'Save message',
-                                     css_class='small'))
+        self.helper.add_input(Submit('submit', 'Save message', css_class='small'))
 
         # Since the m2m uses through, we need to fetch initial data manually
         initials = []
@@ -74,8 +73,7 @@ class MessageForm(ModelForm):
 
         # Save all the relations to tasks
         for task in self.cleaned_data.get('maintenance_tasks'):
-            relation = MessageToMaintenanceTask(message=message,
-                                                maintenance_task=task)
+            relation = MessageToMaintenanceTask(message=message, maintenance_task=task)
             relation.save()
 
         return message

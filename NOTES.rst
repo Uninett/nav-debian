@@ -8,6 +8,62 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+NAV 5.2
+=======
+
+Dependency changes
+------------------
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+For building the NAV documentation, the Python module
+:mod:`sphinxcontrib-django` is now required (it is not required for the NAV
+runtime, though).
+
+
+Changed versions
+~~~~~~~~~~~~~~~~
+
+NAV 5.2 moved to a newer version of the Python module :mod:`feedparser`,
+because of Python 3 issues with the old version. The new requirement is:
+
+* :mod:`feedparser==6.0.8`
+
+
+Backwards incompatible changes
+------------------------------
+
+Changed Alert severity level definitions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While a severity value was always attached to each NAV alert, and could be used
+for matching in Alert Profiles, these values have always been poorly defined
+and underused. They were loosely understood to be in the range *0-100*, where
+*100* was the highest severity and *0* was the lowest, but more or less every
+alert ever issued by NAV was set to a severity value of 50.
+
+NAV 5.2 changes the entire severity scale and its interpretation to be a value
+in the range of **1 through 5**, where *1* is the **highest** severity and *5*
+is the **lowest**. This can be roughly interpreted as:
+
+- **5** = *Information*
+- **4** = *Low*
+- **3** = *Moderate*
+- **2** = *High*
+- **1** = *Critical*
+
+More importantly, NAV 5.2 adds the ability for you to configure how these
+values are set. Read more about this in the :ref:`event engine reference
+documentation on severity levels <severity_levels>`.
+
+Changes for developers
+----------------------
+
+NAV 5.2 requires all Python code to be formatted using Black, and introduces
+Git pre-commit hooks to ensure all Python code is formatted using Black before
+commits are accepted. Read all about it in :doc:`hacking/hacking`.
+
 NAV 5.1
 =======
 

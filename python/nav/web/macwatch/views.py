@@ -31,28 +31,28 @@ DEFAULT_VALUES = {'title': "MacWatch", 'navpath': NAVBAR}
 def do_list(request, messages=None):
     account = get_account(request)
     macwatches = MacWatch.objects.all()
-    info_dict = populate_info_dict(account,
-                                   macwatches=macwatches,
-                                   messages=messages)
+    info_dict = populate_info_dict(account, macwatches=macwatches, messages=messages)
     return render(request, 'macwatch/list_watches.html', info_dict)
 
 
 def list_watch(request):
-    """ Render current macwatches and option to add new one. """
+    """Render current macwatches and option to add new one."""
     return do_list(request)
 
 
 def add_macwatch(request):
-    """ Display form for adding of mac address to watch. """
+    """Display form for adding of mac address to watch."""
 
     account = get_account(request)
     if request.method == 'POST':
         macwatchform = MacWatchForm(request.POST)
         if macwatchform.is_valid():
             # Get user object
-            m = MacWatch(mac=macwatchform.cleaned_data['macaddress'],
-                         userid=account,
-                         description=macwatchform.cleaned_data['description'])
+            m = MacWatch(
+                mac=macwatchform.cleaned_data['macaddress'],
+                userid=account,
+                description=macwatchform.cleaned_data['description'],
+            )
             if macwatchform.prefix_length:
                 m.prefix_length = macwatchform.prefix_length
             m.save()
@@ -70,7 +70,7 @@ def add_macwatch(request):
 
 
 def delete_macwatch(request, macwatchid):
-    """ Delete tuple for mac address watch """
+    """Delete tuple for mac address watch"""
 
     account = get_account(request)
     # Delete tuple based on url
@@ -101,7 +101,7 @@ def delete_macwatch(request, macwatchid):
 
 
 def edit_macwatch(request, macwatchid):
-    """ Edit description on a macwatch - currently not in use """
+    """Edit description on a macwatch - currently not in use"""
     if request.method == 'POST':
         macwatchform = MacWatchForm(request.POST)
         if macwatchform.is_valid():

@@ -38,7 +38,6 @@ from .views import (
 urlpatterns = [
     url(r'^$', IndexView.as_view(), name='netmap-index'),
     url(r'^admin/$', NetmapAdminView.as_view(), name='netmap-admin'),
-
     url(r'^views/$', NetmapViewList.as_view(), name='netmap-view-list'),
     url(
         r'^views/(?P<viewid>[\d]+)/$',
