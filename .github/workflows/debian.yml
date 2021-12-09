@@ -1,0 +1,53 @@
+---
+name: Build Debian package
+on: [push]
+
+jobs:
+  build:
+    name: "Build Debian package from nav/master"
+    runs-on: ubuntu-latest
+    env:
+      DEBEMAIL: 'noreply@uninett.no'
+      DEBFULLNAME: 'Automated GitHub build'
+      NONINTERACTIVE: '1'
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: Branch name
+        run: |
+          echo Running on ${GITHUB_REF##*/}
+
+      - name: Merge latest upstream
+        run: |
+          git remote add upstream https://github.com/Uninett/nav
+          git branch --force cibuild ${GITHUB_REF##*/}
+          git checkout cibuild
+          git config pull.rebase false
+          git pull upstream master
+
+      - name: Build Docker image
+        run: |
+          cd debian; ./dev.sh /bin/true
+
+      - name: Add changelog entry
+        run: |
+          cd debian; ./dch.sh -v $(git describe upstream/master)-1 "Automated build" && ./dch.sh -r "Automated build"
+
+      - name: Build package
+        run: |
+          cd debian; ./build.sh
+
+      - name: Prepare package artifacts
+        run: |
+          mkdir ${GITHUB_RUN_ID}
+          mv ../nav_* ${GITHUB_RUN_ID}/
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian package from NAV master branch
+          path: |
+            ${{ github.run_id }}/nav_*
+
