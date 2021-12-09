@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009-2012 Uninett AS
+# Copyright (C) 2020 Universitetet i Oslo
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -27,11 +28,16 @@ JOB_PREFIX = 'job_'
 
 class IpdevpollConfig(NAVConfigParser):
     """ipdevpoll config parser"""
+
     DEFAULT_CONFIG_FILES = ('ipdevpoll.conf',)
     DEFAULT_CONFIG = u"""
 [ipdevpoll]
 logfile = ipdevpolld.log
 max_concurrent_jobs = 500
+
+[netbox_filters]
+groups_included=
+groups_excluded=
 
 [snmp]
 timeout = 1.5
@@ -54,6 +60,9 @@ filter = topology
 
 [bgp]
 alert_ibgp = yes
+
+[interfaces]
+always_use_ifhighspeed = false
 
 [sensors]
 loadmodules = nav.mibs.*
@@ -85,8 +94,7 @@ CORIANT_RD_GMBH = CORIANT-GROOVE-MIB
 
 def get_job_descriptions(config=None):
     """Builds a dict of all job descriptions"""
-    return {d.name.replace(JOB_PREFIX, ''): d.description
-            for d in get_jobs(config)}
+    return {d.name.replace(JOB_PREFIX, ''): d.description for d in get_jobs(config)}
 
 
 def get_jobs(config=None):
@@ -98,10 +106,10 @@ def get_jobs(config=None):
         config = ipdevpoll_conf
 
     job_sections = get_job_sections(config)
-    job_descriptors = [JobDescriptor.from_config_section(config, section)
-                       for section in job_sections]
-    _logger.debug("parsed jobs from config file: %r",
-                  [j.name for j in job_descriptors])
+    job_descriptors = [
+        JobDescriptor.from_config_section(config, section) for section in job_sections
+    ]
+    _logger.debug("parsed jobs from config file: %r", [j.name for j in job_descriptors])
     return job_descriptors
 
 
@@ -110,10 +118,23 @@ def get_job_sections(config):
     return [s for s in config.sections() if s.startswith(JOB_PREFIX)]
 
 
+def get_netbox_filter(section, config=None):
+    """Get the requested netbox filter as list"""
+    if config is None:
+        config = ipdevpoll_conf
+
+    netbox_filters = ipdevpoll_conf.get('netbox_filters', section)
+
+    if netbox_filters:
+        return netbox_filters.split()
+    return []
+
+
 # this is a data container class, mr. pylint!
 # pylint: disable=R0913,R0903
 class JobDescriptor(object):
     """A data structure describing a job."""
+
     def __init__(self, name, interval, intensity, plugins, description=''):
         self.name = str(name)
         self.interval = int(interval)
@@ -125,24 +146,32 @@ class JobDescriptor(object):
     def from_config_section(cls, config, section):
         """Creates a JobDescriptor from a ConfigParser section"""
         if section.startswith(JOB_PREFIX):
-            jobname = section[len(JOB_PREFIX):]
+            jobname = section[len(JOB_PREFIX) :]
         else:
             raise InvalidJobSectionName(section)
 
         interval = parse_interval(config.get(section, 'interval'))
         if interval < 1:
-            raise ValueError("Interval for job %s is too short: %s" % (
-                jobname, config.get(section, 'interval')))
+            raise ValueError(
+                "Interval for job %s is too short: %s"
+                % (jobname, config.get(section, 'interval'))
+            )
 
-        intensity = (config.getint(section, 'intensity')
-                     if config.has_option(section, 'intensity') else 0)
+        intensity = (
+            config.getint(section, 'intensity')
+            if config.has_option(section, 'intensity')
+            else 0
+        )
 
         plugins = _parse_plugins(config.get(section, 'plugins'))
         if not plugins:
             raise ValueError("Plugin list for job %s is empty" % jobname)
 
-        description = (_parse_description(config.get(section, 'description'))
-                       if config.has_option(section, 'description') else '')
+        description = (
+            _parse_description(config.get(section, 'description'))
+            if config.has_option(section, 'description')
+            else ''
+        )
 
         return cls(jobname, interval, intensity, plugins, description)
 

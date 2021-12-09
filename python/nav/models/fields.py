@@ -46,7 +46,8 @@ class DateTimeInfinityField(models.DateTimeField):
             value = u'-infinity'
         else:
             return super(DateTimeInfinityField, self).get_db_prep_value(
-                value, connection, prepared=prepared)
+                value, connection, prepared=prepared
+            )
         try:
             return connection.ops.value_to_db_datetime(value)  # <= 1.8
         except AttributeError:
@@ -74,8 +75,15 @@ class DictAsJsonField(models.TextField):
     def db_type(self, connection):
         return 'varchar'
 
-    def from_db_value(self, value, expression, connection, context):
-        return self.to_python(value)
+    if django.VERSION < (2,):  # Django < 2.x
+        # pylint: disable=unused-argument
+        def from_db_value(self, value, expression, connection, context):
+            return self.to_python(value)
+
+    else:
+        # pylint: disable=unused-argument
+        def from_db_value(self, value, expression, connection):
+            return self.to_python(value)
 
     def to_python(self, value):
         if value:
@@ -106,20 +114,17 @@ class DictAsJsonField(models.TextField):
 
 
 class CIDRField(VarcharField):
-
     def to_python(self, value):
         """Verifies that the value is a string with a valid CIDR IP address"""
         if value:
             if isinstance(value, six.binary_type):
                 value = six.text_type(value, encoding='utf-8')
             if not is_valid_cidr(value) and not is_valid_ip(value):
-                raise exceptions.ValidationError(
-                    "Value must be a valid CIDR address")
+                raise exceptions.ValidationError("Value must be a valid CIDR address")
         return value
 
 
 class PointField(models.CharField):
-
     def __init__(self, *args, **kwargs):
         kwargs['max_length'] = 100
         super(PointField, self).__init__(*args, **kwargs)
@@ -127,8 +132,15 @@ class PointField(models.CharField):
     def db_type(self, connection):
         return 'point'
 
-    def from_db_value(self, value, expression, connection, context):
-        return self.to_python(value)
+    if django.VERSION < (2,):  # Django < 2.x
+
+        def from_db_value(self, value, expression, connection, context):
+            return self.to_python(value)
+
+    else:
+
+        def from_db_value(self, value, expression, connection):
+            return self.to_python(value)
 
     def to_python(self, value):
         if not value or isinstance(value, tuple):
@@ -141,8 +153,7 @@ class PointField(models.CharField):
                     noparens = value
                 latitude, longitude = noparens.split(',')
                 return (Decimal(latitude.strip()), Decimal(longitude.strip()))
-        raise exceptions.ValidationError(
-            "This value must be a point-string.")
+        raise exceptions.ValidationError("This value must be a point-string.")
 
     def get_db_prep_value(self, value, connection, prepared=False):
         if value is None:
@@ -231,8 +242,7 @@ class LegacyGenericForeignKey(object):
             rel_model = self.get_model_class(table_name)
             if rel_model:
                 try:
-                    rel_obj = rel_model.objects.get(
-                        id=getattr(instance, self.fk_field))
+                    rel_obj = rel_model.objects.get(id=getattr(instance, self.fk_field))
                 except exceptions.ObjectDoesNotExist:
                     pass
             setattr(instance, self.cache_attr, rel_obj)
@@ -240,8 +250,7 @@ class LegacyGenericForeignKey(object):
 
     def __set__(self, instance, value):
         if instance is None:
-            raise AttributeError(
-                u"%s must be accessed via instance" % self.name)
+            raise AttributeError(u"%s must be accessed via instance" % self.name)
 
         table_name = None
         fkey = None

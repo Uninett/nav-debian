@@ -20,6 +20,7 @@ from nav.mibs.mibretriever import MibRetriever
 
 class HPHTTPManageableMib(MibRetriever):
     """HP-httpManageable-MIB (SEMI-MIB) MibRetriever"""
+
     mib = get_mib('SEMI-MIB')
 
     @defer.inlineCallbacks
@@ -27,4 +28,6 @@ class HPHTTPManageableMib(MibRetriever):
         """Tries to get a chassis serial number from old HP switches"""
         serial = yield self.get_next('hpHttpMgSerialNumber')
         if serial:
+            if isinstance(serial, bytes):
+                serial = serial.decode("utf-8")
             defer.returnValue(serial)

@@ -8,6 +8,183 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+NAV 5.2
+=======
+
+Dependency changes
+------------------
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+For building the NAV documentation, the Python module
+:mod:`sphinxcontrib-django` is now required (it is not required for the NAV
+runtime, though).
+
+
+Changed versions
+~~~~~~~~~~~~~~~~
+
+NAV 5.2 moved to a newer version of the Python module :mod:`feedparser`,
+because of Python 3 issues with the old version. The new requirement is:
+
+* :mod:`feedparser==6.0.8`
+
+
+Backwards incompatible changes
+------------------------------
+
+Changed Alert severity level definitions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While a severity value was always attached to each NAV alert, and could be used
+for matching in Alert Profiles, these values have always been poorly defined
+and underused. They were loosely understood to be in the range *0-100*, where
+*100* was the highest severity and *0* was the lowest, but more or less every
+alert ever issued by NAV was set to a severity value of 50.
+
+NAV 5.2 changes the entire severity scale and its interpretation to be a value
+in the range of **1 through 5**, where *1* is the **highest** severity and *5*
+is the **lowest**. This can be roughly interpreted as:
+
+- **5** = *Information*
+- **4** = *Low*
+- **3** = *Moderate*
+- **2** = *High*
+- **1** = *Critical*
+
+More importantly, NAV 5.2 adds the ability for you to configure how these
+values are set. Read more about this in the :ref:`event engine reference
+documentation on severity levels <severity_levels>`.
+
+Changes for developers
+----------------------
+
+NAV 5.2 requires all Python code to be formatted using Black, and introduces
+Git pre-commit hooks to ensure all Python code is formatted using Black before
+commits are accepted. Read all about it in :doc:`hacking/hacking`.
+
+NAV 5.1
+=======
+
+Dependency changes
+------------------
+
+Changed versions
+~~~~~~~~~~~~~~~~
+
+NAV 5.1 moves to Django 2.2, resulting in several changes in version
+dependencies of related libraries:
+
+* :mod:`Django`>=2.2,<2.3
+* :mod:`django-filter`>=2
+* :mod:`django-crispy-forms`>=1.7,<1.8
+* :mod:`crispy-forms-foundation`>=0.7,<0.8
+* :mod:`djangorestframework`>=3.9,<3.10
+
+Also, the Python library :mod:`Pillow` requirement has been moved to version
+8.0 (In reality, NAV is compatible with all versions from 3 through 8, as only
+the thumbnail API call is used, but the latest version is recommended due to
+reported security vulnerabilities in the older versions).
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+For NAPALM management profiles and Juniper support in PortAdmin, a dependency
+on the NAPALM_ library has been added:
+
+* :mod:`napalm` version 3.0
+
+Removed dependencies
+~~~~~~~~~~~~~~~~~~~~
+
+NAV no longer requires the :mod:`configparser` or :mod:`py2-ipaddress` Python
+modules. They were only needed under Python 2 to keep compatibility with both
+Python 2 and 3, but NAV 5.1 drops support for Python 2, as previously
+announced.
+
+Changed configuration files
+---------------------------
+
+These configuration files changed:
+
+* :file:`portadmin/portadmin.conf`: The option ``write_mem`` has been renamed
+  to ``commit``, for the sake of a a more platform and management protocol
+  agnostic view of the world.
+
+* :file:`daemons.yml`: Daemon entries now support the config option
+  ``privileged``, which defaults to ``false``. A daemon with ``privileged`` set
+  to ``true`` will be run as ``root``. Only :program:`snmptrapd` and
+  :program:`pping` will need to run using ``privileged: true``, as these
+  daemons need to create privileged communication sockets at startup (but they
+  will drop root privileges immediately after the sockets have been
+  created). **This means snmptrapd and pping will not start if you keep
+  the old version of this config file unchanged.**
+
+
+Things to be aware of
+---------------------
+
+.. note:: NAV 5.1 fixes a bug where some NAV daemons were run as root, giving
+          them an unnecessarily high privilege level (never a good
+          idea™). After upgrading, you may find some of these daemons failing
+          to start because their existing log files are only writeable by the
+          ``root`` user. You should ensure the NAV log files are all writable
+          by the user NAV runs as (``navcron``, in most cases).
+
+
+
+New features
+------------
+
+Juniper support in PortAdmin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PortAdmin has gained the ability to configure Juniper switches. Juniper does
+not support configuration through SNMP writes, so the new management profile
+type NAPALM_ has been introduced, which enables PortAdmin to use Juniper
+specific NETCONF and RPC calls to get and set switch port configuration.
+
+Please read the :doc:`management profiles reference docs
+</reference/management-profiles>` for more details.
+
+.. _`NAPALM`: https://napalm.readthedocs.io/en/latest/
+
+
+Device filter options for distributed monitoring with pping and ipdevpoll
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :program:`pping` and :program:`ipdevpoll` daemons have gained support for
+device filtering options. Using these options can limit the set of devices a
+pping or ipdevpoll instance will work with, based on your already configured
+device groups.
+
+This enables a form of distributed monitoring that wasn't previously possible:
+If you have a group of devices that are only accesible from the inside of some
+VLAN or secure zone, you can install NAV inside this zone and configure pping
+and ipdevpoll there to only monitor the devices within that zone, while telling
+other pping/ipdevpoll instances to ignore those device groups.
+
+This can also be used for low-level and manual horizontal scaling of NAV's
+monitoring functions.
+
+The new options are documented in the daemons' example config files,
+:file:`ipdevpoll.conf` and :file:`pping.conf`, respectively.
+
+
+New type sync script
+~~~~~~~~~~~~~~~~~~~~
+
+:program:`navsynctypes` is a new command line program to dump the NAV IP device
+type registry as a series of PostgreSQL compatible commands that will update
+the type registry of another NAV installation. Missing types will be added,
+while existing types will have their names and descriptions updated to reflect
+the names and descriptions of the source NAV installation.
+
+Its primary use may be for someone who operates multiple NAV installations to
+easily synchronize the type registry between those installations.
+
+
 NAV 5.0
 =======
 
@@ -45,6 +222,27 @@ Removed features
 The ability to send Jabber notifications has been removed from the alert
 profiles system, due to lack of demand and the no-longer maintained
 :mod:`xmpppy` library.
+
+Backwards incompatible changes
+------------------------------
+
+Daemon startup privileges
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By accident, some of NAV's daemons have been running as the privileged ``root``
+user since NAV 4.9.0, due to changes in the process control system.  NAV 5.0.4
+introduces the :option:`privileged` option in the :file:`daemons.yml` configuration
+file, to signal which daemons actually need to be started with root privileges.
+
+Only :program:`snmptrapd` and :program:`pping` need root privileges on startup,
+as these daemons create privileged communication sockets, but they will drop
+root privileges immediately after these sockets are created.
+
+Please ensure your :file:`daemon.yml` configuration file is updated. Also, be
+aware that after upgrading to NAV 5.0.4 from any version from 4.9.0 and up, you
+may have some NAV log files that are owned by ``root``, which will cause some
+of the daemons to fail on startup. Please ensure all NAV log files are writable
+for the user defined as :option:`NAV_USER` in :file:`nav.conf`.
 
 
 New features
@@ -1396,7 +1594,7 @@ been deprecated, and new API endpoints have been written for NAV 4.1.
 
 Although the API is still in flux, it can be used to retrieve various data
 from a NAV installation. See further documentation at
-https://nav.uninett.no/doc/dev/howto/using_the_api.html . We know a lot of
+https://nav.readthedocs.io/en/latest/howto/using_the_api.html . We know a lot of
 people are eager to integrate with NAV to utilize its data in their own
 solutions, so any feedback you may have regarding the API is much appreciated
 by the developers.

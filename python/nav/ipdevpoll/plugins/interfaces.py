@@ -41,6 +41,7 @@ DUPLEX_MAP = {
 
 class Interfaces(Plugin):
     "Collects comprehensive information about device's network interfaces"
+
     def __init__(self, *args, **kwargs):
         super(Interfaces, self).__init__(*args, **kwargs)
         self.ifmib = IfMib(self.agent)
@@ -57,7 +58,8 @@ class Interfaces(Plugin):
         shadows.Interface.add_sentinel(self.containers)
 
     def _get_iftable_columns(self):
-        df = self.ifmib.retrieve_columns([
+        df = self.ifmib.retrieve_columns(
+            [
                 'ifDescr',
                 'ifType',
                 'ifSpeed',
@@ -68,7 +70,8 @@ class Interfaces(Plugin):
                 'ifHighSpeed',
                 'ifConnectorPresent',
                 'ifAlias',
-                ])
+            ]
+        )
         return df.addCallback(reduce_index)
 
     def _process_interfaces(self, result):
@@ -79,9 +82,11 @@ class Interfaces(Plugin):
         # Now save stuff to containers and pass the list of containers
         # to the next callback
         netbox = self.containers.factory(None, shadows.Netbox)
-        interfaces = [self._convert_row_to_container(netbox, ifindex, row)
-                      for ifindex, row in result.items()
-                      if isinstance(ifindex, int)]
+        interfaces = [
+            self._convert_row_to_container(netbox, ifindex, row)
+            for ifindex, row in result.items()
+            if isinstance(ifindex, int)
+        ]
         return interfaces
 
     def _convert_row_to_container(self, netbox, ifindex, row):
@@ -92,13 +97,15 @@ class Interfaces(Plugin):
         interface.ifdescr = row['ifDescr']
         interface.iftype = row['ifType']
 
-        # ifSpeed spec says to use ifHighSpeed if the 32-bit unsigned
-        # integer is maxed out
-        if isinstance(row['ifSpeed'], int):
-            if row['ifSpeed'] < 4294967295:
-                interface.speed = row['ifSpeed'] / 1000000.0
-            elif isinstance(row['ifHighSpeed'], int):
-                interface.speed = float(row['ifHighSpeed'])
+        speed = self._extract_interface_speed(
+            row["ifSpeed"],
+            row["ifHighSpeed"],
+            always_use_highspeed=self.config.getboolean(
+                "interfaces", "always_use_ifhighspeed"
+            ),
+        )
+        if speed is not None:
+            interface.speed = speed
 
         interface.ifphysaddress = typesafe_binary_mac_to_hex(row['ifPhysAddress'])
         interface.ifadminstatus = row['ifAdminStatus']
@@ -117,17 +124,42 @@ class Interfaces(Plugin):
         interface.netbox = netbox
         return interface
 
+    @staticmethod
+    def _extract_interface_speed(speed, highspeed, always_use_highspeed=False):
+        """Determines the interface speed from a combination of ifSpeed and ifHighSpeed
+        values.
+
+        The IF-MIB spec says to use the ifHighSpeed value if the 32-bit unsigned
+        ifSpeed value is maxed out. However, some devices, like Cisco SG350X-24T
+        running 2.5.5.47 firmware, have an incorrect implementation that causes
+        ifSpeed=ifHighSpeed.
+
+        Yet other buggy implementations even have no discernable correlation between
+        the two values, and only their ifHighSpeed value can be trusted.
+        """
+        if always_use_highspeed and isinstance(highspeed, int):
+            return float(highspeed)
+
+        if isinstance(speed, int):
+            if 4294967295 > speed != highspeed:
+                return speed / 1000000.0
+            elif isinstance(highspeed, int):
+                return float(highspeed)
+
     @defer.inlineCallbacks
     def _get_stack_status(self, interfaces):
         """Retrieves data from the ifStackTable and initiates a search for a
         proper ifAlias value for those interfaces that lack it.
 
         """
+
         def _stackify(stackstatus):
             ifindex_map = dict((ifc.ifindex, ifc) for ifc in interfaces)
-            stack = [(ifindex_map[higher], ifindex_map[lower])
-                     for higher, lower in stackstatus
-                     if higher in ifindex_map and lower in ifindex_map]
+            stack = [
+                (ifindex_map[higher], ifindex_map[lower])
+                for higher, lower in stackstatus
+                if higher in ifindex_map and lower in ifindex_map
+            ]
             return stack
 
         stack = yield self.ifmib.get_stack_status().addCallback(_stackify)
@@ -149,8 +181,12 @@ class Interfaces(Plugin):
         for higher, lower in stack:
             if not higher.ifalias and lower.ifalias:
                 higher.ifalias = lower.ifalias
-                self._logger.debug("%s alias set from lower layer %s: %s",
-                                   higher.ifname, lower.ifname, higher.ifalias)
+                self._logger.debug(
+                    "%s alias set from lower layer %s: %s",
+                    higher.ifname,
+                    lower.ifname,
+                    higher.ifalias,
+                )
 
     def _create_stack_containers(self, stacklist):
         for higher, lower in stacklist:
@@ -161,6 +197,7 @@ class Interfaces(Plugin):
 
     def _retrieve_duplex(self, interfaces):
         """Get duplex from EtherLike-MIB and update the ifTable results."""
+
         def update_result(duplexes):
             self._logger.debug("Got duplex information: %r", duplexes)
             for index, duplex in duplexes.items():

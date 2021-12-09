@@ -21,7 +21,8 @@ from nav.models.manage import Sensor
 
 
 class XupsMib(UpsMib):
-    """ A custom class for retrieving sensors from EATON UPSes."""
+    """A custom class for retrieving sensors from EATON UPSes."""
+
     mib = get_mib('XUPS-MIB')
 
     sensor_columns = {

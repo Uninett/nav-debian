@@ -58,44 +58,65 @@ class NetboxGroupInfo(SeeddbInfo):
     _navpath = [('Device Groups', reverse_lazy('seeddb-netboxgroup'))]
     hide_move = True
     delete_url = reverse_lazy('seeddb-netboxgroup')
+    delete_url_name = 'seeddb-netboxgroup-delete'
     back_url = reverse_lazy('seeddb-netboxgroup')
     add_url = reverse_lazy('seeddb-netboxgroup-edit')
     bulk_url = reverse_lazy('seeddb-netboxgroup-bulk')
 
 
 def netboxgroup(request):
-    return view_switcher(request,
-                         list_view=netboxgroup_list,
-                         move_view=not_implemented,
-                         delete_view=netboxgroup_delete)
+    return view_switcher(
+        request,
+        list_view=netboxgroup_list,
+        move_view=not_implemented,
+        delete_view=netboxgroup_delete,
+    )
 
 
 def netboxgroup_list(request):
     info = NetboxGroupInfo()
     query = NetboxGroup.objects.all()
     value_list = ('id', 'description')
-    return render_list(request, query, value_list, 'seeddb-netboxgroup-edit',
-                       extra_context=info.template_context)
+    return render_list(
+        request,
+        query,
+        value_list,
+        'seeddb-netboxgroup-edit',
+        extra_context=info.template_context,
+    )
 
 
-def netboxgroup_delete(request):
+def netboxgroup_delete(request, object_id=None):
     info = NetboxGroupInfo()
-    return render_delete(request, NetboxGroup, 'seeddb-netboxgroup',
-                         whitelist=SEEDDB_EDITABLE_MODELS,
-                         extra_context=info.template_context)
+    return render_delete(
+        request,
+        NetboxGroup,
+        'seeddb-netboxgroup',
+        whitelist=SEEDDB_EDITABLE_MODELS,
+        extra_context=info.template_context,
+        object_id=object_id,
+    )
 
 
 def netboxgroup_edit(request, netboxgroup_id=None):
     info = NetboxGroupInfo()
-    return render_edit(request, NetboxGroup, DeviceGroupForm, netboxgroup_id,
-                       'seeddb-netboxgroup-edit',
-                       template='seeddb/edit_device_group.html',
-                       extra_context=info.template_context)
+    return render_edit(
+        request,
+        NetboxGroup,
+        DeviceGroupForm,
+        netboxgroup_id,
+        'seeddb-netboxgroup-edit',
+        template='seeddb/edit_device_group.html',
+        extra_context=info.template_context,
+    )
 
 
 def netboxgroup_bulk(request):
     info = NetboxGroupInfo()
     return render_bulkimport(
-        request, NetboxGroupBulkParser, NetboxGroupImporter,
+        request,
+        NetboxGroupBulkParser,
+        NetboxGroupImporter,
         'seeddb-netboxgroup',
-        extra_context=info.template_context)
+        extra_context=info.template_context,
+    )

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2010, 2012 Uninett AS
+# Copyright (C) 2020 Universitetet i Oslo
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -23,6 +24,7 @@ is used at a time.
 from __future__ import absolute_import
 
 import threading
+
 try:
     import queue
 except ImportError:
@@ -44,6 +46,11 @@ from .event import Event
 
 
 _logger = logging.getLogger(__name__)
+
+# The event model requires a valid severity value, even though the event engine will
+# always override it when generating alerts. It therefore doesn't matter what value
+# we use when posting events:
+DEFAULT_SEVERITY = 3
 
 
 def db():
@@ -119,15 +126,19 @@ class _DB(threading.Thread):
                     _logger.critical("Rolling back aborted transaction...")
                     self.db.rollback()
                 else:
-                    _logger.critical("PostgreSQL reported an internal error "
-                                     "I don't know how to handle: %s "
-                                     "(code=%s)", pg_err_lookup(err.pgcode),
-                                     err.pgcode)
+                    _logger.critical(
+                        "PostgreSQL reported an internal error "
+                        "I don't know how to handle: %s "
+                        "(code=%s)",
+                        pg_err_lookup(err.pgcode),
+                        err.pgcode,
+                    )
                     raise
         except Exception as err:
             if self.db is not None:
-                _logger.critical("Could not get cursor. Trying to reconnect...",
-                                 exc_info=True)
+                _logger.critical(
+                    "Could not get cursor. Trying to reconnect...", exc_info=True
+                )
             self.close()
             self.connect()
             cursor = self.db.cursor()
@@ -165,9 +176,11 @@ class _DB(threading.Thread):
                 self.db.commit()
             return cursor.fetchall()
         except Exception:
-            _logger.critical("Failed to execute query: %s",
-                             cursor.query if cursor else statement,
-                             exc_info=True)
+            _logger.critical(
+                "Failed to execute query: %s",
+                cursor.query if cursor else statement,
+                exc_info=True,
+            )
             if commit:
                 try:
                     self.db.rollback()
@@ -193,15 +206,18 @@ class _DB(threading.Thread):
                 except Exception:
                     _logger.critical("Failed to commit")
         except psycopg2.IntegrityError:
-            _logger.critical("Database integrity error, throwing away update",
-                             exc_info=True)
+            _logger.critical(
+                "Database integrity error, throwing away update", exc_info=True
+            )
             _logger.debug("Tried to execute: %s", cursor.query)
             if commit:
                 self.db.rollback()
         except Exception:
-            _logger.critical("Could not execute statement: %s",
-                             cursor.query if cursor else statement,
-                             exc_info=True)
+            _logger.critical(
+                "Could not execute statement: %s",
+                cursor.query if cursor else statement,
+                exc_info=True,
+            )
             if commit:
                 self.db.rollback()
             raise DbError()
@@ -234,10 +250,19 @@ class _DB(threading.Thread):
         nextid = self.query("SELECT nextval('eventq_eventqid_seq')")[0][0]
         statement = """INSERT INTO eventq
                        (eventqid, subid, netboxid, eventtypeid,
-                        state, value, source, target)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-        values = (nextid, event.serviceid, event.netboxid,
-                  event.eventtype, state, value, event.source, "eventEngine")
+                        state, severity, value, source, target)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        values = (
+            nextid,
+            event.serviceid,
+            event.netboxid,
+            event.eventtype,
+            state,
+            DEFAULT_SEVERITY,
+            value,
+            event.source,
+            "eventEngine",
+        )
         self.execute(statement, values)
 
         statement = """INSERT INTO eventqvar
@@ -246,11 +271,49 @@ class _DB(threading.Thread):
         values = (nextid, 'descr', event.info)
         self.execute(statement, values)
 
-    def hosts_to_ping(self):
-        """Returns a list of netboxes to ping, from the database"""
-        query = """SELECT netboxid, sysname, ip, up FROM netbox """
+    def build_host_query(self, groups_included=None, groups_excluded=None):
+        """Returns a query string and query parameters list
+
+        :param groups_included: A list of device group names whose members will be
+                                the only ones included in the result.
+        :type groups_included: list
+        :param groups_excluded: A list of device group names whose members will be
+                                excluded from the result.
+        :type groups_excluded: list
+        """
+
+        query = """SELECT distinct(netbox.netboxid), sysname, ip, up FROM netbox
+                   LEFT JOIN netboxcategory USING (netboxid)"""
+
+        params = []
+        if groups_included:
+            query += " WHERE netboxcategory.category IN %s"
+            params.append(tuple(groups_included))
+
+        if groups_excluded:
+            query += " AND " if groups_included else " WHERE "
+            query += (
+                "(netboxcategory.category IS NULL OR netboxcategory.category NOT IN %s)"
+            )
+            params.append(tuple(groups_excluded))
+
+        return query, params
+
+    def hosts_to_ping(self, groups_included=None, groups_excluded=None):
+        """Returns a list of netboxes to ping, from the database
+
+        :param groups_included: A list of device group names whose members will be
+                                the only ones included in the result.
+        :type groups_included: list
+        :param groups_excluded: A list of device group names whose members will be
+                                excluded from the result.
+        :type groups_excluded: list
+        """
+
+        query, params = self.build_host_query(groups_included, groups_excluded)
+
         try:
-            self._hosts_to_ping = self.query(query)
+            self._hosts_to_ping = self.query(query, params)
         except DbError:
             return self._hosts_to_ping
         return self._hosts_to_ping
@@ -284,8 +347,16 @@ class _DB(threading.Thread):
             return self._checkers
 
         self._checkers = []
-        for (serviceid, netboxid, active, handler, version, ip,
-             sysname, upstate) in fromdb:
+        for (
+            serviceid,
+            netboxid,
+            active,
+            handler,
+            version,
+            ip,
+            sysname,
+            upstate,
+        ) in fromdb:
             checker = checkermap.get(handler)
             if not checker:
                 _logger.critical("no such checker: %s", handler)
@@ -296,8 +367,8 @@ class _DB(threading.Thread):
                 'ip': ip,
                 'sysname': sysname,
                 'args': properties[serviceid],
-                'version': version
-                }
+                'version': version,
+            }
 
             kwargs = {}
             if use_db_status:
@@ -310,9 +381,13 @@ class _DB(threading.Thread):
             try:
                 new_checker = checker(service, **kwargs)
             except Exception:
-                _logger.critical("Checker %s (%s) failed to init. This checker "
-                                 "will remain DISABLED:", handler, checker,
-                                 exc_info=True)
+                _logger.critical(
+                    "Checker %s (%s) failed to init. This checker "
+                    "will remain DISABLED:",
+                    handler,
+                    checker,
+                    exc_info=True,
+                )
                 continue
 
             if onlyactive and not active:

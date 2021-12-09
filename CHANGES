@@ -1,3 +1,166 @@
+Version 5.2.1
+(released 23 Sep 2021)
+
+Fixed GitHub issues in this release:
+
+  * #2304 (Display alert severity values in the event/alert details
+           page)
+  * #2306 ([BUG] pping is unable to report unreachable devices in NAV
+           5.2.0)
+  * #2308 ([BUG] Alert Profile severity filters that ship with NAV are
+           outdated)
+
+
+Version 5.2.0
+(released 16 Sep 2021)
+
+User-visible features and improvements:
+
+  * #1928 (Document 802.1X support of PortAdmin for end users)
+  * #2289 (Add config option to disallow editing of uplinks and
+           downlinks in PortAdmin)
+  * #2295 (Redefine alert severity levels and make them configurable)
+  * #2297 (Document the event and alert type hierarchy)
+
+Fixed GitHub issues in this release:
+
+  * #2296 ([BUG] Portadmin save API incorrectly returns 500 error where
+           400 is appropriate)
+  * #2298 ([BUG] PortAdmin RpcError on JunOS 20 and newer)
+
+
+Version 5.1.4
+(released 24 Jun 2021)
+
+Fixed GitHub issues in this release:
+
+  * #2281 ([BUG] Saving alert permissions crashes Alert Profiles)
+  * #2282 (PortAdmin SNMP error handling is broken in several ways)
+  * #2284 ([BUG] IP device interfaces don't get updated with speed
+           information)
+  * #2285 (Extract Cisco PoE port mapping method)
+  * #2288 (Disable the PortAdmin "Enable" checkbox for interfaces that
+           aren't editable)
+
+Version 5.1.3
+(released 09 Apr 2021)
+
+Fixed GitHub issues in this release:
+
+  * #2159 ([BUG] UPS widget is inconsistent between showing minutes and
+           seconds remaining time)
+  * #2240 ([BUG] Workaround for wrong interface speed SNMP
+           implementations)
+  * #2253 (Drastically improve page load times on maintenance edit form)
+  * #2254 ([BUG] Search after partial IP-address crashes)
+  * #2255 (ipdevinfo maintenance task link should be to task details
+           view, not the task editor)
+  * #2257 (Exclude Coriant Groove port sensors from collection based on
+           portAdminStatus)
+  * #2260 (IP Device custom data should be "urlized")
+  * #2263 ([BUG] Job 'inventory' for xxx aborted: Job aborted due to
+           save failure (cause=ValueError('A string literal cannot
+           contain NUL (0x00) characters.')))
+  * #2264 (Hardcoded vendor name)
+  * #2267 (Link to filtered report must be urlencoded)
+  * #2269 ([BUG] ipdevinfo shows empty Function-field for some hosts)
+  * #2270 ([BUG] Documentation search does not work)
+  * #2275 (SshChecker not handling connections properly)
+
+Version 5.1.2
+(released 15 Jan 2021)
+
+Fixed GitHub issues in this release:
+
+  * #2210 ([BUG] Traffic graphs use the SI unit system rather than
+           binary prefixes)
+  * #2215 ([BUG] NAV will refuse to identify LLDP remote port names that
+           contain trailing NUL bytes)
+  * #2235 ([BUG] TypeError at /alertprofiles/filters/add-expression/
+           _init__() takes 1 positional argument but 2 were given)
+  * #2238 ([BUG] Geomap doesn't work if DOMAIN_SUFFIX is not set in
+           nav.conf)
+  * #2239 ([BUG] using DOMAIN_SUFFIX  breaks netbox links in Geomap)
+  * #2241 (Allow custom tabs for port details view)
+  * #2250 (Fix formatting of small and negative numbers in Rickshaw
+           graphs)
+  * #2252 (Fix broken serial numbers for Juniper, APC PowerNet and old
+           HP devices)
+
+Version 5.1.1
+(released 07 Dec 2020)
+
+Fixed GitHub issues in this release:
+
+  * #2200 ([BUG] HttpChecker crashes when username/password combo is
+           configured)
+  * #2216 ([BUG] BGP sessions with AS numbers larger than 2147483647
+           cause ipdevpoll jobs to fail with
+           psycopg2.errors.NumericValueOutOfRange)
+  * #2221 (NAV 5.1 Netmap is blank)
+  * #2222 ([BUG] configuring juniper device description results in HTML
+           special characters code)
+  * #2224 ([BUG] status now shows box as 'down' even though it is up)
+  * #2225 ([BUG] Alert export errors prevent proper processing of events
+           in eventengine)
+  * #2229 ([BUG] EventEngine alert export crashes on any alert from a
+           device that is a member of a device group)
+  * #2230 ([BUG] Cannot enable dot1x mode in PortAdmin)
+  * #2234 ([BUG] Bulk import, 'NoneType' object has no attribute
+           'split')
+
+Version 5.1.0
+(released 26 Nov 2020)
+
+User-visible features and improvements:
+
+  * #2021 (Add SeedDB action to clone netboxes and rooms)
+  * #2051 (Link to affected devices in Management profile)
+  * #2128 (Add device filtering options to ipdevpoll and pping, to
+           enable support for horizontal scaling and distributed
+           monitoring)
+  * #2175 (Implement NAPALM management profiles and connectivity)
+  * #2185 (Modernize the type dumping script and make it available as an
+           installable script for end user use)
+  * #2204 (Add support for configuring Juniper switch ports in
+           PortAdmin)
+    - #2173 (Clean up PortAdmin ManagementHandler interface)
+    - #2112 (Refactor PortAdmin's SNMP back-end classes and factories)
+    - #2115 (Refactor portadmin configuration parsing bits)
+    - #2121 (Use nav.config.NAVConfigParser for PortAdmin configuration)
+    - #2205 (Adapt Portadmin UI workflow to meet needs of multiple
+             backend protocols)
+
+Fixed GitHub issues in this release:
+
+  * #2078 ([BUG] NAV daemons are unnecessarily run as root)
+  * #2103 (Support Django 2.2)
+  * #2139 ([BUG] fanState and psuState e-mail alerts say "no message
+           template is defined")
+  * #2141 (Work around lack of entity names when collecting sensors from
+           Arista devices)
+  * #2174 ([BUG] PortAdmin never issues a "write mem" operation when
+           editing trunks)
+  * #2190 ([BUG] Regression - mysql service check does not work)
+  * #2197 ([BUG] Bottom part of room images are obscured by image
+           caption)
+  * #2198 ([BUG] CSV export from Netbox interfaces in Room view produce
+           wrong filename and content.)
+  * #2199 (Make servicemon HttpChecker use the port number from the URL,
+           if present)
+  * #2207 (Netbox reference is not passed to customization template for
+           the ipdevinfo "What if" tab)
+  * #2213 ([BUG] NAV does not import room position)
+
+
+Version 5.0.8
+(released 23 Oct 2020)
+
+This release fixes a single regression caused by the 5.0.7 release:
+
+  * #2196 ([BUG] ipdevpoll topo job crashes with a PostgreSQL
+           operational error, due to an index size error)
+
 Version 5.0.7
 (released 15 Oct 2020)
 

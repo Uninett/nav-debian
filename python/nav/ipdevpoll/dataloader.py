@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008-2012 Uninett AS
+# Copyright (C) 2020 Universitetet i Oslo
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -40,6 +41,7 @@ import django.db
 from nav.models import manage, event
 from nav import ipdevpoll
 from nav.ipdevpoll.db import django_debug_cleanup, run_in_thread
+from nav.ipdevpoll.config import get_netbox_filter
 from . import storage
 
 
@@ -54,8 +56,7 @@ def load_netbox(netbox_id):
     :rtype: nav.ipdevpoll.shadows.netbox.Netbox
 
     """
-    related = ('room__location', 'type__vendor',
-               'category', 'organization')
+    related = ('room__location', 'type__vendor', 'category', 'organization')
     netbox = manage.Netbox.objects.select_related(*related).get(id=netbox_id)
     return storage.shadowify(netbox)
 
@@ -68,6 +69,7 @@ class NetboxLoader(dict):
     values are shadows.Netbox objects.
 
     """
+
     _logger = ipdevpoll.ContextLogger()
 
     def __init__(self):
@@ -94,13 +96,23 @@ class NetboxLoader(dict):
             changed in the database since the last load operation.
 
         """
-        related = ('room__location', 'type__vendor',
-                   'category', 'organization')
-        snmp_down = set(event.AlertHistory.objects.unresolved(
-            'snmpAgentState').values_list('netbox__id', flat=True))
-        self._logger.debug("These netboxes have active snmpAgentStates: %r",
-                           snmp_down)
+        related = ('room__location', 'type__vendor', 'category', 'organization')
+        snmp_down = set(
+            event.AlertHistory.objects.unresolved('snmpAgentState').values_list(
+                'netbox__id', flat=True
+            )
+        )
+        self._logger.debug("These netboxes have active snmpAgentStates: %r", snmp_down)
         queryset = manage.Netbox.objects.filter(deleted_at__isnull=True)
+
+        filter_groups_included = get_netbox_filter('groups_included')
+        if filter_groups_included:
+            queryset = queryset.filter(groups__id__in=filter_groups_included)
+
+        filter_groups_excluded = get_netbox_filter('groups_excluded')
+        if filter_groups_excluded:
+            queryset = queryset.exclude(groups__id__in=filter_groups_excluded)
+
         queryset = list(queryset.select_related(*related))
         for netbox in queryset:
             netbox.snmp_up = netbox.id not in snmp_down
@@ -119,8 +131,9 @@ class NetboxLoader(dict):
         new_ids = current_ids.difference(previous_ids)
 
         same_ids = previous_ids.intersection(current_ids)
-        changed_ids = set(i for i in same_ids
-                          if is_netbox_changed(self[i], netbox_dict[i]))
+        changed_ids = set(
+            i for i in same_ids if is_netbox_changed(self[i], netbox_dict[i])
+        )
 
         # update self
         for i in lost_ids:
@@ -135,11 +148,15 @@ class NetboxLoader(dict):
         anything_changed = len(new_ids) or len(lost_ids) or len(changed_ids)
         log = self._logger.info if anything_changed else self._logger.debug
 
-        log("Loaded %d netboxes from database "
+        log(
+            "Loaded %d netboxes from database "
             "(%d new, %d removed, %d changed, %d peak)",
-            len(netbox_dict), len(new_ids), len(lost_ids), len(changed_ids),
-            self.peak_count
-            )
+            len(netbox_dict),
+            len(new_ids),
+            len(lost_ids),
+            len(changed_ids),
+            self.peak_count,
+        )
 
         return (new_ids, lost_ids, changed_ids)
 
@@ -156,21 +173,22 @@ def is_netbox_changed(netbox1, netbox2):
     if netbox1.id != netbox2.id:
         raise Exception("netbox1 and netbox2 do not represent the same netbox")
 
-    for attr in ('ip',
-                 'type',
-                 'read_only',
-                 'snmp_version',
-                 'up',
-                 'snmp_up',
-                 'deleted_at'
-                 ):
+    for attr in (
+        'ip',
+        'type',
+        'read_only',
+        'snmp_version',
+        'up',
+        'snmp_up',
+        'deleted_at',
+    ):
         if getattr(netbox1, attr) != getattr(netbox2, attr):
             _logger.debug(
                 "%s.%s changed from %r to %r",
                 netbox1.sysname,
                 attr,
                 getattr(netbox1, attr),
-                getattr(netbox2, attr)
+                getattr(netbox2, attr),
             )
             return True
 

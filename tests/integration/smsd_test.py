@@ -2,12 +2,11 @@
 smsd integration tests
 """
 import os
+
 try:
-    from subprocess32 import (STDOUT, check_output, TimeoutExpired,
-                              CalledProcessError)
+    from subprocess32 import STDOUT, check_output, TimeoutExpired, CalledProcessError
 except ImportError:
-    from subprocess import (STDOUT, check_output, TimeoutExpired,
-                            CalledProcessError)
+    from subprocess import STDOUT, check_output, TimeoutExpired, CalledProcessError
 
 import pytest
 from mock import Mock, patch
@@ -30,6 +29,7 @@ def test_smsd_test_message_with_uninettmaildispatcher_should_work(
 #                      #
 ########################
 
+
 @pytest.fixture(scope="module")
 def smsd_test_config():
     print("placing temporary smsd config")
@@ -37,7 +37,8 @@ def smsd_test_config():
     tmpfile = configfile + '.bak'
     os.rename(configfile, tmpfile)
     with open(configfile, "w") as config:
-        config.write("""
+        config.write(
+            """
 [main]
 mailwarnlevel: CRITICAL
 
@@ -46,7 +47,8 @@ dispatcher1: UninettMailDispatcher
 
 [UninettMailDispatcher]
 mailaddr: root@localhost
-""")
+"""
+        )
     yield configfile
     print("restoring smsd config")
     os.remove(configfile)
@@ -67,13 +69,15 @@ def django_settings_email_backend_file():
 
     configfile = os.path.join(pythondir, 'local_settings.py')
     with open(configfile, "w") as config:
-        config.write("""
+        config.write(
+            """
 LOCAL_SETTINGS = True
 from nav.django.settings import *
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = '/tmp/app-messages'
-""")
+"""
+        )
     yield configfile
     print("restoring temporary local_settings config")
     os.remove(configfile)

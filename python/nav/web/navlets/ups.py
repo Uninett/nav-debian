@@ -19,16 +19,19 @@ from django import forms
 from django.db.models import Q
 from django.utils.six.moves.urllib.parse import urlparse
 
-from nav.models.manage import Netbox
+from nav.models.manage import Netbox, Sensor
 from . import Navlet
 
 
 class UpsWidgetForm(forms.Form):
     """Form for choosing an UPS"""
-    netboxid = forms.ModelChoiceField(queryset=Netbox.ups_objects.all(),
-                                      label='Choose UPS')
+
+    netboxid = forms.ModelChoiceField(
+        queryset=Netbox.ups_objects.all(), label='Choose UPS'
+    )
     external_link = forms.CharField(
-        required=False, label='External link (must start with http)')
+        required=False, label='External link (must start with http)'
+    )
 
     def clean_netboxid(self):
         """Cheat and return the netboxid instead of the object
@@ -41,8 +44,7 @@ class UpsWidgetForm(forms.Form):
     def clean_external_link(self):
         link = self.cleaned_data.get('external_link')
         if link and not urlparse(link).scheme.startswith('http'):
-            raise forms.ValidationError(
-                'Link needs to start with http or https')
+            raise forms.ValidationError('Link needs to start with http or https')
         return link
 
 
@@ -85,38 +87,78 @@ class UpsWidget(Navlet):
 
         # Input
         context['input_voltages'] = netbox.sensor_set.filter(
-            Q(internal_name__contains="InputVoltage") |
-            Q(internal_name__contains="InputLineVoltage")
+            Q(internal_name__contains="InputVoltage")
+            | Q(internal_name__contains="InputLineVoltage")
         ).filter(precision__isnull=True)
 
         # Output
         output_voltages = netbox.sensor_set.filter(
-            Q(internal_name__contains="OutputVoltage") |
-            Q(internal_name__contains="OutputLineVoltage")
+            Q(internal_name__contains="OutputVoltage")
+            | Q(internal_name__contains="OutputLineVoltage")
         ).filter(precision__isnull=True)
-        output_power = netbox.sensor_set.filter(
-            internal_name__contains="OutputPower")
+        output_power = netbox.sensor_set.filter(internal_name__contains="OutputPower")
 
         if len(output_voltages) != len(output_power):
             output_power = [None] * len(output_voltages)
         context['output'] = zip(output_voltages, output_power)
 
         # Battery
-        context['battery_times'] = netbox.sensor_set.filter(
-            internal_name__in=['upsEstimatedMinutesRemaining',
-                               'upsAdvBatteryRunTimeRemaining'])
+        context['battery_times'] = (
+            BatteryTimesProxy(sensor)
+            for sensor in netbox.sensor_set.filter(
+                internal_name__in=[
+                    'upsEstimatedMinutesRemaining',
+                    'upsAdvBatteryRunTimeRemaining',
+                ]
+            )
+        )
 
         context['battery_capacity'] = netbox.sensor_set.filter(
-            internal_name__in=['upsHighPrecBatteryCapacity',
-                               'upsEstimatedChargeRemaining'])
+            internal_name__in=[
+                'upsHighPrecBatteryCapacity',
+                'upsEstimatedChargeRemaining',
+            ]
+        )
 
         context['temperatures'] = netbox.sensor_set.filter(
-            internal_name__in=['upsHighPrecBatteryTemperature',
-                               'upsBatteryTemperature'])
+            internal_name__in=['upsHighPrecBatteryTemperature', 'upsBatteryTemperature']
+        )
 
         return context
 
     def post(self, request, **kwargs):
         """Save preferences"""
-        return super(UpsWidget, self).post(
-            request, form=UpsWidgetForm(request.POST))
+        return super(UpsWidget, self).post(request, form=UpsWidgetForm(request.POST))
+
+
+class BatteryTimesProxy:
+    """Proxies access to Sensor objects that represent remaining battery time.
+
+    For consistency, we want the widget to always display remaining time in minutes,
+    but we need to scale the value for sensors that report the remaining time in
+    seconds.
+    """
+
+    def __init__(self, proxied_sensor: Sensor):
+        self.__proxied = proxied_sensor
+
+    def __getattr__(self, name):
+        return getattr(self.__proxied, name)
+
+    @property
+    def unit_of_measurement(self):
+        """Reports unit as minutes for sensors that measure seconds"""
+        if self.__proxied.unit_of_measurement == Sensor.UNIT_SECONDS:
+            return Sensor.UNIT_MINUTES
+        else:
+            return self.__proxied.unit_of_measurement
+
+    def get_metric_name(self):
+        """Surrounds the metric name in Graphite scale expressions if conversion from
+        seconds to minutes is needed for the proxied sensor.
+        """
+        name = self.__proxied.get_metric_name()
+        if self.__proxied.unit_of_measurement == Sensor.UNIT_SECONDS:
+            return f"round(scale({name},0.0166),0)"
+        else:
+            return name

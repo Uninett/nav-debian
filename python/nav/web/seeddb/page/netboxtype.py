@@ -39,46 +39,66 @@ class NetboxTypeInfo(SeeddbInfo):
     _navpath = [('Types', reverse_lazy('seeddb-type'))]
     hide_move = True
     delete_url = reverse_lazy('seeddb-type')
+    delete_url_name = 'seeddb-type-delete'
     back_url = reverse_lazy('seeddb-type')
     add_url = reverse_lazy('seeddb-type-edit')
     bulk_url = reverse_lazy('seeddb-type-bulk')
 
 
 def netboxtype(request):
-    return view_switcher(request,
-                         list_view=netboxtype_list,
-                         move_view=not_implemented,
-                         delete_view=netboxtype_delete)
+    return view_switcher(
+        request,
+        list_view=netboxtype_list,
+        move_view=not_implemented,
+        delete_view=netboxtype_delete,
+    )
 
 
 def netboxtype_list(request):
     info = NetboxTypeInfo()
     query = NetboxType.objects.all()
     filter_form = NetboxTypeFilterForm(request.GET)
-    value_list = (
-        'name', 'vendor', 'description', 'sysobjectid')
-    return render_list(request, query, value_list, 'seeddb-type-edit',
-                       filter_form=filter_form,
-                       extra_context=info.template_context)
+    value_list = ('name', 'vendor', 'description', 'sysobjectid')
+    return render_list(
+        request,
+        query,
+        value_list,
+        'seeddb-type-edit',
+        filter_form=filter_form,
+        extra_context=info.template_context,
+    )
 
 
-def netboxtype_delete(request):
+def netboxtype_delete(request, object_id=None):
     info = NetboxTypeInfo()
-    return render_delete(request, NetboxType, 'seeddb-type',
-                         whitelist=SEEDDB_EDITABLE_MODELS,
-                         extra_context=info.template_context)
+    return render_delete(
+        request,
+        NetboxType,
+        'seeddb-type',
+        whitelist=SEEDDB_EDITABLE_MODELS,
+        extra_context=info.template_context,
+        object_id=object_id,
+    )
 
 
 def netboxtype_edit(request, type_id=None):
     info = NetboxTypeInfo()
-    return render_edit(request, NetboxType, NetboxTypeForm, type_id,
-                       'seeddb-type-edit',
-                       extra_context=info.template_context)
+    return render_edit(
+        request,
+        NetboxType,
+        NetboxTypeForm,
+        type_id,
+        'seeddb-type-edit',
+        extra_context=info.template_context,
+    )
 
 
 def netboxtype_bulk(request):
     info = NetboxTypeInfo()
     return render_bulkimport(
-        request, NetboxTypeBulkParser, NetboxTypeImporter,
+        request,
+        NetboxTypeBulkParser,
+        NetboxTypeImporter,
         'seeddb-type',
-        extra_context=info.template_context)
+        extra_context=info.template_context,
+    )

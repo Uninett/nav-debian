@@ -18,8 +18,8 @@
 # FIXME
 # Errors should not be registered on locations and rooms.
 # Either:
-#	- remove support for those
-#	- post alerts on every device found under that room/location
+# 	- remove support for those
+# 	- post alerts on every device found under that room/location
 
 from django.db import transaction
 
@@ -55,14 +55,15 @@ def register_error_events(request, **kwargs):
     # here, unless you really know what you are doing.
     source = kwargs.pop('source', 'deviceManagement')
     target = kwargs.pop('target', 'eventEngine')
-    severity = kwargs.pop('severity', 0)
+    severity = kwargs.pop('severity', 3)
     state = kwargs.pop('state', STATE_NONE)
     event_type = kwargs.pop('event_type', 'deviceNotice')
     alert_type = kwargs.pop('alert_type', 'deviceError')
 
     for key in kwargs:
-        raise TypeError('register_error_events() got an unexpected keyword '
-                        'argument %s' % key)
+        raise TypeError(
+            'register_error_events() got an unexpected keyword ' 'argument %s' % key
+        )
 
     # Data that will be inserted into the eventq table.
     default_eventq_data = {
@@ -87,13 +88,13 @@ def register_error_events(request, **kwargs):
         if type == 'location':
             devices = selection[type]
         elif type == 'room':
-            devices = Room.objects.select_related(
-                'location'
-            ).filter(id__in=selection[type])
+            devices = Room.objects.select_related('location').filter(
+                id__in=selection[type]
+            )
         elif type == 'netbox':
-            devices = Netbox.objects.select_related(
-                'room', 'room__location'
-            ).filter(id__in=selection[type])
+            devices = Netbox.objects.select_related('room', 'room__location').filter(
+                id__in=selection[type]
+            )
         elif type == 'module':
             devices = Module.objects.select_related(
                 'device', 'netbox', 'netbox__room', 'netbox__room__location'
@@ -125,17 +126,18 @@ def register_error_events(request, **kwargs):
             new_event = EventQueue.objects.create(**eventq_data)
             for key in eventqvar_data:
                 EventQueueVar.objects.create(
-                    event_queue=new_event,
-                    variable=key,
-                    value=eventqvar_data[key]
+                    event_queue=new_event, variable=key, value=eventqvar_data[key]
                 )
 
-            messages.append({
-                'message': _('Registered error on %(type)s %(device)s.') % {
-                    'type': type,
-                    'device': device,
-                },
-                'type': Messages.SUCCESS,
-            })
+            messages.append(
+                {
+                    'message': _('Registered error on %(type)s %(device)s.')
+                    % {
+                        'type': type,
+                        'device': device,
+                    },
+                    'type': Messages.SUCCESS,
+                }
+            )
 
     messages.save()

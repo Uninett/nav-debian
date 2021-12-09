@@ -315,6 +315,11 @@ EOF
             rm_conffile nav /etc/nav/cron.d/psuwatch
 	fi
 
+	# Ensure existing log files are owned, and therefore writeable by navcron
+	if [ -n "$OLDVERSION" ] && dpkg --compare-versions "$OLDVERSION" lt "5.1.1-2"; then
+            chown -f navcron /var/log/nav/*.log /var/log/nav/*.log.*gz
+	fi
+
 	if [ -n "$OLDVERSION" ]; then
 	    rm -rf /tmp/nav_cache  # remove old cache data on upgrade
 	fi

@@ -34,6 +34,7 @@ from nav.models.manage import Netbox, NetboxCategory, NetboxType, NetboxProfile
 from nav.models.manage import NetboxInfo, ManagementProfile
 from nav.Snmp import Snmp, safestring
 from nav.Snmp.errors import SnmpError
+from nav import napalm
 from nav.util import is_valid_ip
 from nav.web.seeddb import reverse_lazy
 from nav.web.seeddb.utils.edit import resolve_ip_and_sysname
@@ -53,23 +54,48 @@ def log_netbox_change(account, old, new):
         return
 
     # Compare changes from old to new
-    attribute_list = ['read_only', 'read_write', 'category', 'ip',
-                      'room', 'organization', 'snmp_version']
-    LogEntry.compare_objects(account, old, new, attribute_list,
-                             censored_attributes=['read_only', 'read_write'])
+    attribute_list = [
+        'read_only',
+        'read_write',
+        'category',
+        'ip',
+        'room',
+        'organization',
+        'snmp_version',
+    ]
+    LogEntry.compare_objects(
+        account,
+        old,
+        new,
+        attribute_list,
+        censored_attributes=['read_only', 'read_write'],
+    )
 
 
-def netbox_edit(request, netbox_id=None, suggestion=None):
+def netbox_edit(request, netbox_id=None, suggestion=None, action='edit'):
     """Controller for edit or create of netbox"""
+    info = NI()
     netbox = None
+    copy_url = None
     if netbox_id:
         netbox = get_object_or_404(Netbox, pk=netbox_id)
-
-    old_netbox = copy.deepcopy(netbox)
+        if action == 'edit':
+            copy_url = reverse_lazy(
+                info.copy_url_name, kwargs={'action': 'copy', 'netbox_id': netbox_id}
+            )
 
     if request.method == 'POST':
-        form = NetboxModelForm(request.POST, instance=netbox)
+        if action == 'copy':
+            # Remove stuff that should not be copied over
+            post = request.POST.copy()
+            post.pop('sysname', None)
+            post.pop('type', None)
+            post.pop('virtual_instance', None)
+            form = NetboxModelForm(post)
+        else:
+            form = NetboxModelForm(request.POST, instance=netbox)
         if form.is_valid():
+            old_netbox = copy.deepcopy(netbox)
             netbox = netbox_do_save(form)
             messages.add_message(request, messages.SUCCESS, 'IP Device saved')
             log_netbox_change(request.account, old_netbox, netbox)
@@ -82,22 +108,26 @@ def netbox_edit(request, netbox_id=None, suggestion=None):
         else:
             form = NetboxModelForm(instance=netbox)
 
-    info = NI()
+    page_title = "Add new IP Device"
+    if netbox:
+        page_title = "Edit IP Device"
+        if action == 'copy':
+            page_title = "Copy IP Device"
     context = info.template_context
-    context.update({
-        'object': netbox,
-        'form': form,
-        'title': get_title(netbox),
-        '_navpath': [('Edit Device', reverse_lazy('seeddb-netbox-edit'))],
-        'sub_active': netbox and {'edit': True} or {'add': True},
-        'tab_template': 'seeddb/tabs_generic.html',
-    })
+    context.update(
+        {
+            'object': netbox,
+            'form': form,
+            'title': page_title,
+            '_navpath': [('Edit Device', reverse_lazy('seeddb-netbox-edit'))],
+            'sub_active': netbox and {'edit': True} or {'add': True},
+            'tab_template': 'seeddb/tabs_generic.html',
+            'copy_url': copy_url,
+            'copy_title': 'Use this netbox as a template for creating a new netbox',
+            'action': action,
+        }
+    )
     return render(request, 'seeddb/netbox_wizard.html', context)
-
-
-def get_title(netbox):
-    """Return correct title based on if netbox exists or not"""
-    return "Edit IP Device" if netbox else "Add new IP Device"
 
 
 def get_read_only_variables(request):
@@ -117,21 +147,24 @@ def get_read_only_variables(request):
     sysname = get_sysname(ip_address)
     netbox_type = None
 
-    snmp_profiles = [p for p in profiles if p.is_snmp]
-    result = {p.id: {} for p in snmp_profiles}
-    for profile in snmp_profiles:
-        if profile.configuration.get('write'):
-            result[profile.id] = snmp_write_test(ip_address, profile)
+    result = {p.id: {} for p in profiles}
+    for profile in profiles:
+        if profile.is_snmp:
+            response = get_snmp_read_only_variables(ip_address, profile)
+        elif profile.protocol == profile.PROTOCOL_NAPALM:
+            response = test_napalm_connectivity(ip_address, profile)
         else:
-            netbox_type = get_type_id(ip_address, profile)
-            result[profile.id]['status'] = check_snmp_version(
-                ip_address, profile
+            response = None
+
+        if response:
+            response["name"] = profile.name
+            response["url"] = reverse(
+                "seeddb-management-profile-edit",
+                kwargs={"management_profile_id": profile.id},
             )
-        result[profile.id]['name'] = profile.name
-        result[profile.id]['url'] = reverse(
-            'seeddb-management-profile-edit',
-            kwargs={'management_profile_id': profile.id}
-        )
+            result[profile.id].update(response)
+            if response.get("type"):
+                netbox_type = response["type"]
 
     data = {
         'sysname': sysname,
@@ -141,6 +174,17 @@ def get_read_only_variables(request):
     return JsonResponse(data)
 
 
+def get_snmp_read_only_variables(ip_address: str, profile: ManagementProfile):
+    """Tests and retrieves basic netbox clasification from an SNMP profile"""
+    result = {}
+    if profile.configuration.get("write"):
+        result = snmp_write_test(ip_address, profile)
+    else:
+        result["type"] = get_type_id(ip_address, profile)
+        result["status"] = check_snmp_version(ip_address, profile)
+    return result
+
+
 def snmp_write_test(ip, profile):
     """Test that snmp write works"""
 
@@ -148,7 +192,7 @@ def snmp_write_test(ip, profile):
         'error_message': '',
         'custom_error': '',
         'status': False,
-        'syslocation': ''
+        'syslocation': '',
     }
 
     syslocation = '1.3.6.1.2.1.1.6.0'
@@ -191,6 +235,16 @@ def check_snmp_version(ip, profile):
         return True
 
 
+def test_napalm_connectivity(ip_address: str, profile: ManagementProfile) -> dict:
+    """Tests connectivity of a NAPALM profile and returns a status dictionary"""
+    try:
+        with napalm.connect(ip_address, profile) as device:
+            return {"status": True}
+    except Exception as error:
+        _logger.exception("Could not connect to %s using NAPALM profile", ip_address)
+        return {"status": False, "error_message": str(error)}
+
+
 def get_sysname(ip_address):
     """Get sysname from equipment with the given IP-address"""
     try:
@@ -202,8 +256,9 @@ def get_sysname(ip_address):
 
 def get_type_id(ip_addr, profile):
     """Gets the id of the type of the ip_addr"""
-    netbox_type = snmp_type(ip_addr, profile.configuration.get("community"),
-                            profile.snmp_version)
+    netbox_type = snmp_type(
+        ip_addr, profile.configuration.get("community"), profile.snmp_version
+    )
     if netbox_type:
         return netbox_type.id
 
@@ -227,8 +282,8 @@ def snmp_type(ip_addr, snmp_ro, snmp_version):
 def netbox_do_save(form):
     """Save netbox.
 
-    Netboxgroups needs to be set manually because of database structure, thus we
-    do a commit=False save first.
+    Netboxgroups needs to be set manually because of database structure, thus
+    we do a commit=False save first.
     """
 
     netbox = form.save(commit=False)  # Prevents saving m2m relationships
@@ -240,8 +295,7 @@ def netbox_do_save(form):
         try:
             func = NetboxInfo.objects.get(netbox=netbox, variable='function')
         except NetboxInfo.DoesNotExist:
-            func = NetboxInfo(
-                netbox=netbox, variable='function', value=function)
+            func = NetboxInfo(netbox=netbox, variable='function', value=function)
         else:
             func.value = function
         func.save()
@@ -275,11 +329,10 @@ def get_address_info(request):
             return JsonResponse({'is_ip': True})
 
         try:
-            address_tuples = socket.getaddrinfo(
-                address, None, 0, socket.SOCK_STREAM)
-            sorted_tuples = sorted(address_tuples,
-                                   key=lambda item:
-                                   socket.inet_pton(item[0], item[4][0]))
+            address_tuples = socket.getaddrinfo(address, None, 0, socket.SOCK_STREAM)
+            sorted_tuples = sorted(
+                address_tuples, key=lambda item: socket.inet_pton(item[0], item[4][0])
+            )
             addresses = [x[4][0] for x in sorted_tuples]
         except socket.error as error:
             context = {'error': str(error)}

@@ -34,7 +34,8 @@ urlpatterns += [
     url(r'^ajax/', include('nav.web.ajax.urls')),
     url(r'^business/', include('nav.web.business.urls')),
     url(r'^alertprofiles/', include('nav.web.alertprofiles.urls')),
-    url(r'^api/', include('nav.web.api.urls', namespace='api')),
+    url(r'^api/', include(('nav.web.api.urls', 'api'))),
+    # url(r'^api/', include(('nav.web.api.urls', 'api'), namespace='api')),
     url(r'^arnold/', include('nav.web.arnold.urls')),
     url(r'^devicehistory/', include('nav.web.devicehistory.urls')),
     url(r'^geomap/', include('nav.web.geomap.urls')),
@@ -76,6 +77,7 @@ if os.path.isfile(_local_url_filepath):
         sys.path.append(_local_python_dir)
     try:
         import local_urls
+
         urlpatterns += local_urls.urlpatterns
     except (ImportError, TypeError):
         _logger.exception("failed to import urlpatterns from local_urls.py")
