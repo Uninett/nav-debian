@@ -53,13 +53,13 @@ from configparser import ConfigParser
 import datetime
 import optparse
 
-from django.utils import six
+import six
 
 import nav
 import nav.logs
 from nav import db
 from nav import daemon
-from nav.config import find_configfile
+from nav.config import find_config_file
 
 
 PID_FILE = 'logengine.pid'
@@ -554,7 +554,7 @@ def main():
     # Process setup
 
     config = ConfigParser()
-    config.read(find_configfile('logger.conf'))
+    config.read(find_config_file('logger.conf'))
 
     nav.logs.init_stderr_logging()
 

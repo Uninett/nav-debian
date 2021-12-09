@@ -29,7 +29,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponseRedirect, Http404
 from django.db.models import Q
 from django.urls import reverse, NoReverseMatch
-from django.utils import six
+import six
 
 from nav.web.message import new_message, Messages
 from nav.models.manage import Netbox, NetboxCategory, NetboxGroup
@@ -50,7 +50,6 @@ def render_edit(
     action='edit',
 ):
     """Handles editing for objects in seeddb."""
-
     if not extra_context:
         extra_context = {}
 
@@ -101,7 +100,8 @@ def render_edit(
         if obj.pk:
             context.update(
                 {
-                    'title': 'Edit %s "%s"' % (verbose_name, obj),
+                    'title': 'Edit %s' % verbose_name,
+                    'detail_page_name': obj,
                     'sub_active': {'edit': True},
                 }
             )

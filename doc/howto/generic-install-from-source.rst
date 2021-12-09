@@ -27,7 +27,7 @@ Runtime requirements
 To run NAV, these software packages are required:
 
  * Apache2 + mod_wsgi (or, really, any web server that supports the WSGI interface)
- * PostgreSQL >= 9.4 (With the ``hstore`` extension available)
+ * PostgreSQL >= 9.6 (With the ``hstore`` extension available)
  * :xref:`Graphite`
  * Python >= 3.7.0
  * nbtscan = 1.5.1
@@ -50,7 +50,7 @@ wheels for your platform). These include the ``psycopg2`` driver and the
 
 The current Python requirements are as follows:
 
-.. literalinclude:: ../../requirements/django111.txt
+.. literalinclude:: ../../requirements/django32.txt
    :language: text
 
 .. literalinclude:: ../../requirements/base.txt

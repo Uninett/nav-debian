@@ -25,15 +25,13 @@ import os.path
 from django.http import HttpResponse
 
 import nav.logs
-from nav.config import find_configfile
+from nav.config import find_config_file
 
 
 _logger = logging.getLogger(__name__)
 
-default_app_config = 'nav.web.apps.NAVWebAppConfig'
-
 webfrontConfig = configparser.ConfigParser()
-_configfile = find_configfile(os.path.join('webfront', 'webfront.conf'))
+_configfile = find_config_file(os.path.join('webfront', 'webfront.conf'))
 if _configfile:
     webfrontConfig.read(_configfile)
 

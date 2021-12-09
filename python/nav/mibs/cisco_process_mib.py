@@ -13,10 +13,10 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-from django.utils.six import itervalues, iteritems
+from six import itervalues, iteritems
 from twisted.internet import defer
 
-from django.utils.encoding import smart_text
+from nav.compatibility import smart_str
 
 from nav.smidumps import get_mib
 from nav.mibs import mibretriever
@@ -62,7 +62,7 @@ class CiscoProcessMib(mibretriever.MibRetriever):
         names = yield self.agent_proxy.get(oids)
         self._logger.debug("cpu name result: %r", names)
         names = {
-            OID(oid)[-1]: smart_text(value) for oid, value in names.items() if value
+            OID(oid)[-1]: smart_str(value) for oid, value in names.items() if value
         }
         defer.returnValue(names)
 

@@ -23,12 +23,12 @@ import logging
 from os.path import join
 import os
 
+from six.moves.urllib import parse
+
 from django.conf import settings
 from django.contrib.sessions.backends.db import SessionStore
 from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
-from django.utils.encoding import python_2_unicode_compatible
-from django.utils.six.moves.urllib import parse
 
 try:
     from django.utils.deprecation import MiddlewareMixin
@@ -210,9 +210,11 @@ def authenticate_remote_user(request):
 
 def get_login_url(request):
     """Calculate which login_url to use"""
-    default_new_url = '{0}?origin={1}&noaccess'.format(
-        LOGIN_URL, parse.quote(request.get_full_path())
-    )
+    path = parse.quote(request.get_full_path())
+    if path == "/":
+        default_new_url = LOGIN_URL
+    else:
+        default_new_url = '{0}?origin={1}&noaccess'.format(LOGIN_URL, path)
     remote_loginurl = get_remote_loginurl(request)
     return remote_loginurl if remote_loginurl else default_new_url
 
@@ -547,7 +549,6 @@ def get_sudoer(request):
         return Account.objects.get(id=request.session[SUDOER_ID_VAR])
 
 
-@python_2_unicode_compatible
 class SudoRecursionError(Exception):
     msg = u"Already posing as another user"
 
@@ -555,7 +556,6 @@ class SudoRecursionError(Exception):
         return self.msg
 
 
-@python_2_unicode_compatible
 class SudoNotAdminError(Exception):
     msg = u"Not admin"
 
