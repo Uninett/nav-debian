@@ -2,11 +2,6 @@
 package     := nav
 DEBIAN_ROOT := $(CURDIR)/debian/$(package)
 
-# preset version for setuptools_scm to prevent weird version numbers
-include /usr/share/dpkg/pkg-info.mk
-VERSION_UPSTREAM = $(shell echo '$(DEB_VERSION_UPSTREAM)' | sed -e 's/\+[^+]*//')
-export SETUPTOOLS_SCM_PRETEND_VERSION = $(VERSION_UPSTREAM)
-
 %:
 	dh $@ --with quilt --with systemd --with python-virtualenv
 
