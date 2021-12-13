@@ -37,6 +37,8 @@ jobs:
 
       - name: Merge latest upstream
         run: |
+          git config --global user.email "$DEBEMAIL"
+          git config --global user.name "$DEBFULLNAME"
           git remote add upstream https://github.com/Uninett/nav
           git branch --force cibuild ${GITHUB_REF##*/}
           git checkout cibuild
