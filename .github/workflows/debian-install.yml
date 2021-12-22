@@ -3,6 +3,9 @@ name: Install published packages
 on:
   schedule:
     - cron: '42 */4 * * *'
+  push:
+    branches:
+      - master
 
 jobs:
   build:
