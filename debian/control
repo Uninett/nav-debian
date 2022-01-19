@@ -1,7 +1,7 @@
 Source: nav
 Section: net
 Priority: optional
-Maintainer: Morten Brekkevold <morten.brekkevold@uninett.no>
+Maintainer: Morten Brekkevold <morten.brekkevold@sikt.no>
 Build-Depends:
  debhelper (>= 9),
  dh-systemd (>= 1.5),
