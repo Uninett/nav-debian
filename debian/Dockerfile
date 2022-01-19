@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian:bullseye
 
 RUN  apt-get -y update && \
      apt-get install -y \
@@ -9,7 +9,6 @@ RUN  apt-get -y update && \
        automake \
        quilt \
        reportbug \
-       dh-systemd \
        git-buildpackage \
        libpq-dev \
        libjpeg-dev \
@@ -19,7 +18,7 @@ RUN  apt-get -y update && \
        python3-dev \
        python-all \
        python3-all \
-       libsnmp30 \
+       libsnmp40 \
      && \
      apt-get clean
 
