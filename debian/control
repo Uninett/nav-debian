@@ -46,7 +46,7 @@ Depends:
   ca-certificates,
   libjpeg62,
   libsasl2-2,
-  libsnmp30,
+  libsnmp40,
   libldap-2.4-2 (>= 2.4.7),
   libpq5,
   zlib1g
