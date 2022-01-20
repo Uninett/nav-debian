@@ -1,0 +1,5 @@
+--- new-nav-debian.orig/requirements/optional.txt
++++ new-nav-debian/requirements/optional.txt
+@@ -1 +1,2 @@
+ python-ldap==3.0.0 # optional for LDAP authentication, requires libldap (OpenLDAP) to build
++python-gammu==3.2.4

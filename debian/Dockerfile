@@ -28,6 +28,11 @@ RUN  apt-get -y update && \
          dh-python \
          python3-setuptools
 
+# Backports game to make python-gammu build and install properly
+RUN  echo 'deb https://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
+     apt-get -y update && \
+     apt-get install -y libgammu-dev
+
 ENV  HOME /home
 ENV  QUILT_PATCHES debian/patches
 ENV  QUILT_NO_DIFF_INDEX 1

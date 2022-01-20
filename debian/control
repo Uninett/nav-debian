@@ -12,6 +12,7 @@ Build-Depends:
  python3-dev,
  python3-setuptools,
 # The following are required to build various Python packages in the virtualenv:
+ libgammu-dev,
  libpq-dev,
  libjpeg-dev,
  libz-dev,
@@ -35,7 +36,6 @@ Depends:
   logrotate,
   postgresql (>= 9.4),
   postgresql-contrib (>= 9.4),
-  python3-gammu,
   python3-distutils,
   rrdtool,
   makepasswd,
