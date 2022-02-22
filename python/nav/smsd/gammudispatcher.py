@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2006, 2016 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -25,8 +26,6 @@ Depends on python-gammu.
 """
 
 from nav.smsd.dispatcher import Dispatcher, PermanentDispatcherError, DispatcherError
-
-from django.utils import six
 
 try:
     import gammu
@@ -97,16 +96,16 @@ class GammuDispatcher(Dispatcher):
                 % (error.args[0]['Where'], error.args[0]['Code'], error.args[0]['Text'])
             )
 
-        if isinstance(smsid, six.integer_types):
+        if isinstance(smsid, int):
             result = True
         else:
             result = False
 
-        return (sms, sent, ignored, result, smsid)
+        return sms, sent, ignored, result, smsid
 
 
 def decode_sms_to_unicode(sms):
-    if isinstance(sms, six.text_type):
+    if isinstance(sms, str):
         return sms
     else:
         return sms.decode('utf-8')

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2018, 2020 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -18,8 +19,8 @@ import contextlib
 import socket
 import base64
 
-from django.utils.six.moves.urllib.parse import urlsplit
-from django.utils.six.moves import http_client
+from six.moves.urllib.parse import urlsplit
+from six.moves import http_client
 
 from nav import buildconf
 from nav.statemon.event import Event

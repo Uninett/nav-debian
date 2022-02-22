@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009-2012 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -133,6 +134,7 @@ class JobHandler(object):
 
     def _destroy_agentproxy(self):
         if self.agent:
+            self._logger.debug("Destroying agentproxy", self.agent)
             self.agent.close()
         self.agent = None
 
@@ -181,6 +183,9 @@ class JobHandler(object):
                 can_handle = yield defer.maybeDeferred(cls.can_handle, self.netbox)
             except db.ResetDBConnectionError:
                 raise
+            # We very intentionally log and ignore unhandled exception here, to ensure
+            # the stability of the ipdevpoll daemon
+            # pylint: disable = broad-except
             except Exception:
                 self._logger.exception("Unhandled exception from can_handle(): %r", cls)
                 can_handle = False

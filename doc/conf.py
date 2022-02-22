@@ -51,14 +51,14 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'NAV'
-copyright = u'2012-2021, Uninett AS'
+copyright = u'2012-2021 Uninett AS, 2022 Sikt'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '5.2'
+version = '5.3'
 # version = '.'.join(buildconf.VERSION.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = buildconf.VERSION
@@ -239,7 +239,7 @@ htmlhelp_basename = 'NAVdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-    ('index', 'NAV.tex', u'NAV Documentation', u'Uninett AS', 'manual'),
+    ('index', 'NAV.tex', u'NAV Documentation', u'Sikt', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -263,7 +263,7 @@ latex_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'http://docs.python.org/': None,
-    'https://docs.djangoproject.com/en/2.2': 'https://docs.djangoproject.com/en/2.2/_objects',
+    'https://docs.djangoproject.com/en/3.2': 'https://docs.djangoproject.com/en/3.2/_objects',
 }
 
 
@@ -275,4 +275,4 @@ xref_links = {
 
 
 def setup(app):
-    app.add_stylesheet("custom.css")
+    app.add_css_file("custom.css")

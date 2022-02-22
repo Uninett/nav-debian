@@ -19,7 +19,7 @@
 import logging
 from operator import itemgetter
 
-from django.utils.six.moves.urllib.parse import urlencode
+from six.moves.urllib.parse import urlencode
 from django.urls import reverse
 
 from nav.metrics.data import get_metric_average, get_metric_max, get_metric_data
@@ -143,13 +143,13 @@ class Stat(object):
     def humanize(number, precision=1):
         """Create human readable version of a number"""
         lookup = (
-            (10 ** 9, 'G'),
-            (10 ** 6, 'M'),
-            (10 ** 3, 'k'),
-            (10 ** 0, ''),
-            (10 ** -3, 'm'),
-            (10 ** -6, 'µ'),
-            (10 ** -9, 'n'),
+            (10**9, 'G'),
+            (10**6, 'M'),
+            (10**3, 'k'),
+            (10**0, ''),
+            (10**-3, 'm'),
+            (10**-6, 'µ'),
+            (10**-9, 'n'),
         )
         factor = 1
         suffix = ''

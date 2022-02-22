@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,7 +16,7 @@
 #
 """Django URL config for graphite bridging"""
 
-from django.conf.urls import url
+from django.urls import re_path
 from nav.web.graphite import views
 
 
@@ -24,6 +25,6 @@ def _dummy(x):
 
 
 urlpatterns = [
-    url(r'^(?P<uri>.*)$', views.index, name='graphite'),
-    url(r'^render', _dummy, name='graphite-render'),
+    re_path(r'^(?P<uri>.*)$', views.index, name='graphite'),
+    re_path(r'^render', _dummy, name='graphite-render'),
 ]

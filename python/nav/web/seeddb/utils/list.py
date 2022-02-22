@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -21,9 +22,9 @@ from functools import reduce
 
 from django.db.models import Model
 from django.shortcuts import render
-from django.db.models.fields import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist
 from django.urls import reverse
-from django.utils.six import iteritems
+from six import iteritems
 
 from nav.django.utils import get_verbose_name
 

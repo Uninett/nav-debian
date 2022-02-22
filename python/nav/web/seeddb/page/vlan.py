@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -109,7 +110,15 @@ def vlan_list(request):
 
 
 def vlan_edit(request, vlan_id=None):
+    if vlan_id:
+        detail_page_url = reverse_lazy('vlan-details', kwargs={'vlanid': vlan_id})
+    else:
+        detail_page_url = ""
     info = VlanInfo()
+    extra_context = {
+        'detail_page_url': detail_page_url,
+    }
+    extra_context.update(info.template_context)
     return render_edit(
         request,
         Vlan,
@@ -117,5 +126,5 @@ def vlan_edit(request, vlan_id=None):
         vlan_id,
         'seeddb-vlan-edit',
         template='seeddb/edit_vlan.html',
-        extra_context=info.template_context,
+        extra_context=extra_context,
     )

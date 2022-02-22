@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2007, 2019 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -27,9 +28,9 @@ Oslo, but could be useful for other similar solutions.
 
 """
 
-from django.utils.six.moves.urllib.request import urlopen
-from django.utils.six.moves.urllib.error import HTTPError
-from django.utils.six.moves.urllib.parse import quote_plus
+from six.moves.urllib.request import urlopen
+from six.moves.urllib.error import HTTPError
+from six.moves.urllib.parse import quote_plus
 
 from nav.smsd.dispatcher import Dispatcher, DispatcherError
 

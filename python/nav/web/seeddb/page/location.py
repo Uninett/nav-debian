@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -89,9 +90,16 @@ def location_edit(request, location_id=None, action='edit'):
         copy_url = None
 
     _title = 'Use this location as a template for creating a new location'
+    if location_id:
+        detail_page_url = reverse_lazy(
+            'location-info', kwargs={'locationid': location_id}
+        )
+    else:
+        detail_page_url = ""
     extra_context = {
         'copy_url': copy_url,
         'copy_title': _title,
+        'detail_page_url': detail_page_url,
     }
     extra_context.update(info.template_context)
     return render_edit(

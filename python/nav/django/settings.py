@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2007-2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -19,6 +20,7 @@
 import os
 import sys
 import copy
+import warnings
 
 import django
 from django.utils.log import DEFAULT_LOGGING
@@ -66,8 +68,8 @@ try:
             },
         }
     }
-except (IOError, OSError):
-    pass
+except (IOError, OSError) as e:
+    warnings.warn(f"Could not get connection parameters from db.conf: {e}")
 
 # URLs configuration
 ROOT_URLCONF = 'nav.django.urls'
@@ -226,6 +228,8 @@ INSTALLED_APPS = (
     'nav.web.portadmin',
     'django.contrib.postgres',
 )
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),

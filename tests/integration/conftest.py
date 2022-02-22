@@ -31,9 +31,17 @@ def pytest_configure(config):
     os.environ['TARGETURL'] = "http://localhost:8000/"
     start_gunicorn()
 
+    # Bootstrap Django config
     from nav.bootstrap import bootstrap_django
 
     bootstrap_django('pytest')
+
+    # Install custom reactor for Twisted tests
+    from nav.ipdevpoll.epollreactor2 import install
+
+    install()
+
+    # Setup test environment for Django
     from django.test.utils import setup_test_environment
 
     setup_test_environment()
@@ -175,6 +183,35 @@ def localhost(management_profile):
     yield box
     print("teardown test device")
     box.delete()
+
+
+@pytest.fixture()
+def localhost_using_legacy_db():
+    """Alternative to the Django-based localhost fixture, for tests that operate on
+    code that uses legacy database connections.
+    """
+    from nav.db import getConnection
+
+    conn = getConnection('default')
+    cursor = conn.cursor()
+
+    sql = """
+    INSERT INTO netbox
+    (ip, sysname, orgid, roomid, catid)
+    VALUES
+    (%s, %s, %s, %s, %s)
+    RETURNING netboxid;
+    """
+    cursor.execute(
+        sql, ('127.0.0.1', 'localhost.example.org', 'myorg', 'myroom', 'SRV')
+    )
+    netboxid = cursor.fetchone()[0]
+    conn.commit()
+    yield netboxid
+
+    print("teardown localhost device using legacy connection")
+    cursor.execute("DELETE FROM netbox WHERE netboxid=%s", (netboxid,))
+    conn.commit()
 
 
 @pytest.fixture(scope='session')

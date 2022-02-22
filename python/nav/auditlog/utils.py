@@ -1,6 +1,22 @@
+#
+# Copyright (C) 2017 Uninett AS
+# Copyright (C) 2022 Sikt
+#
+# This file is part of Network Administration Visualized (NAV).
+#
+# NAV is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License version 3 as published by
+# the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.  You should have received a copy of the GNU General Public License
+# along with NAV. If not, see <http://www.gnu.org/licenses/>.
+#
 from __future__ import unicode_literals
 
-from django.utils.encoding import force_text
+from nav.compatibility import force_str
 from django.db.models import Q
 
 from . import find_modelname
@@ -26,7 +42,7 @@ def get_auditlog_entries(
     if pks is None:
         pks = []
     if queryset is not None and queryset.exists():
-        qs_pks = set(force_text(o.pk) for o in queryset)
+        qs_pks = set(force_str(o.pk) for o in queryset)
         if qs_pks:
             if pks:
                 pks = qs_pks.intersection(pks)

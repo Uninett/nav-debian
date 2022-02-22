@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2007, 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -20,7 +21,6 @@ from datetime import datetime, timedelta
 
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import python_2_unicode_compatible
 
 from nav.models.fields import (
     VarcharField,
@@ -31,7 +31,6 @@ from nav.models.fields import (
 from nav.models import manage
 
 
-@python_2_unicode_compatible
 class Message(models.Model):
     """From NAV Wiki: The table contains the messages registered
     in the messages tool. Each message has a timeframe for when
@@ -94,7 +93,6 @@ class MaintenanceTaskManager(models.Manager):
         return self.get_queryset().filter(end_time__gte=INFINITY)
 
 
-@python_2_unicode_compatible
 class MaintenanceTask(models.Model):
     """From NAV Wiki: The maintenance task created in the maintenance task
     tool."""
@@ -167,7 +165,6 @@ class MaintenanceTask(models.Model):
         return self.end_time >= INFINITY
 
 
-@python_2_unicode_compatible
 class MaintenanceComponent(models.Model):
     """From NAV Wiki: The components that are put on maintenance in the
     maintenance tool."""
@@ -188,7 +185,6 @@ class MaintenanceComponent(models.Model):
         return u'%s=%s' % (self.key, self.value)
 
 
-@python_2_unicode_compatible
 class MessageToMaintenanceTask(models.Model):
     """From NAV Wiki: The connection between messages and related maintenance
     tasks."""

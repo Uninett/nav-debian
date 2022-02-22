@@ -9,19 +9,18 @@ please read this first.
 Contributing to NAV
 ===================
 
-Originally, NAV was a closed source project, initiated by the
-Norwegian University of Science and Technology (NTNU), and eventually
-sponsored by Uninett on behalf of the Norwegian higher education
-community.  In 2004, however, NTNU and Uninett started distributing
-NAV under the *GNU General Public License*, making it a truly free
-software system.
+Originally, NAV was a closed source project, initiated by the Norwegian
+University of Science and Technology (NTNU), and eventually sponsored by Sikt
+(back then, known as *Uninett*) on behalf of the Norwegian higher education
+community.  In 2004, however, NTNU and Sikt started distributing NAV under the
+*GNU General Public License*, making it a truly free software system.
 
-While Uninett and NTNU are still the main contributors to NAV,
-developing NAV to support the needs of the Norwegian higher education
-community, contributions from third parties is highly appreciated.
+While Sikt is still the main contributor to NAV, developing NAV to support the
+needs of the Norwegian higher education community, contributions from third
+parties are highly appreciated.
 
 We communicate mainly through mailing lists, GitHub_, and the ``#nav`` IRC
-channel on *Libera.Chat*. At times, Uninett also arranges workshops and
+channel on *Libera.Chat*. At times, Sikt also arranges workshops and
 gatherings for its customers: Norwegian universities, university colleges and
 research institutions.
 
@@ -87,9 +86,9 @@ by the CLA assistant.
 Rationale
 ~~~~~~~~~
 
-NAV is a software project primarily made by Uninett AS. Uninett is a
-non-profit, government-owned limited company, who builds and operates
-Norway's national research and education network.
+NAV is a software project primarily made by Sikt. Sikt is a government agency
+that provides shared services in research and education in Norway, which
+includes operating Norway's national research and education network.
 
 Due to our experiences with FOSS license compatibility issues, and with
 switching the 20-year old NAV project explicitly from the GPLv2 to the
@@ -376,7 +375,7 @@ Push access
 -----------
 
 Push access to the official repositories is limited to developers
-employed or commissioned by Uninett.
+employed or commissioned by Sikt.
 
 Testing and Continuous Integration
 ==================================
@@ -396,9 +395,7 @@ We use a combination of pytest_ and tox_ to run the test suite.
 
 There's also a script to produce an entire test environment as a Docker
 image and to run the entire test suite inside a Docker container created
-from that image. This is actually the same method employed by our Jenkins
-build servers to run the test suite. Take a look in the
-:file:`tests/docker/` directory.
+from that image. Take a look in the :file:`tests/docker/` directory.
 
 For an interactive testing session with tox_, you can utilize the Docker image
 like thus:
@@ -417,8 +414,8 @@ like thus:
 Javascript testing
 ------------------
 
-Testing javascript in NAV is straightforward. We use Karma_ as a testrunner,
-Mocha_ as testing framework and Chai_ as assertion library. Assuming you are
+For JavaScript code, we use Karma_ as a testrunner, Mocha_ as the
+testing framework and Chai_ as the assertion library. Assuming you are
 inside the Docker CI image:
 
 .. code-block:: sh
@@ -434,16 +431,14 @@ already there and the relevant documentation linked above.
 
 
 
-Jenkins and Continuous Integration
-----------------------------------
+GitHub and Continuous Integration
+---------------------------------
 
-We use Jenkins_ multibranch pipelines for continuous integration testing
-of NAV. The Jenkins pipeline is defined in :file:`Jenkinsfile`, and is
-automatically run every time a change is pushed to a branch in the
-offical NAV Github repository, or when a pull request is opened against
-this repository.
-
-Our Jenkins installation is available on https://ci.nav.uninett.no/ .
+We use `GitHub Actions`_ workflows for continuous integration testing of
+NAV. Multiple workflows are defined in :file:`.github/workflows/`. Most
+of these are automatically run every time a change is pushed to a branch
+in the offical NAV Github repository, or when a pull request is opened
+against this repository.
 
 Tips and tricks
 ===============
@@ -484,10 +479,8 @@ __ Github_
 .. _Git: https://git-scm.com/
 .. _pytest: http://pytest.org/
 .. _tox: https://tox.readthedocs.io/en/latest/
-.. _Buster.JS: http://busterjs.org/
-.. _the Buster documentation: http://docs.busterjs.org/en/latest/#user-s-guide
 .. _Node.js: http://nodejs.org/
-.. _Jenkins: http://jenkins-ci.org/
+.. _GitHub Actions: https://docs.github.com/en/actions
 .. _pylint: http://www.pylint.org/
 .. _Karma: https://github.com/karma-runner/karma-mocha
 .. _Mocha: http://mochajs.org/

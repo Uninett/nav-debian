@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009-2011, 2014 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -22,8 +23,8 @@ from datetime import datetime
 import struct
 import sys
 
-from django.utils import six
-from django.utils.six import iteritems
+import six
+from six import iteritems
 from twisted.internet import defer
 
 from nav.oids import OID

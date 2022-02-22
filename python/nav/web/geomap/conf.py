@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009, 2010 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -37,7 +38,7 @@ import os
 import re
 import logging
 
-from nav.config import find_configfile
+from nav.config import find_config_file
 from nav.errors import ConfigurationError
 
 _logger = logging.getLogger('nav.web.geomap.conf')
@@ -372,6 +373,6 @@ def get_configuration():
     global _config
     if _config is None:
         _config = read_configuration(
-            find_configfile(os.path.join('geomap', 'config.py'))
+            find_config_file(os.path.join('geomap', 'config.py'))
         )
     return _config

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009, 2010 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,12 +16,12 @@
 #
 """Django URL config for geomap"""
 
-from django.conf.urls import url
+from django.urls import re_path
 from nav.web.geomap import views
 
 
 urlpatterns = [
-    url(r'^$', views.forward_to_default_variant, name='geomap-forward'),
-    url(r'^([^/]+)/$', views.geomap, name='geomap'),
-    url(r'^([^/]+)/data$', views.data, name='geomap-data'),
+    re_path(r'^$', views.forward_to_default_variant, name='geomap-forward'),
+    re_path(r'^([^/]+)/$', views.geomap, name='geomap'),
+    re_path(r'^([^/]+)/data$', views.data, name='geomap-data'),
 ]
