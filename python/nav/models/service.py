@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2007, 2011-2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,7 +18,6 @@
 """Django ORM wrapper for the NAV manage database"""
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from nav.metrics.data import get_metric_average
 from nav.metrics.templates import (
@@ -29,7 +29,6 @@ from nav.models.manage import Netbox
 from nav.models.fields import VarcharField
 
 
-@python_2_unicode_compatible
 class Service(models.Model):
     """From NAV Wiki: The service table defines the services on a netbox that
     serviceMon monitors."""
@@ -129,7 +128,6 @@ class Service(models.Model):
     description = property(get_handler_description)
 
 
-@python_2_unicode_compatible
 class ServiceProperty(models.Model):
     """From NAV Wiki: Each service may have an additional set of attributes.
     They are defined here."""

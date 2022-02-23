@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2018 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -24,6 +25,8 @@ from nav.errors import GeneralException
 
 from nav.models.event import EventType, AlertType
 
+DEFAULT_SEVERITY = 3
+
 
 class Event(dict):
     """Represents a single event on or off the queue.
@@ -44,7 +47,7 @@ class Event(dict):
         eventtypeid=None,
         state=None,
         value=None,
-        severity=None,
+        severity=DEFAULT_SEVERITY,
     ):
         super(Event, self).__init__()
         self.eventqid = None

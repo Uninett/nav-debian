@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,7 +18,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.template.defaultfilters import urlize
 from django.urls import reverse
-from django.utils.encoding import force_text
+from nav.compatibility import force_str
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
@@ -91,7 +92,7 @@ class AlertSerializerBase(serializers.ModelSerializer):
     @staticmethod
     def get_subject(obj):
         """Return textual description of object"""
-        return force_text(obj.get_subject())
+        return force_str(obj.get_subject())
 
     @staticmethod
     def get_subject_url(obj):

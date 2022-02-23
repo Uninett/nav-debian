@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,8 +18,9 @@
 
 import re
 
-from django.utils.lru_cache import lru_cache
-from django.utils.six import iteritems
+from nav.compatibility import lru_cache
+from six import iteritems
+
 from nav.models.manage import Netbox, Interface, Prefix, Sensor
 
 

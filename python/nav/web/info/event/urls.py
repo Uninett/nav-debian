@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2017 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,11 +16,11 @@
 
 """URL-config for event details"""
 
-from django.conf.urls import url
+from django.urls import re_path
 from nav.web.info.event import views
 
 
 urlpatterns = [
-    url(r'^$', views.main),
-    url(r'^(?P<event_id>\d+)', views.render_event, name='event-details'),
+    re_path(r'^$', views.main),
+    re_path(r'^(?P<event_id>\d+)', views.render_event, name='event-details'),
 ]

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,10 +16,10 @@
 #
 """URL configuration for l2trace"""
 
-from django.conf.urls import url
+from django.urls import re_path
 from nav.web.l2trace.views import index
 
 
 urlpatterns = [
-    url(r'^$', index, name='l2trace'),
+    re_path(r'^$', index, name='l2trace'),
 ]

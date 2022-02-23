@@ -8,6 +8,84 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+NAV 5.3
+=======
+
+Changes in governance and code ownership
+----------------------------------------
+
+On January 1st 2022, Uninett, NSD and Unit (all entities owned by the Norwegian
+government) were merged into the new governmental agency *Sikt - Norwegian
+Agency for Shared Services in Education and Research*.
+
+This does not change our commitment to develop and provide NAV as free and open
+source software. We still have the same ownership and the same goals - we're
+just doing everything under a new name.
+
+In the coming year, references to Uninett, both in the NAV documentation, code
+and related web sites will slowly change into Sikt, but for some time going
+forward, there will be references to both names.  For more information about
+the new organization, we refer you to https://sikt.no/about-sikt
+
+
+Dependency changes
+------------------
+
+.. IMPORTANT:: NAV 5.3 requires PostgreSQL to be at least version *9.6*.
+
+Furthermore, NAV 5.3 moves to Django 3.2, resulting in several changes in
+version dependencies of related Python libraries. These changes are normally
+taken care of for you when using ``pip`` and/or virtual environments with the
+supplied :file:`requirements.txt` file:
+
+* :mod:`Django` >=3.2,<3.3
+* :mod:`django-filter` >=2
+* :mod:`django-crispy-forms` >=1.8,<1.9
+* :mod:`crispy-forms-foundation` >=0.7,<0.8
+* :mod:`djangorestframework` >=3.12,<3.13
+* :mod:`Markdown` ==3.3.6
+
+The new Django version also removes support for Python 2, and therefore removed
+the bundled copy of the :mod:`six` library that NAV utilized for compatibility
+with both Python versions. Therefore, until Python 2 compatibility code has
+been removed entirely from NAV, NAV now depends on:
+
+* :mod:`six`
+
+To ensure NAV runs properly on Python 3.9, these dependency changes have also
+taken place:
+
+* :mod:`IPy` ==1.01
+* :mod:`twisted` >=20.0.0,<21
+* :mod:`networkx` ==2.6.3
+* :mod:`dnspython` <3.0.0,>=2.1.0
+
+To ensure the NAV documentation is built correctly, Sphinx needs an upgrade as
+well:
+
+* :mod:`Sphinx` ==3.5.4
+
+Backwards incompatible changes
+------------------------------
+
+Report configuration files have moved
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The report generator in previous versions of NAV read two single configuration
+files from the :file:`report/` configuration directory, in the following order:
+
+1. :file:`report.conf`
+2. :file:`report.local.conf`
+
+NAV 5.3 replaces these files with a :file:`report/report.conf.d/` style
+directory. Every non-hidden file that matches the ``*.conf`` glob pattern will
+be read from this directory in alphabetical order by filename.
+
+If you have made local changes to your :file:`report/report.conf` or
+:file:`report/report.local.conf` files, please move these configuration files
+into the new :file:`report/report.conf.d/` directory, to ensure you can still
+generate your reports as expected.
+
 NAV 5.2
 =======
 
@@ -28,7 +106,12 @@ Changed versions
 NAV 5.2 moved to a newer version of the Python module :mod:`feedparser`,
 because of Python 3 issues with the old version. The new requirement is:
 
-* :mod:`feedparser==6.0.8`
+* :mod:`feedparser` == 6.0.8
+
+Due to recent dependency conflicts with Napalm, NAV also changed the version
+requirement for the :mod:`dnspython` module. This is the current requirement:
+
+* :mod:`dnspython` <3.0.0,>=2.1.0
 
 
 Backwards incompatible changes

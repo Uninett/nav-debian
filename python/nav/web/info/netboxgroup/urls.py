@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,12 +16,12 @@
 #
 """Info netboxgroup url configuration"""
 
-from django.conf.urls import url
+from django.urls import re_path
 from nav.web.info.netboxgroup import views
 
 
 urlpatterns = [
-    url(r'^$', views.index, name='netbox-group'),
-    url(r'^(?P<groupid>.+)/edit/', views.group_edit, name='netbox-group-edit'),
-    url(r'^(?P<groupid>.+)', views.group_detail, name='netbox-group-detail'),
+    re_path(r'^$', views.index, name='netbox-group'),
+    re_path(r'^(?P<groupid>.+)/edit/', views.group_edit, name='netbox-group-edit'),
+    re_path(r'^(?P<groupid>.+)', views.group_detail, name='netbox-group-detail'),
 ]

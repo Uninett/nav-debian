@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,8 +18,8 @@
 import re
 
 from django.urls import reverse
-from django.utils import six
-from django.utils.six.moves.urllib.parse import urlencode
+import six
+from six.moves.urllib.parse import urlencode
 
 
 TIMETICKS_IN_DAY = 100 * 3600 * 24

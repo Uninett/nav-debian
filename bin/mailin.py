@@ -26,7 +26,7 @@ import configparser
 import argparse
 
 from nav.bootstrap import bootstrap_django
-from nav.config import find_configfile
+from nav.config import find_config_file
 
 bootstrap_django(__file__)
 
@@ -51,7 +51,7 @@ def main():
 
     # Todo: fail if config file is not found
     conf = configparser.ConfigParser()
-    conf.read(find_configfile(CONFIG_FILE))
+    conf.read(find_config_file(CONFIG_FILE))
 
     # Must do this after config, so logfile can be configurable
     if args.test:
@@ -76,7 +76,7 @@ def parse_args():
     """Parse program arguments"""
     parser = argparse.ArgumentParser(
         description="Parse RFC822 formatted mail messages from 3rd party "
-        "software and convert them to NAV events, using plugins",
+        "software and convert them to NAV events, using plugins"
     )
     parser.add_argument(
         '-i',

@@ -1,6 +1,7 @@
 # coding: utf-8
-
+#
 # Copyright (C) 2017 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,9 +16,6 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import unicode_literals
-
-
-default_app_config = 'nav.auditlog.apps.AuditlogConfig'
 
 
 def find_modelname(obj):

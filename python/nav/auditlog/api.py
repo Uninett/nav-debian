@@ -1,4 +1,5 @@
 # Copyright (C) 2017 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,7 +16,7 @@
 import operator
 
 from django.db.models import Q
-from django.utils import six
+import six
 
 from rest_framework import serializers
 from rest_framework import viewsets, filters
@@ -137,6 +138,6 @@ class LogEntryViewSet(NAVDefaultsMixin, viewsets.ReadOnlyModelViewSet):
     )
     queryset = LogEntry.objects.all()
     serializer_class = LogEntrySerializer
-    filter_fields = ('subsystem', 'object_pk', 'verb')
+    filterset_fields = ('subsystem', 'object_pk', 'verb')
     search_fields = ('summary',)
     ordering = ('timestamp',)

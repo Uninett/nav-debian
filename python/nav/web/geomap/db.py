@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009, 2010, 2013-2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -28,8 +29,8 @@ Based on datacollector.py from the old Java-applet based Netmap.
 import logging
 
 from django.core.cache import cache
-from django.utils.six import iteritems, iterkeys
-from django.utils.six.moves.urllib.error import HTTPError
+from six import iteritems, iterkeys
+from six.moves.urllib.error import HTTPError
 
 import nav
 from nav.config import NAV_CONFIG

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2008 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -18,7 +19,7 @@
 from datetime import date, timedelta
 
 from django import forms
-from django.utils.encoding import force_text
+from nav.compatibility import force_str
 
 from crispy_forms.helper import FormHelper
 from crispy_forms_foundation.layout import (
@@ -300,7 +301,7 @@ class TokenForm(forms.ModelForm):
     def clean_endpoints(self):
         """Convert endpoints from list to dictionary"""
         endpoints = self.cleaned_data.get('endpoints')
-        return {x: force_text(self.available_endpoints.get(x)) for x in endpoints}
+        return {x: force_str(self.available_endpoints.get(x)) for x in endpoints}
 
     class Meta(object):
         model = APIToken

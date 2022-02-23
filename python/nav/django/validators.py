@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2011, 2018 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -19,8 +20,8 @@ from __future__ import unicode_literals, absolute_import
 import json
 from decimal import Decimal, InvalidOperation
 
-from django.utils import six
-from django.utils.translation import ugettext
+import six
+from django.utils.translation import gettext
 from django.core.exceptions import ValidationError
 
 
@@ -66,13 +67,11 @@ def validate_hstore(value):
         else:
             dictionary = value
     except ValueError as e:
-        raise ValidationError(ugettext(u'Invalid JSON: {0}').format(e))
+        raise ValidationError(gettext(u'Invalid JSON: {0}').format(e))
 
     # ensure is a dictionary
     if not isinstance(dictionary, dict):
-        raise ValidationError(
-            ugettext(u'No lists or values allowed, only dictionaries')
-        )
+        raise ValidationError(gettext(u'No lists or values allowed, only dictionaries'))
 
     value = json.dumps(dictionary, cls=JSONBytesEncoder)
     dictionary = json.loads(value)

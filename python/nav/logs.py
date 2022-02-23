@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2006, 2007, 2009, 2011, 2012, 2014, 2017 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -23,13 +24,13 @@ import logging
 from itertools import chain
 
 import configparser
-from nav.config import find_configfile, NAV_CONFIG
+from nav.config import find_config_file, NAV_CONFIG
 
 DEFAULT_LOG_FORMATTER = logging.Formatter(
     '%(asctime)s [%(levelname)s] ' '[%(name)s] %(message)s'
 )
 LOGGING_CONF_VAR = 'NAV_LOGGING_CONF'
-LOGGING_CONF_FILE_DEFAULT = find_configfile('logging.conf') or ''
+LOGGING_CONF_FILE_DEFAULT = find_config_file('logging.conf') or ''
 
 _logger = logging.getLogger(__name__)
 

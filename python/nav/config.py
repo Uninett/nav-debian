@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2008, 2009, 2013, 2017, 2018 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -28,7 +29,7 @@ import stat
 import configparser
 import pkg_resources
 
-from django.utils import six
+import six
 
 from nav.errors import GeneralException
 from . import buildconf
@@ -52,8 +53,18 @@ if _venv:
     ] + CONFIG_LOCATIONS
 
 
+def list_config_files_from_dir(dirname):
+    return [
+        os.path.join(dirname, f)
+        for f in sorted(os.listdir(dirname))
+        if os.path.isfile(os.path.join(dirname, f))
+        and f.endswith(".conf")
+        and not f.startswith(".")
+    ]
+
+
 def find_config_dir():
-    nav_conf = find_configfile('nav.conf')
+    nav_conf = find_config_file('nav.conf')
     if nav_conf:
         return os.path.dirname(nav_conf)
 
@@ -148,7 +159,7 @@ class NAVConfigParser(configparser.ConfigParser):
         """Reads all config files in DEFAULT_CONFIG_FILES"""
         filenames = [
             f
-            for f in (find_configfile(name) for name in self.DEFAULT_CONFIG_FILES)
+            for f in (find_config_file(name) for name in self.DEFAULT_CONFIG_FILES)
             if f
         ]
         filenames.extend(os.path.join('.', name) for name in self.DEFAULT_CONFIG_FILES)
@@ -182,7 +193,7 @@ class NavConfigParserDefaultSection(object):
         return self.parser.getboolean(self.section, *args)
 
 
-def find_configfile(filename):
+def find_config_file(filename):
     """Searches for filename in any of the known config file locations
 
     :returns: The first instance of filename found in the CONFIG_LOCATIONS
@@ -199,9 +210,9 @@ def find_configfile(filename):
 def open_configfile(filename):
     """Opens and returns a file handle for a given config file.
 
-    The config file will be found using find_configfile()
+    The config file will be found using find_config_file()
     """
-    name = find_configfile(filename)
+    name = find_config_file(filename)
     if name:
         return io.open(name, encoding='utf-8')
     else:
