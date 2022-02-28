@@ -1,6 +1,6 @@
-nav (5.2.1-2bullseye) UNRELEASED; urgency=medium
+nav (5.3.0-2bullseye) UNRELEASED; urgency=medium
 
-  * Package updated for Debian 11 (Bullseye)
+  * Package ported to Debian 11 (Bullseye)
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 19 Jan 2022 14:23:36 +0000
 
