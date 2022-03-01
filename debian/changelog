@@ -1,8 +1,20 @@
-nav (5.3.0-2bullseye) bullseye; urgency=medium
+nav (5.3.0-3bullseye) UNRELEASED; urgency=medium
 
   * Package ported to Debian 11 (Bullseye)
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 28 Feb 2022 14:02:19 +0000
+
+nav (5.3.0-2) buster; urgency=medium
+
+  * Mark package architecture as amd64
+    - Some bundled Python dependencies produce binary libraries as part of
+      their build process.
+  * Updated README.Debian
+  * Install service_identity module to remove unnecessary UserWarnings
+    - Although NAV doesn't use TLS feature of Twisted, Twisted still
+      complains.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Tue, 01 Mar 2022 13:49:19 +0000
 
 nav (5.3.0-1) buster; urgency=medium
 
