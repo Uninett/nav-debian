@@ -32,8 +32,8 @@ jobs:
           RUN apt-get update && apt-get install -y ${PKGS}
 
           RUN mkdir -p --mode=0755 /usr/local/share/keyrings
-          RUN curl -fsSL https://nav.uninett.no/debian/gpg | gpg --dearmor | sudo tee /usr/local/share/keyrings/nav.gpg >/dev/null
-          RUN echo 'deb [arch=all signed-by=/usr/local/share/keyrings/nav.gpg] https://nav.uninett.no/debian ${DISTRO} ${ARCHIVE}' | sudo tee /etc/apt/sources.list.d/nav.list
+          RUN curl -fsSL https://nav.uninett.no/debian/gpg | gpg --dearmor | tee /usr/local/share/keyrings/nav.gpg >/dev/null
+          RUN echo 'deb [arch=all signed-by=/usr/local/share/keyrings/nav.gpg] https://nav.uninett.no/debian ${DISTRO} ${ARCHIVE}' | tee /etc/apt/sources.list.d/nav.list
 
           RUN echo "nav nav/apache2_restart boolean true"  | debconf-set-selections
           RUN echo "nav nav/db_purge        boolean true"  | debconf-set-selections
