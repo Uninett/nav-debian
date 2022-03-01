@@ -51,7 +51,7 @@ following steps:
     to install and configure Graphite for use with NAV on Debian can be found
     at [2].
 
-    [2] https://nav.uninett.no/doc/latest/howto/installing-graphite-on-debian.html
+    [2] https://nav.readthedocs.io/en/latest/howto/installing-graphite-on-debian.html
 
  5. Enable nav.service and start NAV:
 
@@ -65,4 +65,4 @@ following steps:
 Happy NAV-ing! :)
 
 
- -- Morten Brekkevold <morten.brekkevold@uninett.no>, Wed, 27 Feb 2019 10:07:51 +0100
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>, Tue, 1 Mar 2022 13:41:51 +0100
