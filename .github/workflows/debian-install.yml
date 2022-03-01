@@ -15,7 +15,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        distro: ['buster']
+        distro: ['buster', 'bullseye']
 
     env:
       DISTRO: ${{ matrix.distro }}
@@ -31,8 +31,9 @@ jobs:
           ENV DEBIAN_FRONTEND=noninteractive
           RUN apt-get update && apt-get install -y ${PKGS}
 
-          RUN curl -fsSL https://nav.uninett.no/debian/gpg | apt-key add -
-          RUN echo 'deb https://nav.uninett.no/debian ${DISTRO} ${ARCHIVE}' > /etc/apt/sources.list.d/nav.list && apt-get update
+          RUN mkdir -p --mode=0755 /usr/local/share/keyrings
+          RUN curl -fsSL https://nav.uninett.no/debian/gpg | gpg --dearmor | sudo tee /usr/local/share/keyrings/nav.gpg >/dev/null
+          RUN echo 'deb [arch=all signed-by=/usr/local/share/keyrings/nav.gpg] https://nav.uninett.no/debian ${DISTRO} ${ARCHIVE}' | sudo tee /etc/apt/sources.list.d/nav.list
 
           RUN echo "nav nav/apache2_restart boolean true"  | debconf-set-selections
           RUN echo "nav nav/db_purge        boolean true"  | debconf-set-selections
