@@ -1,3 +1,10 @@
+nav (5.3.0-4bullseye) buster; urgency=medium
+
+  * Fix broken IPv6 SNMP support
+    - Re-packaged to bundle latest version of pynetsnmp-2
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 18 Mar 2022 12:52:46 +0000
+
 nav (5.3.0-3bullseye) buster; urgency=medium
 
   * Package ported to Debian 11 (Bullseye)
