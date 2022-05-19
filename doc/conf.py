@@ -34,6 +34,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.ifconfig',
     'sphinxcontrib_django',
+    'sphinxcontrib.programoutput',
     'xref',
 ]
 
@@ -58,7 +59,7 @@ copyright = u'2012-2021 Uninett AS, 2022 Sikt'
 # built documents.
 #
 # The short X.Y version.
-version = '5.3'
+version = '5.4'
 # version = '.'.join(buildconf.VERSION.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = buildconf.VERSION

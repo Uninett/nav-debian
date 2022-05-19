@@ -26,9 +26,7 @@ import hashlib
 from functools import wraps
 from itertools import chain, tee, groupby, islice
 from operator import itemgetter
-
-import six
-from six.moves import range
+from secrets import token_hex
 
 import IPy
 
@@ -108,7 +106,7 @@ def _is_valid_ip_ipy(ip):
     A cleaned up version of the IP address string is returned if it is verified,
     otherwise a false value is returned.
     """
-    if isinstance(ip, six.string_types) and not ip.isdigit():
+    if isinstance(ip, str) and not ip.isdigit():
         try:
             valid_ip = IPy.IP(ip)
             if valid_ip.len() == 1:
@@ -126,7 +124,7 @@ def is_valid_cidr(cidr):
 
     Uses the IPy library to verify addresses.
     """
-    if isinstance(cidr, six.string_types) and not cidr.isdigit() and '/' in cidr:
+    if isinstance(cidr, str) and not cidr.isdigit() and '/' in cidr:
         try:
             valid_cidr = IPy.IP(cidr) is not None
         except (ValueError, TypeError):
@@ -218,7 +216,7 @@ def first_true(iterable, default=None, pred=None):
     :param pred: Optional predicate function to evaluate the truthfulness of
                  elements.
     """
-    return next(six.moves.filter(pred, iterable), default)
+    return next(filter(pred, iterable), default)
 
 
 def chunks(iterable, size):
@@ -472,12 +470,8 @@ def address_to_string(ip, port):
 
 
 def auth_token():
-    """Generates a hash that can be used as an OAuth API token"""
-    from django.conf import settings
-
-    _hash = hashlib.sha1(six.text_type(uuid.uuid4()).encode('utf-8'))
-    _hash.update(settings.SECRET_KEY.encode('utf-8'))
-    return _hash.hexdigest()
+    """Generates a hex token that can be used as an OAuth API token"""
+    return token_hex(32)
 
 
 def consecutive(seq):
