@@ -4,3 +4,14 @@
  python-ldap==3.4.0 # optional for LDAP authentication, requires libldap (OpenLDAP) to build
 +service_identity
  python-gammu==3.2.4
+--- new-nav-debian.orig/requirements/base.txt
++++ new-nav-debian/requirements/base.txt
+@@ -28,7 +28,7 @@ crispy-forms-foundation>=0.7,<0.8
+ # REST framework
+ iso8601
+ 
+-pynetsnmp-2==0.1.7
++pynetsnmp-2==0.1.9
+ 
+ # libsass for compiling scss files to css using distutils/setuptools
+ libsass==0.15.1
