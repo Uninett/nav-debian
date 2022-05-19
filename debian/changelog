@@ -1,3 +1,10 @@
+nav (5.4.0-1) buster; urgency=medium
+
+  * New upstream release.
+    - Include new CHANGELOG.md and older changelog entries from HISTORY
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 19 May 2022 20:11:33 +0000
+
 nav (5.3.0-2) buster; urgency=medium
 
   * Mark package architecture as amd64
