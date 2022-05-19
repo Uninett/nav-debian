@@ -23,8 +23,6 @@ from datetime import datetime
 import struct
 import sys
 
-import six
-from six import iteritems
 from twisted.internet import defer
 
 from nav.oids import OID
@@ -177,12 +175,12 @@ class EntityTable(dict):
 
         self.clean()
 
-    @staticmethod
-    def is_module(entity):
+    def is_module(self, entity):
         return (
             entity['entPhysicalClass'] == 'module'
             and entity['entPhysicalIsFRU']
             and entity['entPhysicalSerialNum']
+            and not self.is_transceiver(entity)
         )
 
     @staticmethod
@@ -200,6 +198,10 @@ class EntityTable(dict):
     @staticmethod
     def is_fan(entity):
         return entity["entPhysicalClass"] == "fan"
+
+    def is_transceiver(self, entity):
+        transceiver_in_name = "transceiver" in entity['entPhysicalDescr'].lower()
+        return transceiver_in_name and self.get_nearest_port_parent(entity)
 
     def get_modules(self):
         """Return the subset of entities that are modules.
@@ -279,8 +281,6 @@ class EntityTable(dict):
     def clean(self):
         """Cleans the table data"""
 
-        if sys.version_info[0] == 2:  # Python 2 only
-            self._clean_unicode()
         self._parse_mfg_date()
         self._strip_whitespace()
         self._fix_broken_chassis_relative_positions()
@@ -346,30 +346,8 @@ class EntityTable(dict):
         for ent in self.values():
             if not self.is_chassis(ent):
                 dupes[ent['entPhysicalName']].append(ent)
-        dupes = dict((key, value) for key, value in iteritems(dupes) if len(value) > 1)
+        dupes = dict((key, value) for key, value in dupes.items() if len(value) > 1)
         return dupes
-
-    def _clean_unicode(self, encoding="utf-8"):
-        """Decodes every string attribute of every entity as UTF-8.
-
-        Strings that cannot be successfully decoded as UTF-8 will instead be
-        encoded as a Python string repr (and debug logged).
-        """
-        for entity in self.values():
-            for key, value in entity.items():
-                if isinstance(value, six.binary_type):
-                    try:
-                        new_value = value.decode(encoding)
-                    except UnicodeDecodeError:
-                        new_value = six.text_type(repr(value))
-                        _logger.debug(
-                            "cannot decode %s value as %s, using python "
-                            "string repr instead: %s",
-                            key,
-                            encoding,
-                            new_value,
-                        )
-                    entity[key] = new_value
 
 
 EIGHT_OCTET_DATEANDTIME = struct.Struct("HBBBBBB")

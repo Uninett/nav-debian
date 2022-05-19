@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2018 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV)
 #
@@ -25,11 +26,11 @@ from __future__ import absolute_import
 
 from collections import deque
 import heapq
+import sys
 import time
 import threading
 import logging
 
-import six
 
 from . import config
 
@@ -104,7 +105,7 @@ class _RunQueue(object):
 
     def __init__(self, **kwargs):
         self.conf = config.serviceconf()
-        self._max_threads = int(self.conf.get('maxthreads', six.MAXSIZE))
+        self._max_threads = int(self.conf.get('maxthreads', sys.maxsize))
         _logger.info("Setting maxthreads=%i", self._max_threads)
         self._max_run_count = int(self.conf.get('recycle interval', 50))
         _logger.info("Setting maxRunCount=%i", self._max_run_count)
@@ -143,9 +144,6 @@ class _RunQueue(object):
         # This is quite dirty, but I really need to know how many
         # threads are waiting for checkers.
         waiters = getattr(self.await_work, "_waiters", None)
-        # Next two lines exist only for compat with Python 2 (Python < 3)
-        if waiters is None:
-            waiters = getattr(self.await_work, "_Condition__waiters")
         num_waiters = len(waiters)
         _logger.debug(
             "Number of workers: %i Waiting workers: %i", len(self.workers), num_waiters

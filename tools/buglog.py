@@ -33,10 +33,10 @@ def main():
     parser.add_argument("version")
     parser.add_argument("--token", "-t", type=str, help="GitHub API token to use")
     parser.add_argument(
-        "--markdown",
+        "--no-markdown",
         "-m",
         action="store_true",
-        help="Output as markdown with hyperlinks",
+        help="Output in legacy format rather than markdown",
     )
     args = parser.parse_args()
 
@@ -57,10 +57,10 @@ def main():
 
     issues = repo.get_issues(state='closed', milestone=mstone)
     for issue in sorted(issues, key=operator.attrgetter('number')):
-        if args.markdown:
-            output = format_issue_markdown(issue)
-        else:
+        if args.no_markdown:
             output = format_issue(issue)
+        else:
+            output = format_issue_markdown(issue)
         print(output)
 
 
@@ -73,8 +73,8 @@ def format_issue(issue):
 
 
 def format_issue_markdown(issue):
-    line = "- [#{number:<4}]({url}) ({title})"
-    return line.format(number=issue.number, title=issue.title, url=issue.html_url,)
+    line = "- {title} ([#{number:<4}]({url}))"
+    return line.format(number=issue.number, title=issue.title, url=issue.html_url)
 
 
 if __name__ == '__main__':

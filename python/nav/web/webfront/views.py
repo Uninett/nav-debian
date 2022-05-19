@@ -34,8 +34,6 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.utils.http import urlquote
 
-import six
-
 from nav.auditlog.models import LogEntry
 from nav.django.utils import get_account
 from nav.models.profiles import NavbarLink, AccountDashboard, AccountNavlet
@@ -112,14 +110,14 @@ def export_dashboard(request, did):
 
 
 dashboard_fields = {
-    'name': six.text_type,
+    'name': str,
     'num_columns': int,
     'widgets': list,
     'version': int,
 }
 
 widget_fields = {
-    'navlet': six.text_type,
+    'navlet': str,
     'column': int,
     'preferences': dict,
     'order': int,
@@ -365,16 +363,13 @@ def save_links(request):
     if request.method == 'POST':
         formset = NavbarLinkFormSet(request.POST)
         if formset.is_valid():
-            for form in formset.deleted_forms:
-                instance = form.save(commit=False)
-                instance.account = account
-                instance.save()
-
             instances = formset.save(commit=False)
             for instance in instances:
                 instance.account = account
                 instance.save()
-            new_message(request, 'Your links were saved.', type=Messages.SUCCESS)
+            for form in formset.deleted_objects:
+                instance = form.delete()
+            new_message(request, 'Your links were updated.', type=Messages.SUCCESS)
         else:
             context['navbar_formset'] = formset
 
