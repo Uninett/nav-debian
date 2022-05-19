@@ -18,7 +18,7 @@ override_dh_virtualenv:
 	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python setup.py build_sphinx
 	dh_installdocs build/sphinx/html
 	dh_installdocs NOTES.rst
-	dh_installchangelogs CHANGES
+	dh_installchangelogs CHANGELOG.md HISTORY
 
 	# copy initial set of config files
 	mkdir $(DEBIAN_ROOT)/etc/nav && cp -a $(CURDIR)/python/nav/etc/* $(DEBIAN_ROOT)/etc/nav/
