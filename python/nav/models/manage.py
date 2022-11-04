@@ -28,6 +28,7 @@ from itertools import count, groupby
 import logging
 import math
 import re
+from typing import Set
 
 import IPy
 from django.conf import settings
@@ -574,6 +575,15 @@ class Netbox(models.Model):
             | Q(unit_of_measurement__icontains='percent')
         )
 
+    @property
+    def mac_addresses(self) -> Set[str]:
+        """Returns a set of collected chassis MAC addresses for this Netbox"""
+        macinfo_match = (Q(key="bridge_info") & Q(variable="base_address")) | (
+            Q(key="lldp") & Q(variable="chassis_mac")
+        )
+        macs = self.info_set.filter(macinfo_match).distinct("value").only("value")
+        return set(mac.value for mac in macs)
+
 
 class NetboxInfo(models.Model):
     """From NAV Wiki: The netboxinfo table is the place
@@ -832,6 +842,42 @@ class Device(models.Model):
 
     def __str__(self):
         return self.serial or ''
+
+    def get_related_objects(self):
+        """
+        Returns the related modules/power supplies/fans/netbox
+        entities of a device.
+        """
+        modules = self.module_set.all()
+        power_supplies_or_fans = self.powersupplyorfan_set.all()
+        netbox_entities = self.netboxentity_set.all()
+        return modules or power_supplies_or_fans or netbox_entities
+
+    def get_preferred_related_object(self):
+        """
+        Returns the first related module/power supply/fan/netbox
+        entity of a device.
+        """
+        related_objects = self.get_related_objects()
+        if not related_objects:
+            return None
+        if len(related_objects) > 1:
+            _logger.info(
+                "Device.get_related_objects(): %s weirdly appears to have "
+                "duplicate related objects, returning just one",
+                self,
+            )
+        return related_objects[0]
+
+    def get_extended_description(self):
+        """
+        Returns the extended description of a device. This is usually
+        the string representation of an related object.
+        """
+        related_object = self.get_preferred_related_object()
+        if related_object:
+            return str(related_object)
+        return str(self)
 
 
 class Module(models.Model):
@@ -1867,7 +1913,7 @@ class Interface(models.Model):
     def get_active_time(self, interval=600):
         """
         Time since last CAM activity on port, looking at CAM entries
-        for the last ``interval'' days.
+        for the last ``interval`` days.
 
         Returns None if no activity is found, else number of days since last
         activity as a datetime.timedelta object.

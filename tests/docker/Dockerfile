@@ -1,6 +1,6 @@
 # Full integration test image for NAV
 #
-FROM mbrekkevold/ubuntu-gosu:focal
+FROM ubuntu:focal
 
 ENV DISTRO focal
 ENV DISPLAY :99
@@ -8,14 +8,16 @@ ENV ADMINPASSWORD omicronpersei8
 ENV DEBIAN_FRONTEND noninteractive
 
 ### Installing packages
+RUN sed -ie 's/^# *deb-src/deb-src/' /etc/apt/sources.list  # Enable source repos
 RUN apt-get update && \
-    apt-get install -y software-properties-common
+    apt-get install -y software-properties-common gosu && \
+    chmod u+s /usr/sbin/gosu
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
     apt-get -y install --no-install-recommends \
       curl git build-essential \
-      python3.7-dbg python3.7-dev \
+      python3.7-dbg python3.7-dev python3.7-distutils \
       python3.8-dbg python3.8-dev \
       python3.9-dbg python3.9-dev \
       python3-pip
