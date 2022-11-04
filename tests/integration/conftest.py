@@ -3,7 +3,10 @@ import os
 import io
 import re
 import shlex
+from itertools import cycle
+from shutil import which
 import subprocess
+import time
 
 import pytest
 from django.test import Client
@@ -294,3 +297,72 @@ def api_client(token):
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.token)
     return client
+
+
+@pytest.fixture(scope='session')
+def snmpsim():
+    """Sets up an external snmpsimd process so that SNMP communication can be simulated
+    by the test that declares a dependency to this fixture. Data fixtures are loaded
+    from the snmp_fixtures subdirectory.
+    """
+    snmpsimd = which('snmpsimd.py')
+    assert snmpsimd, "Could not find snmpsimd.py"
+    workspace = os.getenv('WORKSPACE', os.getenv('HOME', '/source'))
+    proc = subprocess.Popen(
+        [
+            snmpsimd,
+            '--data-dir={}/tests/integration/snmp_fixtures'.format(workspace),
+            '--log-level=error',
+            '--agent-udpv4-endpoint=127.0.0.1:1024',
+        ],
+        env={'HOME': workspace},
+    )
+
+    while not _lookfor('0100007F:0400', '/proc/net/udp'):
+        print("Still waiting for snmpsimd to listen for queries")
+        proc.poll()
+        time.sleep(0.1)
+
+    yield
+    proc.kill()
+
+
+@pytest.fixture()
+def snmp_agent_proxy(snmpsim, snmp_ports):
+    """Returns an AgentProxy instance prepared to talk to localhost. The open() method
+    has not been called, so its attributes can be changed before the socket is opened.
+    """
+    from nav.ipdevpoll.snmp import AgentProxy
+    from nav.ipdevpoll.snmp.common import SNMPParameters
+
+    port = next(snmp_ports)
+    agent = AgentProxy(
+        '127.0.0.1',
+        1024,
+        community='placeholder',
+        snmpVersion='v2c',
+        protocol=port.protocol,
+        snmp_parameters=SNMPParameters(timeout=1, max_repetitions=5, throttle_delay=0),
+    )
+    return agent
+
+
+_ports = None  # to store a cycling generator of snmp client ports
+
+
+@pytest.fixture(scope='session')
+def snmp_ports():
+    """Returns a cyclic generator of snmpprotocol.port() to use for agent proxies"""
+    from pynetsnmp.twistedsnmp import snmpprotocol
+
+    global _ports
+
+    if _ports is None:
+        _ports = cycle(snmpprotocol.port() for i in range(50))
+    return _ports
+
+
+def _lookfor(string, filename):
+    """Very simple grep-like function"""
+    data = io.open(filename, 'r', encoding='utf-8').read()
+    return string in data
