@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -24,8 +25,6 @@ Please note!
 -- not a complete implementation of the mib --
 
 """
-from django.utils import six
-from django.utils.six import itervalues
 from twisted.internet import defer
 
 from nav.mibs import reduce_index
@@ -45,8 +44,7 @@ def for_table(table_name):
 
     def decorate(method):
         """Setup link between table and function"""
-        name = method.func_name if six.PY2 else method.__name__
-        for_table.map[table_name] = name
+        for_table.map[table_name] = method.__name__
         return method
 
     return decorate
@@ -54,6 +52,7 @@ def for_table(table_name):
 
 class Pwt3PhaseV1Mib(mibretriever.MibRetriever):
     """A class that tries to retrieve all sensors from Powertek PDU"""
+
     mib = get_mib('PWTv1-MIB')
 
     def _get_oid_for_sensor(self, sensor_name):
@@ -68,28 +67,38 @@ class Pwt3PhaseV1Mib(mibretriever.MibRetriever):
                 oid_str = sensor_def.get('oid', None)
         return oid_str
 
-    def _make_result_dict(self, sensor_oid, base_oid, serial, desc,
-                          u_o_m=None, precision=0, scale=None, name=None):
-        """ Make a simple dictionary to return to plugin"""
+    def _make_result_dict(
+        self,
+        sensor_oid,
+        base_oid,
+        serial,
+        desc,
+        u_o_m=None,
+        precision=0,
+        scale=None,
+        name=None,
+    ):
+        """Make a simple dictionary to return to plugin"""
 
         oid = OID(base_oid) + OID(sensor_oid)
 
         internal_name = str(serial) + desc
-        return {'oid': oid,
-                'unit_of_measurement': u_o_m,
-                'precision': precision,
-                'scale': scale,
-                'description': desc,
-                'name': name,
-                'internal_name': internal_name,
-                'mib': self.get_module_name(),
-                }
+        return {
+            'oid': oid,
+            'unit_of_measurement': u_o_m,
+            'precision': precision,
+            'scale': scale,
+            'description': desc,
+            'name': name,
+            'internal_name': internal_name,
+            'mib': self.get_module_name(),
+        }
 
     @for_table('pduPwrMonitoringInletStatusTable')
     def _get_internal_sensors_params(self, internal_sensors):
         sensors = []
 
-        for sensor in itervalues(internal_sensors):
+        for sensor in internal_sensors.values():
             serial = sensor.get('inletIndex', None)
             # The spesification says the value can be 0 - 3 but I am
             # seeing 0 - 7 and only 0 has value
@@ -98,70 +107,128 @@ class Pwt3PhaseV1Mib(mibretriever.MibRetriever):
 
             sensor_oid = sensor.get(0, None)
             name = 'PWT'  # sensor.get('internalName', None)
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletCurrPhase1'),
-                serial, 'inletCurrPhase1', precision=1, u_o_m=Sensor.UNIT_AMPERES,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletCurrPhase2'),
-                serial, 'inletCurrPhase2', precision=1, u_o_m=Sensor.UNIT_AMPERES,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletCurrPhase3'),
-                serial, 'inletCurrPhase3', precision=1, u_o_m=Sensor.UNIT_AMPERES,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletPowerPhase1'),
-                serial, 'inletPowerPhase1', precision=1, u_o_m=Sensor.UNIT_WATTS,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletPowerPhase2'),
-                serial, 'inletPowerPhase2', precision=1, u_o_m=Sensor.UNIT_WATTS,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletPowerPhase3'),
-                serial, 'inletPowerPhase3', precision=1, u_o_m=Sensor.UNIT_WATTS,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletVoltPhase1'),
-                serial, 'inletVoltPhase1', precision=1, u_o_m=Sensor.UNIT_VOLTS_AC,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletVoltPhase2'),
-                serial, 'inletVoltPhase2', precision=1, u_o_m=Sensor.UNIT_VOLTS_AC,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletVoltPhase3'),
-                serial, 'inletVoltPhase3', precision=1, u_o_m=Sensor.UNIT_VOLTS_AC,
-                name=name))
-            sensors.append(self._make_result_dict(
-                sensor_oid,
-                self._get_oid_for_sensor('inletLoadBalance'),
-                serial, 'inletLoadBalance', u_o_m=Sensor.UNIT_PERCENT,
-                name=name))
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletCurrPhase1'),
+                    serial,
+                    'inletCurrPhase1',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_AMPERES,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletCurrPhase2'),
+                    serial,
+                    'inletCurrPhase2',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_AMPERES,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletCurrPhase3'),
+                    serial,
+                    'inletCurrPhase3',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_AMPERES,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletPowerPhase1'),
+                    serial,
+                    'inletPowerPhase1',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_WATTS,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletPowerPhase2'),
+                    serial,
+                    'inletPowerPhase2',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_WATTS,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletPowerPhase3'),
+                    serial,
+                    'inletPowerPhase3',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_WATTS,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletVoltPhase1'),
+                    serial,
+                    'inletVoltPhase1',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_VOLTS_AC,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletVoltPhase2'),
+                    serial,
+                    'inletVoltPhase2',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_VOLTS_AC,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletVoltPhase3'),
+                    serial,
+                    'inletVoltPhase3',
+                    precision=1,
+                    u_o_m=Sensor.UNIT_VOLTS_AC,
+                    name=name,
+                )
+            )
+            sensors.append(
+                self._make_result_dict(
+                    sensor_oid,
+                    self._get_oid_for_sensor('inletLoadBalance'),
+                    serial,
+                    'inletLoadBalance',
+                    u_o_m=Sensor.UNIT_PERCENT,
+                    name=name,
+                )
+            )
 
         return sensors
 
     @defer.inlineCallbacks
     def get_all_sensors(self):
-        """ Try to retrieve some of the available sensors in this PDU"""
+        """Try to retrieve some of the available sensors in this PDU"""
         # We only implement pduPwrMonitoringInletStatusTable for now
         tables = ['pduPwrMonitoringInletStatusTable']
 
         result = []
         for table in tables:
             self._logger.debug('get_all_sensors: table = %s', table)
-            sensors = yield self.retrieve_table(
-                                        table).addCallback(reduce_index)
+            sensors = yield self.retrieve_table(table).addCallback(reduce_index)
             self._logger.debug('get_all_sensors: %s = %s', table, sensors)
             handler = for_table.map.get(table, None)
             if not handler:

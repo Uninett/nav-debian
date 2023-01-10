@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2014 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -24,15 +25,15 @@ This implementation sticks with the easily graphable sensors,
 like temperature, humidity, voltages and currents.
 
 """
-from django.utils.six import iteritems
 from twisted.internet import defer
 from nav.mibs import reduce_index
 from nav.smidumps import get_mib
 from nav.mibs.mibretriever import MibRetriever
 from nav.models.manage import Sensor
 
+PRODUCT_TYPE = "sensorProbeProductType"
 
-SENSOR_TABLES = {
+AKCP_SENSOR_PROBE_8_TABLES = {
     'sensorProbeTempTable': {
         'descr': 'sensorProbeTempDescription',
         'online': 'sensorProbeTempOnline',
@@ -76,16 +77,38 @@ SENSOR_TABLES = {
     },
 }
 
+AKCP_SENSOR_PROBE_PLUS_TABLES = {
+    'commonTable': {
+        'descr': 'commonDescription',
+        'readout': 'commonValue',
+        'unit': 'commonUnit',
+        'precision': 0,
+        'internal_prefix': 'common',
+    }
+}
+
+
+# maps PRODUCT_TYPE to relevant tables
+TABLES = {
+    2: AKCP_SENSOR_PROBE_8_TABLES,
+    16: AKCP_SENSOR_PROBE_PLUS_TABLES,
+}
+
 
 class SPAgentMib(MibRetriever):
     """SPAGENT-MIB MibRetriever"""
+
     mib = get_mib('SPAGENT-MIB')
 
     @defer.inlineCallbacks
     def get_all_sensors(self):
         """Returns a Deferred whose result is a list of sensor dictionaries"""
         result = []
-        for table, config in iteritems(SENSOR_TABLES):
+        model_id = yield self.get_next(PRODUCT_TYPE)
+        if model_id not in TABLES.keys():
+            # default to the older version
+            model_id = 2
+        for table, config in TABLES[model_id].items():
             sensors = yield self._get_sensors(config)
             result.extend(sensors)
         defer.returnValue(result)
@@ -97,15 +120,20 @@ class SPAgentMib(MibRetriever):
         the results into sensor dicts.
 
         """
-        columns = [config['descr'], config['online']]
-        if 'unit' in config:
-            columns.append(config['unit'])
+        columns = [config['descr']]
+        for field in ['unit', 'online']:
+            if field in config:
+                columns.append(config[field])
 
-        result = yield self.retrieve_columns(columns).addCallback(
-            self.translate_result).addCallback(reduce_index)
+        result = (
+            yield self.retrieve_columns(columns)
+            .addCallback(self.translate_result)
+            .addCallback(reduce_index)
+        )
 
-        sensors = (self._row_to_sensor(config, index, row)
-                   for index, row in iteritems(result))
+        sensors = (
+            self._row_to_sensor(config, index, row) for index, row in result.items()
+        )
 
         defer.returnValue([s for s in sensors if s])
 
@@ -115,9 +143,10 @@ class SPAgentMib(MibRetriever):
         options defined in the config dict.
 
         """
-        online = row.get(config['online'], 'offline')
-        if online == 'offline':
-            return
+        if 'online' in config:
+            online = row.get(config['online'], 'offline')
+            if online == 'offline':
+                return
 
         internal_name = config['internal_prefix'] + str(index)
         descr = row.get(config['descr'], internal_name)
@@ -129,6 +158,8 @@ class SPAgentMib(MibRetriever):
             unit = row.get(config['unit'], None)
             if unit == 'fahr':
                 unit = Sensor.UNIT_FAHRENHEIT
+            if unit == 'C':
+                unit = Sensor.UNIT_CELSIUS
         else:
             unit = config['_unit']
 

@@ -16,12 +16,13 @@
 """H3C specific PortAdmin SNMP handling"""
 from nav import Snmp
 from nav.oids import OID
-from nav.portadmin.snmp.base import SNMPHandler
+from nav.portadmin.snmp.base import SNMPHandler, translate_protocol_errors
 from nav.enterprise.ids import VENDOR_ID_H3C
 
 
 class H3C(SNMPHandler):
     """HP Comware Platform Software handler"""
+
     VENDOR = VENDOR_ID_H3C
 
     hh3cCfgOperateType = '1.3.6.1.4.1.25506.2.4.1.2.4.1.2'
@@ -30,6 +31,7 @@ class H3C(SNMPHandler):
     def __init__(self, netbox, **kwargs):
         super(H3C, self).__init__(netbox, **kwargs)
 
+    @translate_protocol_errors
     def commit_configuration(self):
         """Use hh3c-config-man-mib to save running config to startup"""
 
@@ -37,8 +39,9 @@ class H3C(SNMPHandler):
         create_and_go = 4
 
         # Find the next available row for configuring and store it as a suffix
-        active_rows = [OID(o[0])[-1]
-                       for o in self._bulkwalk(self.hh3cCfgOperateRowStatus)]
+        active_rows = [
+            OID(o[0])[-1] for o in self._bulkwalk(self.hh3cCfgOperateRowStatus)
+        ]
         try:
             suffix = str(max(active_rows) + 1)
         except ValueError:
@@ -48,7 +51,9 @@ class H3C(SNMPHandler):
         operation_status_oid = '.'.join([self.hh3cCfgOperateRowStatus, suffix])
 
         handle = self._get_read_write_handle()
-        handle.multi_set([
-            Snmp.PDUVarbind(operation_type_oid, 'i', running_to_startup),
-            Snmp.PDUVarbind(operation_status_oid, 'i', create_and_go)
-        ])
+        handle.multi_set(
+            [
+                Snmp.PDUVarbind(operation_type_oid, 'i', running_to_startup),
+                Snmp.PDUVarbind(operation_status_oid, 'i', create_and_go),
+            ]
+        )

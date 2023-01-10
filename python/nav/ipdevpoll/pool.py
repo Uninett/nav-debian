@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2017, 2020 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -28,8 +29,6 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.endpoints import ProcessEndpoint, StandardIOEndpoint
 import twisted.internet.endpoints
 
-from django.utils import six
-
 from nav.ipdevpoll.config import ipdevpoll_conf
 from . import control, jobs
 
@@ -45,6 +44,7 @@ def initialize_worker():
 
 class Cancel(amp.Command):
     """Represent a cancel message for sending to workers"""
+
     arguments = [
         (b'serial', amp.Integer()),
     ]
@@ -53,28 +53,30 @@ class Cancel(amp.Command):
 
 class Shutdown(amp.Command):
     """Represent a shutdown message for sending to workers"""
+
     arguments = []
     response = []
 
 
 class Ping(amp.Command):
     """Represents a ping command for sending to workers"""
+
     arguments = []
     response = [(b'result', amp.Unicode())]
 
 
 class Job(amp.Command):
     """Represent a job for sending to a worker"""
+
     arguments = [
         (b'netbox', amp.Integer()),
         (b'job', amp.Unicode()),
         (b'plugins', amp.ListOf(amp.Unicode())),
         (b'interval', amp.Integer()),  # Needs to be included in database record.
-                                       # Not used for scheduling
+        # Not used for scheduling
         (b'serial', amp.Integer()),  # Serial number needed for cancelling
     ]
-    response = [(b'result', amp.Boolean()),
-                (b'reschedule', amp.Integer())]
+    response = [(b'result', amp.Boolean()), (b'reschedule', amp.Integer())]
     errors = {
         jobs.AbortedJobError: b'AbortedJob',
     }
@@ -176,6 +178,7 @@ class ProcessAMP(amp.AMP):
 
 class InlinePool(object):
     """This is a dummy worker pool that executes all jobs in the current process"""
+
     def __init__(self):
         self.active_jobs = {}
 
@@ -239,11 +242,11 @@ class Worker(object):
         args = [control.get_process_command(), '--worker', '-f', '-s', '-P']
         if self.threadpoolsize:
             args.append('--threadpoolsize=%d' % self.threadpoolsize)
-        endpoint = ProcessEndpoint(reactor, control.get_process_command(),
-                                   args, os.environ)
+        endpoint = ProcessEndpoint(
+            reactor, control.get_process_command(), args, os.environ
+        )
         factory = protocol.Factory()
-        factory.protocol = lambda: ProcessAMP(is_worker=False,
-                                              locator=JobHandler())
+        factory.protocol = lambda: ProcessAMP(is_worker=False, locator=JobHandler())
         self.process = yield endpoint.connect(factory)
         self.process.lost_handler = self._worker_died
         self.started_at = datetime.datetime.now()
@@ -321,8 +324,7 @@ class Worker(object):
         """Executes a remote job"""
         self.active_jobs += 1
         self.total_jobs += 1
-        self.max_concurrent_jobs = max(self.active_jobs,
-                                       self.max_concurrent_jobs)
+        self.max_concurrent_jobs = max(self.active_jobs, self.max_concurrent_jobs)
         self._logger.debug(
             "Dispatching to process %s job %s for netbox %s with plugins %s "
             "(serial=%r)",
@@ -415,8 +417,9 @@ class WorkerPool(object):
 
     def execute_job(self, job, netbox, plugins=None, interval=None):
         """Executes a single job on an available worker"""
-        deferred = self._execute(Job, job=job, netbox=netbox,
-                                 plugins=plugins, interval=interval)
+        deferred = self._execute(
+            Job, job=job, netbox=netbox, plugins=plugins, interval=interval
+        )
 
         def handle_reschedule(result):
             reschedule = result.get('reschedule', 0)
@@ -444,7 +447,7 @@ class HackLog(object):
     @staticmethod
     def msg(data, **_kwargs):
         """Logs a message to STDERR"""
-        if six.PY3 and isinstance(data, six.binary_type):
+        if isinstance(data, bytes):
             data = data.decode("utf-8")
         sys.stderr.write(data)
         sys.stderr.flush()

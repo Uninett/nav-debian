@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,8 +18,6 @@
 Metric naming templates for various things that NAV sends/retrieves from
 Graphite.
 """
-from django.utils import six
-
 from nav.metrics.names import escape_metric_name
 
 # pylint: disable=C0111
@@ -26,39 +25,49 @@ from nav.metrics.names import escape_metric_name
 
 def metric_prefix_for_ipdevpoll_job(sysname, job_name):
     tmpl = "{device}.ipdevpoll.{job_name}"
-    return tmpl.format(device=metric_prefix_for_device(sysname),
-                       job_name=escape_metric_name(job_name))
+    return tmpl.format(
+        device=metric_prefix_for_device(sysname), job_name=escape_metric_name(job_name)
+    )
 
 
 def metric_path_for_bandwith(sysname, is_percent):
     tmpl = "{system}.bandwidth{percent}"
-    return tmpl.format(system=metric_prefix_for_system(sysname),
-                       percent="_percent" if is_percent else "")
+    return tmpl.format(
+        system=metric_prefix_for_system(sysname),
+        percent="_percent" if is_percent else "",
+    )
 
 
 def metric_path_for_bandwith_peak(sysname, is_percent):
     tmpl = "{system}.bandwidth_peak{percent}"
-    return tmpl.format(system=metric_prefix_for_system(sysname),
-                       percent="_percent" if is_percent else "")
+    return tmpl.format(
+        system=metric_prefix_for_system(sysname),
+        percent="_percent" if is_percent else "",
+    )
 
 
 def metric_path_for_cpu_load(sysname, cpu_name, interval):
     tmpl = "{cpu}.{cpu_name}.loadavg{interval}min"
-    return tmpl.format(cpu=metric_prefix_for_cpu(sysname),
-                       cpu_name=escape_metric_name(cpu_name),
-                       interval=escape_metric_name(str(interval)))
+    return tmpl.format(
+        cpu=metric_prefix_for_cpu(sysname),
+        cpu_name=escape_metric_name(cpu_name),
+        interval=escape_metric_name(str(interval)),
+    )
 
 
 def metric_path_for_cpu_utilization(sysname, cpu_name):
     tmpl = "{cpu}.{cpu_name}.utilization"
-    return tmpl.format(cpu=metric_prefix_for_cpu(sysname),
-                       cpu_name=escape_metric_name(cpu_name))
+    return tmpl.format(
+        cpu=metric_prefix_for_cpu(sysname), cpu_name=escape_metric_name(cpu_name)
+    )
 
 
 def metric_path_for_interface(sysname, ifname, counter):
     tmpl = "{interface}.{counter}"
-    return tmpl.format(interface=metric_prefix_for_interface(sysname, ifname),
-                       counter=escape_metric_name(counter))
+    return tmpl.format(
+        interface=metric_prefix_for_interface(sysname, ifname),
+        counter=escape_metric_name(counter),
+    )
 
 
 def metric_path_for_packet_loss(sysname):
@@ -68,8 +77,10 @@ def metric_path_for_packet_loss(sysname):
 
 def metric_path_for_prefix(netaddr, metric_name):
     tmpl = "{prefix}.{metric_name}"
-    return tmpl.format(prefix=metric_prefix_for_prefix(netaddr),
-                       metric_name=escape_metric_name(metric_name))
+    return tmpl.format(
+        prefix=metric_prefix_for_prefix(netaddr),
+        metric_name=escape_metric_name(metric_name),
+    )
 
 
 def metric_path_for_roundtrip_time(sysname):
@@ -84,20 +95,19 @@ def metric_prefix_for_sensors(sysname):
 
 def metric_path_for_sensor(sysname, sensor):
     tmpl = "{prefix}.{sensor}"
-    return tmpl.format(prefix=metric_prefix_for_sensors(sysname),
-                       sensor=escape_metric_name(sensor))
+    return tmpl.format(
+        prefix=metric_prefix_for_sensors(sysname), sensor=escape_metric_name(sensor)
+    )
 
 
 def metric_path_for_service_availability(sysname, handler, service_id):
     tmpl = "{service}.availability"
-    return tmpl.format(
-        service=metric_prefix_for_service(sysname, handler, service_id))
+    return tmpl.format(service=metric_prefix_for_service(sysname, handler, service_id))
 
 
 def metric_path_for_service_response_time(sysname, handler, service_id):
     tmpl = "{service}.responseTime"
-    return tmpl.format(
-        service=metric_prefix_for_service(sysname, handler, service_id))
+    return tmpl.format(service=metric_prefix_for_service(sysname, handler, service_id))
 
 
 def metric_path_for_sysuptime(sysname):
@@ -107,8 +117,7 @@ def metric_path_for_sysuptime(sysname):
 
 def metric_path_for_power(sysname, index):
     tmpl = "{system}.power.{index}"
-    return tmpl.format(system=metric_prefix_for_system(sysname),
-                       index=index)
+    return tmpl.format(system=metric_prefix_for_system(sysname), index=index)
 
 
 def metric_prefix_for_cpu(sysname):
@@ -125,14 +134,17 @@ def metric_prefix_for_device(sysname):
 
 def metric_prefix_for_interface(sysname, ifname):
     tmpl = "{ports}.{ifname}"
-    return tmpl.format(ports=metric_prefix_for_ports(sysname),
-                       ifname=escape_metric_name(ifname))
+    return tmpl.format(
+        ports=metric_prefix_for_ports(sysname), ifname=escape_metric_name(ifname)
+    )
 
 
 def metric_prefix_for_memory(sysname, memory_name):
     tmpl = "{device}.memory.{memname}"
-    return tmpl.format(device=metric_prefix_for_device(sysname),
-                       memname=escape_metric_name(memory_name))
+    return tmpl.format(
+        device=metric_prefix_for_device(sysname),
+        memname=escape_metric_name(memory_name),
+    )
 
 
 def metric_prefix_for_ports(sysname):
@@ -149,8 +161,9 @@ def metric_prefix_for_prefix(netaddr):
 
 def metric_prefix_for_service(sysname, handler, service_id):
     tmpl = "{device}.services.{handler}_{service_id}"
-    return tmpl.format(device=metric_prefix_for_device(sysname),
-                       handler=handler, service_id=service_id)
+    return tmpl.format(
+        device=metric_prefix_for_device(sysname), handler=handler, service_id=service_id
+    )
 
 
 def metric_prefix_for_system(sysname):
@@ -160,12 +173,14 @@ def metric_prefix_for_system(sysname):
 
 def metric_prefix_for_multicast_group(group):
     tmpl = "nav.multicast.groups.{group}"
-    return tmpl.format(group=escape_metric_name(six.text_type(group)))
+    return tmpl.format(group=escape_metric_name(str(group)))
 
 
 def metric_path_for_multicast_usage(group, sysname):
     tmpl = "{group}.igmp_usage.{sysname}"
     if hasattr(sysname, 'sysname'):
         sysname = sysname.sysname
-    return tmpl.format(group=metric_prefix_for_multicast_group(group),
-                       sysname=escape_metric_name(sysname))
+    return tmpl.format(
+        group=metric_prefix_for_multicast_group(group),
+        sysname=escape_metric_name(sysname),
+    )

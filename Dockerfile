@@ -20,14 +20,35 @@
 # be world-readable!
 #
 #
-FROM mbrekkevold/navbase-debian:buster
+FROM debian:bullseye
+
+#### Prepare the OS base setup ###
+
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN echo 'deb-src http://deb.debian.org/debian bullseye main' >> /etc/apt/sources.list.d/srcpkg.list && \
+    echo 'deb-src http://security.debian.org/debian-security bullseye-security main' >> /etc/apt/sources.list.d/srcpkg.list
+RUN apt-get update && \
+    apt-get -y --no-install-recommends install \
+            locales \
+            python3-dbg gdb \
+            sudo python3-dev python3-pip python3-virtualenv build-essential supervisor \
+	    debian-keyring debian-archive-keyring ca-certificates
+
+ARG TIMEZONE=Europe/Oslo
+ARG LOCALE=en_US.UTF-8
+ARG ENCODING=UTF-8
+RUN echo "${LOCALE} ${ENCODING}" > /etc/locale.gen && locale-gen ${LOCALE} && update-locale LANG=${LOCALE} LC_ALL=${LOCALE}
+ENV LANG ${LOCALE}
+ENV LC_ALL ${LOCALE}
+RUN echo "${TIMEZONE}" > /etc/timezone && cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime
 
 #### Install various build and runtime requirements as Debian packages ####
 
 RUN apt-get update \
     && apt-get -y --no-install-recommends install \
        git-core \
-       libsnmp30 \
+       libsnmp40 \
        cron \
        sudo \
        inotify-tools \
@@ -35,37 +56,42 @@ RUN apt-get update \
        vim \
        less \
        nbtscan \
-       python3-gammu \
        # Python package build deps: \
        libpq-dev \
        libjpeg-dev \
        libz-dev \
        libldap2-dev \
-       libsasl2-dev
+       libsasl2-dev \
+       # Useful tools for network debugging and SNMP querying: \
+       dnsutils \
+       iproute2 \
+       iputils-ping \
+       snmp
 
 RUN adduser --system --group --no-create-home --home=/source --shell=/bin/bash nav
 
-
+RUN pip3 install --upgrade 'setuptools<60' wheel && \
+    pip3 install --upgrade 'pip<22' pip-tools
 
 #################################################################################
-### ADDing the requirements file to pip-install Python requirements may bust  ###
-### Docker's cache at this point, so everything you want to keep in the cache ###
-### should go before this.                                                    ###
+### COPYing the requirements file to pip-install Python requirements may bust ###
+### Docker's cache at this point, so everything expensive you want to keep in ###
+### the cache should go before this.                                          ###
 #################################################################################
 
-ADD tools/docker/supervisord.conf /etc/supervisor/conf.d/nav.conf
+COPY tools/docker/supervisord.conf /etc/supervisor/conf.d/nav.conf
 
 COPY requirements/ /requirements
-ADD requirements.txt /
-ADD tests/requirements.txt /test-requirements.txt
-RUN pip3 install --upgrade setuptools && \
-    pip3 install --upgrade pip pip-tools tox && \
-    hash -r && \
-	# Since we used pip3 to install pip globally, pip should now be for Python 3 \
-    pip-compile --output-file /requirements.txt.lock /requirements.txt /test-requirements.txt && \
-    pip-sync /requirements.txt.lock
+COPY requirements.txt /
+COPY tests/requirements.txt /test-requirements.txt
+# Since we used pip3 to install pip globally, pip should now be for Python 3
+RUN pip-compile --output-file /requirements.txt.lock /requirements.txt /test-requirements.txt
+RUN pip install -r /requirements.txt.lock
 
-ADD tools/docker/full-nav-restore.sh /usr/local/sbin/full-nav-restore.sh
+ARG CUSTOM_PIP=ipython
+RUN pip install ${CUSTOM_PIP}
+
+COPY tools/docker/full-nav-restore.sh /usr/local/sbin/full-nav-restore.sh
 
 VOLUME ["/source"]
 ENV    DJANGO_SETTINGS_MODULE nav.django.settings

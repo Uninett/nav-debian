@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -18,7 +19,6 @@
 import time
 
 from twisted.internet import defer
-from django.utils import six
 
 from nav.Snmp import safestring
 from nav.ipdevpoll import Plugin
@@ -37,11 +37,13 @@ class StatSensors(Plugin):
     Graphite.
 
     """
+
     @classmethod
     @defer.inlineCallbacks
     def can_handle(cls, netbox):
         base_can_handle = yield defer.maybeDeferred(
-            super(StatSensors, cls).can_handle, netbox)
+            super(StatSensors, cls).can_handle, netbox
+        )
         if base_can_handle:
             i_can_handle = yield run_in_thread(cls._has_sensors, netbox)
             defer.returnValue(i_can_handle)
@@ -59,11 +61,14 @@ class StatSensors(Plugin):
         sensors = yield run_in_thread(self._get_sensors)
         self._logger.debug("retrieving data from %d sensors", len(sensors))
         oids = list(sensors.keys())
-        requests = [oids[x:x+MAX_SENSORS_PER_REQUEST]
-                    for x in range(0, len(oids), MAX_SENSORS_PER_REQUEST)]
+        requests = [
+            oids[x : x + MAX_SENSORS_PER_REQUEST]
+            for x in range(0, len(oids), MAX_SENSORS_PER_REQUEST)
+        ]
         for req in requests:
             data = yield self.agent.get(req).addCallback(
-                self._response_to_metrics, sensors, netboxes)
+                self._response_to_metrics, sensors, netboxes
+            )
             self._logger.debug("got data from sensors: %r", data)
 
     def _get_sensors(self):
@@ -73,13 +78,14 @@ class StatSensors(Plugin):
     def _response_to_metrics(self, result, sensors, netboxes):
         metrics = []
         timestamp = time.time()
-        data = ((sensors[oid], value) for oid, value in six.iteritems(result)
-                if oid in sensors)
+        data = (
+            (sensors[oid], value) for oid, value in result.items() if oid in sensors
+        )
         for sensor, value in data:
             # Attempt to support numbers-as-text values
-            if isinstance(value, six.binary_type):
+            if isinstance(value, bytes):
                 value = safestring(value)
-            if isinstance(value, six.text_type):
+            if isinstance(value, str):
                 try:
                     value = float(value)
                 except ValueError:
@@ -87,8 +93,7 @@ class StatSensors(Plugin):
 
             value = convert_to_precision(value, sensor)
             for netbox in netboxes:
-                path = metric_path_for_sensor(netbox,
-                                              sensor['internal_name'])
+                path = metric_path_for_sensor(netbox, sensor['internal_name'])
                 metrics.append((path, (timestamp, value)))
         send_metrics(metrics)
         return metrics
@@ -100,4 +105,4 @@ def convert_to_precision(value, sensor):
 
     """
     prec = sensor.get('precision', 0)
-    return value * (10 ** -prec) if value and prec else value
+    return value * (10**-prec) if value and prec else value

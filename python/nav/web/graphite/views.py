@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,9 +16,10 @@
 #
 import logging
 
-from django.utils.six.moves.urllib.request import Request, urlopen
-from django.utils.six.moves.urllib.error import HTTPError
-from django.utils.six.moves.urllib.parse import urljoin
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError
+from urllib.parse import urljoin
+
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseNotAllowed
 from nav.metrics import CONFIG
@@ -51,8 +53,12 @@ def index(request, uri):
         headers = error.hdrs
         output = error.fp.read()
 
-        _logger.error("%s error on graphite render request: "
-                      "%r with arguments: %r", status, url, data)
+        _logger.error(
+            "%s error on graphite render request: " "%r with arguments: %r",
+            status,
+            url,
+            data,
+        )
 
     else:
         status = proxy.getcode()

@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian:bullseye
 
 RUN  apt-get -y update && \
      apt-get install -y \
@@ -9,7 +9,6 @@ RUN  apt-get -y update && \
        automake \
        quilt \
        reportbug \
-       dh-systemd \
        git-buildpackage \
        libpq-dev \
        libjpeg-dev \
@@ -19,7 +18,7 @@ RUN  apt-get -y update && \
        python3-dev \
        python-all \
        python3-all \
-       libsnmp30 \
+       libsnmp40 \
      && \
      apt-get clean
 
@@ -28,6 +27,11 @@ RUN  apt-get -y update && \
          dh-virtualenv \
          dh-python \
          python3-setuptools
+
+# Backports game to make python-gammu build and install properly
+RUN  echo 'deb https://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
+     apt-get -y update && \
+     apt-get install -y libgammu-dev
 
 ENV  HOME /home
 ENV  QUILT_PATCHES debian/patches

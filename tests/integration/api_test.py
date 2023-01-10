@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-from django.utils.encoding import force_text
+from nav.compatibility import force_str
 
 from datetime import datetime, timedelta
 import json
@@ -12,56 +12,36 @@ from nav.models.fields import INFINITY
 from nav.web.api.v1.views import get_endpoints
 
 
-ENDPOINTS = { name:force_text(url) for name, url in get_endpoints().items() }
+ENDPOINTS = {name: force_str(url) for name, url in get_endpoints().items()}
 
 
 # Data for writable endpoints
 
 TEST_DATA = {
-    'account': {
-        'login': 'testuser',
-        'name': 'Test User',
-        'accountgroups': [2, 3]
-    },
+    'account': {'login': 'testuser', 'name': 'Test User', 'accountgroups': [2, 3]},
     'location': {
         'id': 'Kulsås',
         'data': {'a': 'b'},
         'parent': 'mylocation',
-        'description': 'ÆØÅ descr'
+        'description': 'ÆØÅ descr',
     },
     'netbox': {
         "ip": "158.38.152.169",
         "roomid": "myroom",
         "organizationid": "myorg",
         "categoryid": "SW",
-        "snmp_version": 2
+        "snmp_version": 2,
     },
-    'room': {
-        'id': 'blapp',
-        'location': 'mylocation'
-    },
+    'room': {'id': 'blapp', 'location': 'mylocation'},
     'vlan': {
         'net_type': 'scope',
     },
-    'prefix': {
-        'net_address': '158.38.240.0/25'
-    }
+    'prefix': {'net_address': '158.38.240.0/25'},
 }
 
 
-# Django newer than 1.9 can send a response that lacks the Content-Type header,
-# like for a delete. The __repr__ in django 1.9 and 1.10 directly looks up the
-# Content-Type header, leading to a KeyError. Therefore, don't print()
-# responses, which depends on __repr__.
-#
-# See django bug #27640. Fixed in Django 1.11
-def print_response(response):
-    print('<%(cls)s status_code=%(status_code)d%(content_type)s>' % {
-          'cls': response.__class__.__name__, 'status_code': response.status_code,
-          'content_type': response._headers.get('Content-Type', ''),})
-
-
 # Generic tests
+
 
 @pytest.mark.parametrize("url", ENDPOINTS.values())
 def test_forbidden_endpoints(db, api_client, url):
@@ -80,8 +60,7 @@ def test_allowed_endpoints(db, api_client, token, serializer_models, name, url):
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize("endpoint",
-                         ['account', 'location', 'room', 'vlan'])
+@pytest.mark.parametrize("endpoint", ['account', 'location', 'room', 'vlan'])
 def test_delete(db, api_client, token, endpoint):
     create_token_endpoint(token, endpoint)
     response_create = create(api_client, endpoint, TEST_DATA.get(endpoint))
@@ -89,19 +68,18 @@ def test_delete(db, api_client, token, endpoint):
     response_delete = delete(api_client, endpoint, res.get('id'))
     response_get = get(api_client, endpoint, res.get('id'))
 
-    print_response(response_delete)
+    print(response_delete)
     assert response_delete.status_code == 204
 
-    print_response(response_get)
+    print(response_get)
     assert response_get.status_code == 404
 
 
-@pytest.mark.parametrize("endpoint",
-                         ['account', 'netbox', 'location', 'room', 'vlan'])
+@pytest.mark.parametrize("endpoint", ['account', 'netbox', 'location', 'room', 'vlan'])
 def test_create(db, api_client, token, endpoint):
     create_token_endpoint(token, endpoint)
     response = create(api_client, endpoint, TEST_DATA.get(endpoint))
-    print_response(response)
+    print(response)
     assert response.status_code == 201
 
 
@@ -125,17 +103,18 @@ def test_ordering_should_not_crash(db, api_client, token):
 
 # Account specific tests
 
+
 def test_update_org_on_account(db, api_client, token):
     endpoint = 'account'
     create_token_endpoint(token, endpoint)
     data = {"organizations": ["myorg"]}
     response = update(api_client, endpoint, 1, data)
-    print_response(response)
+    print(response)
     assert response.status_code == 200
 
     data = {"organizations": []}
     response = update(api_client, endpoint, 1, data)
-    print_response(response)
+    print(response)
     assert response.status_code == 200
 
 
@@ -145,11 +124,12 @@ def test_update_group_on_org(db, api_client, token):
     # Only admin group
     data = {"accountgroups": [1]}
     response = update(api_client, endpoint, 1, data)
-    print_response(response)
+    print(response)
     assert response.status_code == 200
 
 
 # Netbox specific tests
+
 
 def test_update_netbox(db, api_client, token):
     endpoint = 'netbox'
@@ -158,7 +138,7 @@ def test_update_netbox(db, api_client, token):
     res = json.loads(response_create.content.decode('utf-8'))
     data = {'categoryid': 'GW'}
     response_update = update(api_client, endpoint, res['id'], data)
-    print_response(response_update)
+    print(response_update)
     assert response_update.status_code == 200
 
 
@@ -171,7 +151,7 @@ def test_delete_netbox(db, api_client, token):
     response_get = get(api_client, endpoint, json_create['id'])
     json_get = json.loads(response_get.content.decode('utf-8'))
 
-    print_response(response_delete)
+    print(response_delete)
     print(json_get['deleted_at'])
 
     assert response_delete.status_code == 204
@@ -184,7 +164,7 @@ def test_delete_netbox(db, api_client, token):
 def test_get_wrong_room(db, api_client, token):
     create_token_endpoint(token, 'room')
     response = api_client.get('{}blapp/'.format(ENDPOINTS['room']))
-    print_response(response)
+    print(response)
     assert response.status_code == 404
 
 
@@ -193,7 +173,7 @@ def test_get_new_room(db, api_client, token):
     create_token_endpoint(token, endpoint)
     create(api_client, endpoint, TEST_DATA.get(endpoint))
     response = api_client.get('/api/1/room/blapp/')
-    print_response(response)
+    print(response)
     assert response.status_code == 200
 
 
@@ -201,7 +181,7 @@ def test_patch_room_not_found(db, api_client, token):
     create_token_endpoint(token, 'room')
     data = {'location': 'mylocation'}
     response = api_client.patch('/api/1/room/blapp/', data, format='json')
-    print_response(response)
+    print(response)
     assert response.status_code == 404
 
 
@@ -211,7 +191,7 @@ def test_patch_room_wrong_location(db, api_client, token):
     create(api_client, endpoint, TEST_DATA.get(endpoint))
     data = {'location': 'mylocatio'}
     response = api_client.patch('/api/1/room/blapp/', data, format='json')
-    print_response(response)
+    print(response)
     assert response.status_code == 400
 
 
@@ -222,7 +202,7 @@ def test_patch_room(db, api_client, token):
     data = {'location': 'mylocation'}
     response = api_client.patch('/api/1/room/blapp/', data, format='json')
 
-    print_response(response)
+    print(response)
     assert response.status_code == 200
 
 
@@ -232,7 +212,7 @@ def test_delete_room_wrong_room(db, api_client, token):
     create(api_client, endpoint, TEST_DATA.get(endpoint))
     response = api_client.delete('/api/1/room/blap/')
 
-    print_response(response)
+    print(response)
     assert response.status_code == 404
 
 
@@ -243,15 +223,12 @@ def test_validate_vlan(db, api_client, token):
     testdata.update({'net_type': 'core'})
     response = create(api_client, endpoint, testdata)
 
-    print_response(response)
+    print(response)
     assert response.status_code == 400
 
 
 def prepare_prefix_test(db, api_client, token):
-    token.endpoints = {
-        'prefix': ENDPOINTS.get('prefix'),
-        'vlan': ENDPOINTS.get('vlan')
-    }
+    token.endpoints = {'prefix': ENDPOINTS.get('prefix'), 'vlan': ENDPOINTS.get('vlan')}
     token.save()
     testdata = dict(TEST_DATA.get('prefix'))
 
@@ -266,16 +243,14 @@ def test_create_prefix(db, api_client, token):
     testdata = prepare_prefix_test(db, api_client, token)
     response = create(api_client, endpoint, testdata)
 
-    print_response(response)
+    print(response)
     assert response.status_code == 201
 
 
 def test_create_prefix_with_usage(db, api_client, token, serializer_models):
     endpoint = 'prefix'
     testdata = prepare_prefix_test(db, api_client, token)
-    testdata.update({
-        'usages': ['ans']
-    })
+    testdata.update({'usages': ['ans']})
 
     response = create(api_client, endpoint, testdata)
     json_response = json.loads(response.content.decode('utf-8'))
@@ -285,18 +260,15 @@ def test_create_prefix_with_usage(db, api_client, token, serializer_models):
 def test_update_prefix_remove_usage(db, api_client, token, serializer_models):
     endpoint = 'prefix'
     testdata = prepare_prefix_test(db, api_client, token)
-    testdata.update({
-        'usages': ['ans', 'student']
-    })
+    testdata.update({'usages': ['ans', 'student']})
     response = create(api_client, endpoint, testdata)
     prefix = json.loads(response.content.decode('utf-8'))
 
-    testdata.update({
-        'usages': ['ans']
-    })
+    testdata.update({'usages': ['ans']})
     response = update(api_client, endpoint, prefix.get('id'), testdata)
     json_response = json.loads(response.content.decode('utf-8'))
     assert json_response.get('usages') == ['ans']
+
 
 # Alert specific tests
 
@@ -304,17 +276,15 @@ def test_update_prefix_remove_usage(db, api_client, token, serializer_models):
 def test_nonexistent_alert_should_give_404(db, api_client, token):
     create_token_endpoint(token, 'alert')
     response = api_client.get('{}9999/'.format(ENDPOINTS['alert']))
-    print_response(response)
+    print(response)
     assert response.status_code == 404
 
 
-def test_alert_should_be_visible_in_api(db, api_client, token,
-                                        serializer_models):
+def test_alert_should_be_visible_in_api(db, api_client, token, serializer_models):
     create_token_endpoint(token, 'alert')
     alert = AlertHistory.objects.all()[0]
-    response = api_client.get('{url}{id}/'.format(
-        url=ENDPOINTS['alert'], id=alert.id))
-    print_response(response)
+    response = api_client.get('{url}{id}/'.format(url=ENDPOINTS['alert'], id=alert.id))
+    print(response)
     assert response.status_code == 200
     content = response.content.decode('utf-8')
     # Simple string tests, but they might just as well parse the JSON structure
@@ -324,8 +294,10 @@ def test_alert_should_be_visible_in_api(db, api_client, token,
 
 # Interface specific tests
 
-def test_interface_with_last_used_should_be_listable(db, api_client, token,
-                                                     serializer_models):
+
+def test_interface_with_last_used_should_be_listable(
+    db, api_client, token, serializer_models
+):
     endpoint = 'interface'
     create_token_endpoint(token, endpoint)
     response = api_client.get('/api/1/interface/?last_used=on')
@@ -335,6 +307,7 @@ def test_interface_with_last_used_should_be_listable(db, api_client, token,
 
 # Helpers
 
+
 def create_token_endpoint(token, name):
     token.endpoints = {name: ENDPOINTS.get(name)}
     token.save()
@@ -343,7 +316,7 @@ def create_token_endpoint(token, name):
 def get(api_client, endpoint, id=None):
     endpoint = ENDPOINTS[endpoint]
     if id:
-        endpoint = endpoint + force_text(id) + '/'
+        endpoint = endpoint + force_str(id) + '/'
     return api_client.get(endpoint)
 
 
@@ -354,12 +327,14 @@ def create(api_client, endpoint, data):
 
 def update(api_client, endpoint, id, data):
     """Sends a patch request to endpoint with data"""
-    return api_client.patch(ENDPOINTS[endpoint] + force_text(id) + '/', data, format='json')
+    return api_client.patch(
+        ENDPOINTS[endpoint] + force_str(id) + '/', data, format='json'
+    )
 
 
 def delete(api_client, endpoint, id):
     """Sends a delete request to endpoint"""
-    return api_client.delete(ENDPOINTS[endpoint] + force_text(id) + '/')
+    return api_client.delete(ENDPOINTS[endpoint] + force_str(id) + '/')
 
 
 @pytest.mark.parametrize(
@@ -373,7 +348,7 @@ def delete(api_client, endpoint, id):
         ("api:1:prefix-usage-list", None),
         ("api:1:rack-detail", 1),
         ("api:1:room-list", None),
-    ]
+    ],
 )
 def test_api_urls_should_resolve(urlname, arg):
     """Regression test to verify that the view names generated by Django REST framework
@@ -387,6 +362,7 @@ def test_api_urls_should_resolve(urlname, arg):
 
 # Fixtures
 
+
 @pytest.fixture()
 def serializer_models(localhost):
     """Fixture for testing API serializers
@@ -396,18 +372,25 @@ def serializer_models(localhost):
     """
     from nav.models import cabling, event, manage, profiles, rack
     from nav.auditlog import models as auditlog
+
     netbox = localhost
 
     group = manage.NetboxGroup.objects.all()[0]
     manage.NetboxCategory(netbox=netbox, category=group).save()
 
-    interface = manage.Interface(netbox=netbox, ifindex=1, ifname='if1',
-                                 ifdescr='ifdescr', iftype=1, speed=10)
+    interface = manage.Interface(
+        netbox=netbox, ifindex=1, ifname='if1', ifdescr='ifdescr', iftype=1, speed=10
+    )
     interface.save()
-    manage.Cam(sysname='asd', mac='aa:aa:aa:aa:aa:aa', ifindex=1,
-               end_time=datetime.now()).save()
-    manage.Arp(sysname='asd', mac='aa:bb:cc:dd:ee:ff', ip='123.123.123.123',
-               end_time=datetime.now()).save()
+    manage.Cam(
+        sysname='asd', mac='aa:aa:aa:aa:aa:aa', ifindex=1, end_time=datetime.now()
+    ).save()
+    manage.Arp(
+        sysname='asd',
+        mac='aa:bb:cc:dd:ee:ff',
+        ip='123.123.123.123',
+        end_time=datetime.now(),
+    ).save()
     manage.Prefix(net_address='123.123.123.123').save()
     manage.Vlan(vlan=10, net_type_id='lan').save()
     rack.Rack(room_id='myroom').save()
@@ -421,12 +404,19 @@ def serializer_models(localhost):
 
     boxdown_id = 3
 
-    event.EventQueue(source=source, target=target, event_type=event_type, netbox=netbox).save()
-    event.AlertHistory(source=source, event_type=event_type, netbox=netbox,
-                       start_time=datetime.now() - timedelta(days=1),
-                       value=1, severity=50,
-                       alert_type_id=boxdown_id,
-                       end_time=INFINITY).save()
+    event.EventQueue(
+        source=source, target=target, event_type=event_type, netbox=netbox
+    ).save()
+    event.AlertHistory(
+        source=source,
+        event_type=event_type,
+        netbox=netbox,
+        start_time=datetime.now() - timedelta(days=1),
+        value=1,
+        severity=3,
+        alert_type_id=boxdown_id,
+        end_time=INFINITY,
+    ).save()
     admin = profiles.Account.objects.get(login='admin')
     auditlog.LogEntry.add_log_entry(admin, verb='verb', template='asd')
     manage.Usage(id='ans', description='Ansatte').save()

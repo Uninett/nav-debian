@@ -20,16 +20,25 @@ from socket import error as SocketError
 from django import forms
 from django.db.models import Q
 from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import (Layout, Row, Column, Submit,
-                                            Fieldset, Field, Div, HTML)
-from django.utils import six
+from crispy_forms_foundation.layout import (
+    Layout,
+    Row,
+    Column,
+    Submit,
+    Fieldset,
+    Field,
+    Div,
+    HTML,
+)
 
 from nav.django.forms import HStoreField
 from nav.web.crispyforms import LabelSubmit, NavButton
-from nav.models.manage import Room, Category, Organization, Netbox
-from nav.models.manage import NetboxInfo
-from nav.web.seeddb.utils.edit import (resolve_ip_and_sysname, does_ip_exist,
-                                       does_sysname_exist)
+from nav.models.manage import Room, Category, Organization, Netbox, ManagementProfile
+from nav.web.seeddb.utils.edit import (
+    resolve_ip_and_sysname,
+    does_ip_exist,
+    does_sysname_exist,
+)
 from nav.web.seeddb.forms import create_hierarchy
 
 _logger = logging.getLogger(__name__)
@@ -40,6 +49,7 @@ class MyModelMultipleChoiceField(forms.ModelMultipleChoiceField):
     This class only exists to override Django's unwanted default help text
     for ModelMultipleChoiceField
     """
+
     def __init__(self, *args, **kwargs):
         super(MyModelMultipleChoiceField, self).__init__(*args, **kwargs)
         self.help_text = kwargs.get('help_text', '')
@@ -47,23 +57,36 @@ class MyModelMultipleChoiceField(forms.ModelMultipleChoiceField):
 
 class NetboxModelForm(forms.ModelForm):
     """Modelform for netbox for use in SeedDB"""
+
     ip = forms.CharField()
     function = forms.CharField(required=False)
     data = HStoreField(label='Attributes', required=False)
     sysname = forms.CharField(required=False)
     virtual_instance = MyModelMultipleChoiceField(
-        queryset=Netbox.objects.none(), required=False,
+        queryset=Netbox.objects.none(),
+        required=False,
         label='Virtual instances',
-        help_text='The list of virtual instances inside this master device')
+        help_text='The list of virtual instances inside this master device',
+    )
 
     class Meta(object):
         model = Netbox
-        fields = ['ip', 'room', 'category', 'organization',
-                  'groups', 'sysname', 'type', 'data', 'master',
-                  'virtual_instance', 'profiles']
+        fields = [
+            'ip',
+            'room',
+            'category',
+            'organization',
+            'groups',
+            'sysname',
+            'type',
+            'data',
+            'master',
+            'virtual_instance',
+            'profiles',
+        ]
         help_texts = {
             'master': 'Select a master device when this IP Device is a virtual'
-                      ' instance'
+            ' instance'
         }
 
     def __init__(self, *args, **kwargs):
@@ -71,15 +94,15 @@ class NetboxModelForm(forms.ModelForm):
         self.fields['organization'].choices = create_hierarchy(Organization)
 
         # Master and instance related queries
-        masters = [n.master.pk for n in
-                   Netbox.objects.filter(master__isnull=False)]
+        masters = [n.master.pk for n in Netbox.objects.filter(master__isnull=False)]
         self.fields['master'].queryset = self.create_master_query(masters)
         self.fields['virtual_instance'].queryset = self.create_instance_query(masters)
 
         if self.instance.pk:
             # Set instances that we are master to as initial values
             self.initial['virtual_instance'] = Netbox.objects.filter(
-                master=self.instance)
+                master=self.instance
+            )
 
             # Disable fields based on current state
             if self.instance.master:
@@ -88,12 +111,7 @@ class NetboxModelForm(forms.ModelForm):
                 self.fields['master'].widget.attrs['disabled'] = True
 
             # Set the inital value of the function field
-            try:
-                netboxinfo = self.instance.info_set.get(variable='function')
-            except NetboxInfo.DoesNotExist:
-                pass
-            else:
-                self.fields['function'].initial = netboxinfo.value
+            self.fields['function'].initial = self.instance.get_function()
 
         css_class = 'large-4'
         self.helper = FormHelper()
@@ -104,36 +122,57 @@ class NetboxModelForm(forms.ModelForm):
         self.helper.layout = Layout(
             Row(
                 Column(
-                    Fieldset('Inventory',
-                             'ip',
-                             Div(id='verify-address-feedback'),
-                             'room', 'category', 'organization'),
-                    css_class=css_class),
+                    Fieldset(
+                        'Inventory',
+                        'ip',
+                        Div(id='verify-address-feedback'),
+                        'room',
+                        'category',
+                        'organization',
+                    ),
+                    css_class=css_class,
+                ),
                 Column(
-                    Fieldset('Management profiles',
-                             Field('profiles', css_class='select2'),
-                             NavButton('check_connectivity',
-                                       'Check connectivity',
-                                       css_class='check_connectivity')),
-                    Fieldset('Collected info',
-                             Div('sysname', 'type',
-                                 css_class='hide',
-                                 css_id='real_collected_fields')),
-                    css_class=css_class),
+                    Fieldset(
+                        'Management profiles',
+                        Field('profiles', css_class='select2'),
+                        NavButton(
+                            'check_connectivity',
+                            'Check connectivity',
+                            css_class='check_connectivity',
+                        ),
+                    ),
+                    Fieldset(
+                        'Collected info',
+                        Div(
+                            'sysname',
+                            'type',
+                            css_class='hide',
+                            css_id='real_collected_fields',
+                        ),
+                    ),
+                    css_class=css_class,
+                ),
                 Column(
                     Fieldset(
                         'Meta information',
                         'function',
                         Field('groups', css_class='select2'),
                         'data',
-                        HTML("<a class='advanced-toggle'><i class='fa fa-caret-square-o-right'>&nbsp;</i>Advanced options</a>"),
+                        HTML(
+                            "<a class='advanced-toggle'><i class='fa fa-caret-square-o-right'>&nbsp;</i>Advanced options</a>"
+                        ),
                         Div(
-                            HTML('<small class="alert-box">NB: An IP Device cannot both have a master and have virtual instances</small>'),
-                            'master', 'virtual_instance',
-                            css_class='advanced'
-                        )
+                            HTML(
+                                '<small class="alert-box">NB: An IP Device cannot both have a master and have virtual instances</small>'
+                            ),
+                            'master',
+                            'virtual_instance',
+                            css_class='advanced',
+                        ),
                     ),
-                    css_class=css_class),
+                    css_class=css_class,
+                ),
             ),
         )
 
@@ -143,7 +182,8 @@ class NetboxModelForm(forms.ModelForm):
         # - Should see those we are master for
         # - Should see those who have no master
         queryset = Netbox.objects.exclude(pk__in=masters).filter(
-            Q(master=self.instance.pk) | Q(master__isnull=True))
+            Q(master=self.instance.pk) | Q(master__isnull=True)
+        )
 
         if self.instance.pk:
             queryset = queryset.exclude(pk=self.instance.pk)
@@ -166,7 +206,7 @@ class NetboxModelForm(forms.ModelForm):
             ip, _ = resolve_ip_and_sysname(name)
         except SocketError:
             raise forms.ValidationError("Could not resolve name %s" % name)
-        return six.text_type(ip)
+        return str(ip)
 
     def clean_sysname(self):
         """Resolve sysname if not set"""
@@ -193,7 +233,8 @@ class NetboxModelForm(forms.ModelForm):
 
         if cat and cat.req_mgmt and not profiles:
             self._errors['profiles'] = self.error_class(
-                ["Category %s requires a management profile." % cat.id])
+                ["Category %s requires a management profile." % cat.id]
+            )
             del cleaned_data['profiles']
 
         return cleaned_data
@@ -213,8 +254,9 @@ class NetboxModelForm(forms.ModelForm):
         instances = self.cleaned_data.get('virtual_instance')
 
         # Clean up instances
-        Netbox.objects.filter(
-            master=netbox).exclude(pk__in=instances).update(master=None)
+        Netbox.objects.filter(master=netbox).exclude(pk__in=instances).update(
+            master=None
+        )
 
         # Add new instances
         for instance in instances:
@@ -226,12 +268,17 @@ class NetboxModelForm(forms.ModelForm):
 
 class NetboxFilterForm(forms.Form):
     """Form for filtering netboxes on the list page"""
+
     category = forms.ModelChoiceField(
-        Category.objects.order_by('id').all(), required=False)
-    room = forms.ModelChoiceField(
-        Room.objects.order_by('id').all(), required=False)
+        Category.objects.order_by('id').all(), required=False
+    )
+    room = forms.ModelChoiceField(Room.objects.order_by('id').all(), required=False)
     organization = forms.ModelChoiceField(
-        Organization.objects.order_by('id').all(), required=False)
+        Organization.objects.order_by('id').all(), required=False
+    )
+    profile = forms.ModelChoiceField(
+        ManagementProfile.objects.order_by('id').all(), required=False
+    )
 
     def __init__(self, *args, **kwargs):
         super(NetboxFilterForm, self).__init__(*args, **kwargs)
@@ -247,24 +294,36 @@ class NetboxFilterForm(forms.Form):
                     Column('category', css_class='medium-3'),
                     Column('room', css_class='medium-3'),
                     Column('organization', css_class='medium-3'),
-                    Column(LabelSubmit('submit', 'Filter',
-                                       css_class='postfix'),
-                           css_class='medium-3')
-                )
+                    Column('profile', css_class='medium-3'),
+                    Column(
+                        LabelSubmit('submit', 'Filter', css_class='postfix'),
+                        css_class='medium-3',
+                    ),
+                ),
             )
         )
+
+    @staticmethod
+    def map_formfieldname_to_queryname(fieldname):
+        # Support for ManyToMany lookups, often called "modelname_set"
+        # Helps preserve consistency of UI
+        if fieldname == 'profile':
+            return 'profiles'
+        return fieldname
 
 
 class NetboxMoveForm(forms.Form):
     """Form for moving netboxes to another room and/or organization"""
-    room = forms.ModelChoiceField(
-        Room.objects.order_by('id').all(), required=False)
+
+    room = forms.ModelChoiceField(Room.objects.order_by('id').all(), required=False)
     organization = forms.ModelChoiceField(
-        Organization.objects.order_by('id').all(), required=False)
+        Organization.objects.order_by('id').all(), required=False
+    )
 
 
 class IPExistsException(Exception):
     """Exception raised when a device with the same IP-address exists"""
+
     def __init__(self, message_list, **kwargs):
         """
         :param message_list: A list of messages associated with this error.

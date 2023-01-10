@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -64,8 +65,6 @@ from functools import partial
 import logging
 import re
 
-from django.utils.six import iteritems, iterkeys
-
 from nav.metrics.data import get_metric_average
 from nav.metrics.graphs import get_metric_meta, extract_series_name
 
@@ -76,9 +75,12 @@ from nav.metrics.lookup import lookup
 from nav.models.manage import Interface
 
 
-EXPRESSION_PATTERN = re.compile(r'^ \s* (?P<operator> [<>] ) \s* '
-                                r'(?P<value> ([+-])? [0-9]+(\.[0-9]+)? ) \s*'
-                                r'(?P<percent>%)? \s* $', re.VERBOSE)
+EXPRESSION_PATTERN = re.compile(
+    r'^ \s* (?P<operator> [<>] ) \s* '
+    r'(?P<value> ([+-])? [0-9]+(\.[0-9]+)? ) \s*'
+    r'(?P<percent>%)? \s* $',
+    re.VERBOSE,
+)
 
 DEFAULT_INTERVAL = timedelta(minutes=10)
 MINUTE = timedelta(minutes=1).total_seconds()
@@ -105,6 +107,7 @@ class ThresholdEvaluator(object):
     >>>
 
     """
+
     def __init__(self, target, period=DEFAULT_INTERVAL, raw=False):
         """
         :param target: A graphite target/seriesList to look at.
@@ -125,8 +128,7 @@ class ThresholdEvaluator(object):
 
     def __repr__(self):
         return "{cls}({orig_target!r}, {period!r}, {raw!r})".format(
-            cls=self.__class__.__name__,
-            **vars(self)
+            cls=self.__class__.__name__, **vars(self)
         )
 
     def get_values(self):
@@ -135,12 +137,19 @@ class ThresholdEvaluator(object):
         """
         start = "-{0}".format(interval_to_graphite(self.period))
         averages = get_metric_average(
-            self.target, start=start, end='now', ignore_unknown=True)
-        _logger.debug("retrieved %d values from graphite for %r, "
-                      "period %s: %r",
-                      len(averages), self.target, self.period, averages)
-        self.result = dict((extract_series_name(key), dict(value=value))
-                           for key, value in iteritems(averages))
+            self.target, start=start, end='now', ignore_unknown=True
+        )
+        _logger.debug(
+            "retrieved %d values from graphite for %r, " "period %s: %r",
+            len(averages),
+            self.target,
+            self.period,
+            averages,
+        )
+        self.result = dict(
+            (extract_series_name(key), dict(value=value))
+            for key, value in averages.items()
+        )
         return self.result
 
     def evaluate(self, expression, invert=False):
@@ -157,9 +166,11 @@ class ThresholdEvaluator(object):
                   last retrieved current value matches the expression.
         """
         matcher = self._get_matcher(expression)
-        result = [(metric, self.result[metric]['value'])
-                  for metric in iterkeys(self.result)
-                  if bool(matcher(metric)) ^ bool(invert)]
+        result = [
+            (metric, self.result[metric]['value'])
+            for metric in self.result.keys()
+            if bool(matcher(metric)) ^ bool(invert)
+        ]
         return result
 
     def _get_matcher(self, expression):
@@ -177,12 +188,12 @@ class ThresholdEvaluator(object):
 
     def _gt(self, value, percent, metric):
         current = self._calculate_current(percent, metric)
-        if current:
+        if current is not None:
             return current > value
 
     def _lt(self, value, percent, metric):
         current = self._calculate_current(percent, metric)
-        if current:
+        if current is not None:
             return current < value
 
     def _calculate_current(self, percent, metric):
@@ -215,6 +226,7 @@ def get_metric_maximum(metric):
 
 class InvalidExpressionError(Exception):
     """Invalid threshold match expression"""
+
     pass
 
 
@@ -226,10 +238,10 @@ def interval_to_graphite(delta):
     """
     secs = delta.total_seconds()
     if secs % YEAR == 0:
-        return "{0}year".format(int(secs/YEAR))
+        return "{0}year".format(int(secs / YEAR))
     elif secs % DAY == 0:
-        return "{0}day".format(int(secs/DAY))
+        return "{0}day".format(int(secs / DAY))
     elif secs % MINUTE == 0:
-        return "{0}min".format(int(secs/MINUTE))
+        return "{0}min".format(int(secs / MINUTE))
     else:
         return "{0}s".format(int(secs))

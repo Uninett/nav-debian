@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2007-2009 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -22,7 +23,7 @@ from operator import attrgetter
 
 from django.conf import settings
 
-from nav.config import find_configfile
+from nav.config import find_config_file
 from nav.web.auth import get_sudoer, get_login_url, get_logout_url
 from nav.django.utils import get_account, is_admin
 from nav.web.message import Messages
@@ -31,8 +32,9 @@ from nav.models.profiles import NavbarLink
 from nav.buildconf import VERSION
 from nav.metrics import CONFIG
 
-CONTACT_INFORMATION_PATH = find_configfile(
-    os.path.join("webfront", "contact-information.txt"))
+CONTACT_INFORMATION_PATH = find_config_file(
+    os.path.join("webfront", "contact-information.txt")
+)
 
 
 def debug(_request):
@@ -44,6 +46,7 @@ def debug(_request):
     if settings.DEBUG:
         context_extras['debug'] = True
         from django.db import connection
+
         context_extras['sql_queries'] = connection.queries
     return context_extras
 
@@ -80,7 +83,7 @@ def account_processor(request):
         'messages': messages,
         'my_links': my_links,
         'tools': tools,
-        'split_tools': split_tools(tools)
+        'split_tools': split_tools(tools),
     }
     return {
         'current_user_data': current_user_data,
@@ -94,9 +97,7 @@ def nav_version(_request):
 
 
 def footer_info(_request):
-    return {
-        'contact_information': quick_read(CONTACT_INFORMATION_PATH)
-    }
+    return {'contact_information': quick_read(CONTACT_INFORMATION_PATH)}
 
 
 def toolbox(request):
@@ -105,9 +106,7 @@ def toolbox(request):
 
 def graphite_base(_request):
     """Provide graphite dashboard url in context"""
-    return {
-        'graphite_base': CONFIG.get('graphiteweb', 'base')
-    }
+    return {'graphite_base': CONFIG.get('graphiteweb', 'base')}
 
 
 def auth(request):

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -23,7 +24,6 @@ from collections import defaultdict
 
 import django
 from django.db import transaction
-from django.utils import six
 
 from nav import buildconf
 from nav.logs import init_generic_logging
@@ -57,8 +57,10 @@ def make_option_parser():
     """Sets up and returns a command line option parser."""
     parser = OptionParser(
         version="NAV " + buildconf.VERSION,
-        description=("Scans metric values for exceeded thresholds, according"
-                     "to configured threshold rules.")
+        description=(
+            "Scans metric values for exceeded thresholds, according"
+            "to configured threshold rules."
+        ),
     )
     return parser
 
@@ -87,26 +89,25 @@ def evaluate_rule(rule, alerts):
         if not evaluator.get_values():
             _logger.warning(
                 "did not find any matching values for rule %r %s",
-                rule.target, rule.alert
+                rule.target,
+                rule.alert,
             )
     except Exception:
-        _logger.exception(
-            "Unhandled exception while getting values for rule: %r", rule
-        )
+        _logger.exception("Unhandled exception while getting values for rule: %r", rule)
         return
 
     # post new exceed events
     try:
         exceeded = evaluator.evaluate(rule.alert)
     except Exception:
-        _logger.exception("Unhandled exception while evaluating rule alert: %r",
-                          rule)
+        _logger.exception("Unhandled exception while evaluating rule alert: %r", rule)
         return
 
     for metric, value in exceeded:
         alert = alerts.get(rule.id, {}).get(metric, None)
-        _logger.info("%s: %s %s (=%s)",
-                     "old" if alert else "new", metric, rule.alert, value)
+        _logger.info(
+            "%s: %s %s (=%s)", "old" if alert else "new", metric, rule.alert, value
+        )
         if not alert:
             start_event(rule, metric, value)
 
@@ -120,13 +121,13 @@ def evaluate_rule(rule, alerts):
                 cleared = evaluator.evaluate(rule.alert, invert=True)
         except Exception:
             _logger.exception(
-                "Unhandled exception while evaluating rule clear: %r", rule)
+                "Unhandled exception while evaluating rule clear: %r", rule
+            )
             return
 
         for metric, value in cleared:
             if metric in clearable:
-                _logger.info("cleared: %s %s (=%s)",
-                             metric, rule.clear, value)
+                _logger.info("cleared: %s %s (=%s)", metric, rule.clear, value)
                 end_event(rule, metric, value)
 
 
@@ -136,8 +137,9 @@ def get_unresolved_threshold_alerts():
     and metric names.
     """
     alert_map = defaultdict(dict)
-    alerts = AlertHistory.objects.filter(event_type__id='thresholdState',
-                                         end_time__gte=INFINITY)
+    alerts = AlertHistory.objects.filter(
+        event_type__id='thresholdState', end_time__gte=INFINITY
+    )
     for alert in alerts:
         try:
             ruleid, metric = alert.subid.split(':', 1)
@@ -171,11 +173,14 @@ def make_event(start, rule, metric, value):
     event.state = event.STATE_START if start else event.STATE_END
     event.subid = "{rule}:{metric}".format(rule=rule.id, metric=metric)
 
-    varmap = dict(metric=metric, alert=rule.alert,
-                  ruleid=six.text_type(rule.id),
-                  measured_value=six.text_type(value))
+    varmap = dict(
+        metric=metric,
+        alert=rule.alert,
+        ruleid=str(rule.id),
+        measured_value=str(value),
+    )
     if rule.clear:
-        varmap['clear'] = six.text_type(rule.clear)
+        varmap['clear'] = str(rule.clear)
     _add_subject_details(event, metric, varmap)
 
     event.save()
@@ -189,8 +194,8 @@ def _add_subject_details(event, metric, varmap):
     if obj:
         try:
             varmap['subject'] = "{table}:{pk}".format(
-                table=getattr(obj, '_meta').db_table,
-                pk=obj.pk)
+                table=getattr(obj, '_meta').db_table, pk=obj.pk
+            )
         except AttributeError:
             pass  # probably wasn't a Django model object, fuhgeddaboutit
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -35,13 +36,14 @@ from nav.web.seeddb import SeeddbInfo, reverse_lazy
 from nav.web.seeddb.constants import SEEDDB_EDITABLE_MODELS
 from nav.web.seeddb.page import view_switcher, not_implemented
 from nav.web.seeddb.utils.list import render_list
-from nav.web.seeddb.utils.edit import _get_object
+from nav.web.seeddb.utils.edit import _get_object, render_edit
 from nav.web.seeddb.utils.bulk import render_bulkimport
 from nav.web.seeddb.utils.delete import render_delete
 
 
 class PrefixInfo(SeeddbInfo):
     """Info-container for prefix"""
+
     active = {'prefix': True}
     caption = 'Prefix'
     tab_template = 'seeddb/tabs_generic.html'
@@ -58,6 +60,7 @@ class PrefixInfo(SeeddbInfo):
 
 class PrefixForm(forms.ModelForm):
     """Modelform for editing a prefix"""
+
     net_address = CIDRField(label="Prefix/mask (CIDR)")
 
     class Meta(object):
@@ -67,50 +70,78 @@ class PrefixForm(forms.ModelForm):
 
 class PrefixVlanForm(forms.ModelForm):
     """Modelform for Vlan with additional fields for editing prefixes"""
-    net_type = forms.ModelChoiceField(
-        queryset=NetType.objects.filter(edit=True))
+
+    net_type = forms.ModelChoiceField(queryset=NetType.objects.filter(edit=True))
 
     class Meta(object):
         model = Vlan
-        fields = ('description', 'net_ident', 'vlan', 'organization', 'usage',
-                  'net_type')
+        fields = (
+            'description',
+            'net_ident',
+            'vlan',
+            'organization',
+            'usage',
+            'net_type',
+        )
 
 
 def get_prefix_view(request):
     """Select appropriate view based on request POST data"""
-    return view_switcher(request,
-                         list_view=prefix_list,
-                         delete_view=prefix_delete,
-                         move_view=not_implemented)
+    return view_switcher(
+        request,
+        list_view=prefix_list,
+        delete_view=prefix_delete,
+        move_view=not_implemented,
+    )
 
 
 def prefix_list(request):
     """Controller for listing prefixes"""
     info = PrefixInfo()
-    query = Prefix.objects.filter(vlan__net_type__edit=True)
+    query = Prefix.objects.filter(vlan__net_type__edit=True).select_related(
+        "vlan__net_type", "vlan__organization", "vlan__usage"
+    )
     value_list = (
-        'net_address', 'vlan__net_type', 'vlan__organization',
-        'vlan__net_ident', 'vlan__usage', 'vlan__description', 'vlan__vlan')
-    return render_list(request, query, value_list, 'seeddb-prefix-edit',
-                       extra_context=info.template_context)
+        'net_address',
+        'vlan__net_type',
+        'vlan__organization',
+        'vlan__net_ident',
+        'vlan__usage',
+        'vlan__description',
+        'vlan__vlan',
+    )
+    return render_list(
+        request,
+        query,
+        value_list,
+        'seeddb-prefix-edit',
+        extra_context=info.template_context,
+    )
 
 
 def prefix_delete(request, object_id=None):
     """Controller for deleting prefixes"""
     info = PrefixInfo()
-    return render_delete(request, Prefix, 'seeddb-prefix',
-                         whitelist=SEEDDB_EDITABLE_MODELS,
-                         extra_context=info.template_context,
-                         object_id=object_id)
+    return render_delete(
+        request,
+        Prefix,
+        'seeddb-prefix',
+        whitelist=SEEDDB_EDITABLE_MODELS,
+        extra_context=info.template_context,
+        object_id=object_id,
+    )
 
 
 def prefix_bulk(request):
     """Controller for bulk importing prefixes"""
     info = PrefixInfo()
     return render_bulkimport(
-        request, PrefixBulkParser, PrefixImporter,
+        request,
+        PrefixBulkParser,
+        PrefixImporter,
         'seeddb-prefix',
-        extra_context=info.template_context)
+        extra_context=info.template_context,
+    )
 
 
 @transaction.atomic()
@@ -129,18 +160,36 @@ def prefix_edit(request, prefix_id=None):
             msg = "Saved prefix %s" % prefix.net_address
             new_message(request, msg, Messages.SUCCESS)
             return HttpResponseRedirect(
-                reverse('seeddb-prefix-edit', args=(prefix.id,)))
+                reverse('seeddb-prefix-edit', args=(prefix.id,))
+            )
     else:
         prefix_form = PrefixForm(instance=prefix, initial=request.GET.dict())
         vlan_form = PrefixVlanForm(instance=vlan, initial=request.GET.dict())
+    if prefix_id:
+        detail_page_url = reverse_lazy(
+            'prefix-details', kwargs={'prefix_id': prefix_id}
+        )
+    else:
+        detail_page_url = ""
     context = info.template_context
-    context.update({
-        'object': prefix,
-        'form': prefix_form,
-        'vlan_form': vlan_form,
-        'sub_active': prefix and {'edit': True} or {'add': True},
-    })
-    return render(request, 'seeddb/edit_prefix.html', context)
+    context.update(
+        {
+            'object': prefix,
+            'form': prefix_form,
+            'vlan_form': vlan_form,
+            'sub_active': prefix and {'edit': True} or {'add': True},
+            'detail_page_url': detail_page_url,
+        }
+    )
+    return render_edit(
+        request,
+        Prefix,
+        PrefixForm,
+        prefix_id,
+        "seeddb-prefix-edit",
+        template="seeddb/edit_prefix.html",
+        extra_context=context,
+    )
 
 
 def get_prefix_and_vlan(prefix_id):

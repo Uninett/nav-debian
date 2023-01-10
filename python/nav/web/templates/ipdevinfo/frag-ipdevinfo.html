@@ -240,9 +240,9 @@
               <th>Uptime</th>
               <td>
                 {{ netbox.get_up_display|capfirst }}
-                {% ifequal netbox.up netbox.UP_UP %}
+                {% if netbox.up == netbox.UP_UP %}
                   for {{ netbox.up_since|timesince }}
-                {% endifequal %}
+                {% endif %}
               </td>
             </tr>
 
@@ -329,7 +329,7 @@
                   <ul class="normalize-font-size">
                     {% for task in current_maintenance_tasks %}
                       <li>
-                        <a href="{% url 'maintenance-edit' task.id %}">
+                        <a href="{% url 'maintenance-view' task.id %}">
                           {{ task.description }}
 
                         </a>
@@ -368,7 +368,7 @@
                   <ul class="normalize-font-size">
                     {% for task in future_maintenance_tasks %}
                       <li>
-                        <a href="{% url 'maintenance-edit' task.id %}">
+                        <a href="{% url 'maintenance-view' task.id %}">
                           {{ task.description }}
                         </a>
                         <div>
@@ -393,21 +393,23 @@
 
 
         {# Custom key value fields #}
-        {% if netbox.data %}
+        {% with dunderless_dict=netbox.data|dunderless %}
+        {% if dunderless_dict %}
           <table class="vertitable full-width">
             <caption>Custom data</caption>
 
             <tbody>
-              {% for key, value in netbox.data.items %}
+              {% for key, value in dunderless_dict.items %}
                 <tr>
                   <th>{{ key }}</th>
-                  <td>{{ value }}</td>
+                  <td>{{ value|urlize }}</td>
                 </tr>
               {% endfor %}
             </tbody>
 
           </table>
         {% endif %}
+        {% endwith %}
 
 
         {% with netbox.get_last_jobs as jobs %}
@@ -577,7 +579,7 @@
             <tr>
               <th>Last active</th>
               <td>
-                {% ifequal no_netbox.dt_max arp.end_time %}
+                {% if no_netbox.dt_max == arp.end_time %}
                   <a href="{% query 'machinetracker-mac' mac=arp.mac days=1 %}">
                     Right now
                   </a>
@@ -590,7 +592,7 @@
                   {% else %}
                     Never
                   {% endif %}
-                {% endifequal %}
+                {% endif %}
               </td>
             </tr>
 

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2006, 2010, 2016 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -26,15 +27,14 @@ import time
 import re
 
 import yaml
-from django.utils import six
 
-from nav.config import open_configfile, find_configfile, NAV_CONFIG
+from nav.config import open_configfile, find_config_file, NAV_CONFIG
 from nav.errors import GeneralException
 from nav import buildconf
 
 INFOHEAD = '## info:'
 DAEMON_CONFIG = 'daemons.yml'
-CRON_DIR = find_configfile('cron.d')
+CRON_DIR = find_config_file('cron.d')
 
 
 def get_info_from_content(content):
@@ -43,12 +43,13 @@ def get_info_from_content(content):
         if not line.startswith('#'):
             break
         elif line.startswith(INFOHEAD):
-            return line[len(INFOHEAD):].strip()
+            return line[len(INFOHEAD) :].strip()
 
 
 class Service(object):
-    """ Represents a NAV service in general, and should never be
+    """Represents a NAV service in general, and should never be
     instantiated."""
+
     def __init__(self, filename):
         self.name = os.path.split(filename)[1]
         self.info = 'N/A'
@@ -89,7 +90,8 @@ class Service(object):
 
 
 class DaemonService(Service):
-    """ Represents daemon based services."""
+    """Represents daemon based services."""
+
     status = None
 
     def __init__(self, name, service_dict, source=None):
@@ -124,7 +126,7 @@ class DaemonService(Service):
         if not self.service_dict.get("privileged", False):
             # run command as regular nav user
             user = NAV_CONFIG.get("NAV_USER", "navcron")
-            command = 'su -c "{command}" {user}'.format(
+            command = 'su - {user} -c "{command}"'.format(
                 command=self._command, user=user
             )
         else:
@@ -146,7 +148,7 @@ class DaemonService(Service):
                 else:
                     raise
             if self.is_up(pid=pid):
-                delay = (attempt+1) * 2
+                delay = (attempt + 1) * 2
                 time.sleep(delay)
         else:
             return False
@@ -215,13 +217,15 @@ class DaemonService(Service):
             else:
                 stdout = stderr = None
 
-            self.status = subprocess.call(list(shlex.split(command)),
-                                          stdout=stdout, stderr=stderr)
+            self.status = subprocess.call(
+                list(shlex.split(command)), stdout=stdout, stderr=stderr
+            )
             return self.status == 0
 
 
 class CronService(Service):
-    """ Represents cron based services."""
+    """Represents cron based services."""
+
     crontab = None
 
     def __init__(self, filename):
@@ -239,12 +243,14 @@ class CronService(Service):
     @classmethod
     def load_services(cls):
         def _is_blacklisted(fname):
-            return (fname.startswith('.') or fname.endswith('~')
-                    or '.dpkg-' in fname)
+            return fname.startswith('.') or fname.endswith('~') or '.dpkg-' in fname
+
         if CRON_DIR:
-            filelist = [os.path.join(CRON_DIR, f)
-                        for f in os.listdir(CRON_DIR)
-                        if not _is_blacklisted(f)]
+            filelist = [
+                os.path.join(CRON_DIR, f)
+                for f in os.listdir(CRON_DIR)
+                if not _is_blacklisted(f)
+            ]
         else:
             filelist = []
         servicelist = [cls(f) for f in filelist]
@@ -295,8 +301,11 @@ class CronService(Service):
             if not silent:
                 print("Up")
                 if running_content != my_content:
-                    print("NOTICE: Current crontab does not match the content"
-                          " of %s" % self.name, file=sys.stderr)
+                    print(
+                        "NOTICE: Current crontab does not match the content"
+                        " of %s" % self.name,
+                        file=sys.stderr,
+                    )
             return True
         else:
             if not silent:
@@ -308,9 +317,10 @@ class CronService(Service):
 
 
 class Crontab(object):
-    """ Represents the crontab of a user.  Recognizes tags to define a
+    """Represents the crontab of a user.  Recognizes tags to define a
     block structure, which can be set/retrieved using a Crontab object
     as a dictionary."""
+
     def __init__(self, user):
         self.user = user
         self.content = ''
@@ -351,8 +361,9 @@ class Crontab(object):
     def save(self):
         """Saves the current state to the crontab"""
         self.update_init()
-        proc = subprocess.Popen(["crontab", "-u", self.user, "-"],
-                                stdin=subprocess.PIPE)
+        proc = subprocess.Popen(
+            ["crontab", "-u", self.user, "-"], stdin=subprocess.PIPE
+        )
         proc.stdin.write(str(self).encode('utf-8'))
         proc.stdin.close()
 
@@ -361,10 +372,9 @@ class Crontab(object):
             raise CrontabError(exit_code)
 
     def update_init(self):
-        """ Update the __init__ block with current environment
+        """Update the __init__ block with current environment
         variables and such."""
-        time_string = time.strftime("%Y-%m-%d %H:%M:%S",
-                                    time.localtime(time.time()))
+        time_string = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
         env_vars = ('PERL5LIB', 'PYTHONPATH', 'CLASSPATH', 'PATH')
         init_block = ['# NAV updated this crontab at: ' + time_string]
         for var in env_vars:
@@ -412,12 +422,12 @@ class Crontab(object):
 
     def __getitem__(self, key):
         pos = self._blocks[key]
-        return self.content[pos[0]+1:pos[1]]
+        return self.content[pos[0] + 1 : pos[1]]
 
     def __setitem__(self, key, content):
 
         block = ['##block %s##' % key, '##end##']
-        if isinstance(content, six.string_types):
+        if isinstance(content, str):
             block[1:1] = content.split('\n')
         else:
             block[1:1] = content
@@ -433,7 +443,7 @@ class Crontab(object):
 
     def __delitem__(self, key):
         pos = self._blocks[key]
-        del self.content[pos[0]:pos[1]+1]
+        del self.content[pos[0] : pos[1] + 1]
         self._parse_blocks()
 
     def __str__(self):
@@ -441,7 +451,8 @@ class Crontab(object):
 
 
 class ServiceRegistry(dict):
-    """ Registry of known NAV services."""
+    """Registry of known NAV services."""
+
     def __init__(self):
         super(ServiceRegistry, self).__init__()
 
@@ -451,6 +462,7 @@ class ServiceRegistry(dict):
 
         for service in service_list:
             self[service.name] = service
+
 
 #
 # Exception/Error classes
@@ -462,7 +474,7 @@ class ServiceError(GeneralException):
 
 
 class CommandNotSupportedError(ServiceError):
-    """"Command not supported"""
+    """ "Command not supported"""
 
 
 class CommandFailedError(ServiceError):
@@ -474,4 +486,4 @@ class CrontabError(ServiceError):
 
 
 class CrontabBlockError(CrontabError):
-    """"There is an error in the block format of the crontab"""
+    """ "There is an error in the block format of the crontab"""

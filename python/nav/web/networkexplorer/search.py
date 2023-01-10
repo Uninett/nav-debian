@@ -88,13 +88,17 @@ def search_expand_swport(swportid=None, swport=None, scanned=[]):
 
     # Find gwport that has the same vlan
     for swportvlan in swport.swportvlan_set.exclude(
-            vlan__net_type='static').select_related():
+        vlan__net_type='static'
+    ).select_related():
         for prefix in swportvlan.vlan.prefix_set.all():
             for gwportprefix in prefix.gwportprefix_set.all():
                 found_gwports.append(gwportprefix.interface)
 
-    for port in Interface.objects.filter(to_interface=swport).exclude(
-            to_interface__in=scanned).select_related():
+    for port in (
+        Interface.objects.filter(to_interface=swport)
+        .exclude(to_interface__in=scanned)
+        .select_related()
+    ):
         scanned.append(port)
 
         found_swports.append(port)
@@ -104,18 +108,18 @@ def search_expand_swport(swportid=None, swport=None, scanned=[]):
         found_swports.extend(recurs_found[1])
 
     for port in Interface.objects.filter(
-            to_interface__in=found_swports,
-            gwportprefix__isnull=False):
+        to_interface__in=found_swports, gwportprefix__isnull=False
+    ):
         found_gwports.append(port)
 
     for port in Interface.objects.filter(
-            to_netbox=swport.netbox,
-            gwportprefix__isnull=False):
+        to_netbox=swport.netbox, gwportprefix__isnull=False
+    ):
         found_gwports.append(port)
 
     for port in Interface.objects.filter(
-            to_interface=swport,
-            gwportprefix__isnull=False):
+        to_interface=swport, gwportprefix__isnull=False
+    ):
         found_gwports.append(port)
 
     return found_gwports, found_swports
@@ -136,8 +140,10 @@ def search_expand_netbox(netboxid=None, netbox=None):
             return [], []
 
     for result in netbox.get_uplinks():
-        if (result['other'].__class__ == Interface
-                and result['other'].gwportprefix_set.count()):
+        if (
+            result['other'].__class__ == Interface
+            and result['other'].gwportprefix_set.count()
+        ):
             found_gwports.append(result['other'])
         else:
             found_swports.append(result['other'])
@@ -158,8 +164,7 @@ def search_expand_netbox(netboxid=None, netbox=None):
 
 
 def search_expand_sysname(sysname=None):
-    """
-    """
+    """ """
     try:
         netbox = Netbox.objects.get(sysname=sysname)
     except Netbox.DoesNotExist:
@@ -169,8 +174,7 @@ def search_expand_sysname(sysname=None):
 
 
 def search_expand_mac(mac=None):
-    """
-    """
+    """ """
 
     if not mac or not MacRE.match(mac):
         return [], []
@@ -198,6 +202,7 @@ def search_expand_mac(mac=None):
 
 # Search functions
 
+
 def sysname_search(sysname, exact=False):
     """
     Searches the database for any connections to the sysname
@@ -207,14 +212,12 @@ def sysname_search(sysname, exact=False):
     swport_matches = set()
 
     if exact:
-        routers = Netbox.objects.filter(
-            sysname=sysname,
-            category__in=['GW', 'GSW'])
+        routers = Netbox.objects.filter(sysname=sysname, category__in=['GW', 'GSW'])
         netboxes = Netbox.objects.filter(sysname=sysname)
     else:
         routers = Netbox.objects.filter(
-            sysname__icontains=sysname,
-            category__in=['GW', 'GSW'])
+            sysname__icontains=sysname, category__in=['GW', 'GSW']
+        )
         netboxes = Netbox.objects.filter(sysname__icontains=sysname)
 
     for router in routers:
@@ -254,20 +257,18 @@ def ip_search(ip, exact=False):
     if exact:
         netboxes = Netbox.objects.filter(ip=ip)
         gwportprefixes = GwPortPrefix.objects.filter(gw_ip=ip)
-        arp_entries = Arp.objects.filter(
-            ip=ip,
-            end_time__gte=datetime.datetime.max)
+        arp_entries = Arp.objects.filter(ip=ip, end_time__gte=datetime.datetime.max)
     else:
         netboxes = Netbox.objects.filter(ip__contains=ip)
         gwportprefixes = GwPortPrefix.objects.filter(gw_ip__contains=ip)
         arp_entries = Arp.objects.filter(
-            ip__contains=ip,
-            end_time__gte=datetime.datetime.max)
+            ip__contains=ip, end_time__gte=datetime.datetime.max
+        )
 
     # Add matching routers
-    router_matches.update([
-        netbox for netbox in netboxes.filter(category__in=['GW', 'GSW'])
-    ])
+    router_matches.update(
+        [netbox for netbox in netboxes.filter(category__in=['GW', 'GSW'])]
+    )
 
     for netbox in netboxes:
         netbox_search = search_expand_netbox(netbox=netbox)
@@ -288,8 +289,7 @@ def ip_search(ip, exact=False):
 
 
 def portname_search(portname, exact=False):
-    """
-    """
+    """ """
     router_matches = set()
     gwport_matches = set()
     swport_matches = set()
@@ -311,8 +311,7 @@ def portname_search(portname, exact=False):
 
 
 def room_search(room, exact=False):
-    """
-    """
+    """ """
     router_matches = set()
     gwport_matches = set()
     swport_matches = set()
@@ -321,8 +320,7 @@ def room_search(room, exact=False):
     if exact:
         swport_matches.update(interfaces.filter(netbox__room__id=room))
     else:
-        swport_matches.update(
-            interfaces.filter(netbox__room__id__icontains=room))
+        swport_matches.update(interfaces.filter(netbox__room__id__icontains=room))
 
     for swport in [swport for swport in swport_matches if swport]:
         swport_search = search_expand_swport(swport=swport)
@@ -335,8 +333,7 @@ def room_search(room, exact=False):
 
 
 def mac_search(mac, exact=False):
-    """
-    """
+    """ """
     search = search_expand_mac(mac)
     gwport_matches = set(search[0])
     swport_matches = set(search[1])
@@ -346,8 +343,7 @@ def mac_search(mac, exact=False):
 
 
 def vlan_search(vlan, exact=False):
-    """
-    """
+    """ """
     router_matches = set()
     gwport_matches = set()
     swport_matches = set()
@@ -363,14 +359,13 @@ def vlan_search(vlan, exact=False):
         swport_matches.update(swport_search[1])
 
     matching_prefixes = Prefix.objects.filter(vlan_filter).exclude(
-        vlan__net_type='static')
+        vlan__net_type='static'
+    )
 
-    for gwportprefix in GwPortPrefix.objects.filter(
-            prefix__in=matching_prefixes):
+    for gwportprefix in GwPortPrefix.objects.filter(prefix__in=matching_prefixes):
         gwport_matches.add(gwportprefix.interface)
 
-    for netbox in Netbox.objects.filter(
-            netboxprefix__prefix__in=matching_prefixes):
+    for netbox in Netbox.objects.filter(netboxprefix__prefix__in=matching_prefixes):
         netbox_search = search_expand_netbox(netbox=netbox)
         gwport_matches.update(netbox_search[0])
         swport_matches.update(netbox_search[1])

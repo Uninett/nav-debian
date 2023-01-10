@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -23,8 +24,6 @@ import networkx as nx
 from networkx.algorithms.traversal.depth_first_search import dfs_tree as subtree
 
 from django.db import transaction
-from django.utils import six
-from django.utils.six import iteritems, itervalues
 
 from nav.toposort import build_graph, topological_sort
 
@@ -33,12 +32,14 @@ from nav.models import manage
 from nav.event2 import EventFactory
 from .netbox import Netbox
 
-chassis_event = EventFactory('ipdevpoll', 'eventEngine',
-                             'chassisState', 'chassisDown', 'chassisUp')
+chassis_event = EventFactory(
+    'ipdevpoll', 'eventEngine', 'chassisState', 'chassisDown', 'chassisUp'
+)
 
 
 class EntityManager(DefaultManager):
     """A manager class for NetboxEntity objects"""
+
     def __init__(self, *args, **kwargs):
         super(EntityManager, self).__init__(*args, **kwargs)
         self.netbox = self.containers.get(None, Netbox)
@@ -55,8 +56,11 @@ class EntityManager(DefaultManager):
     def prepare(self):
         # index known entities in various ways, but only bother to index things
         # that are unique
-        index = EntityIndex(manage.NetboxEntity.objects.filter(
-            netbox__id=self.netbox.id).select_related('device'))
+        index = EntityIndex(
+            manage.NetboxEntity.objects.filter(
+                netbox__id=self.netbox.id
+            ).select_related('device')
+        )
 
         matches = ((ent, index.match(ent)) for ent in self.get_managed())
         for collected, model in matches:
@@ -70,17 +74,22 @@ class EntityManager(DefaultManager):
     def _delete_missing(self):
         if self.missing:
             w_serial = sum(int(m.device is not None) for m in self.missing)
-            self._logger.info("%d entities have disappeared, %d of which have "
-                              "known serial numbers",
-                              len(self.missing), w_serial)
+            self._logger.info(
+                "%d entities have disappeared, %d of which have "
+                "known serial numbers",
+                len(self.missing),
+                w_serial,
+            )
 
             to_purge = self.get_purge_list()
             to_set_missing = self.missing.difference(to_purge)
-            self._logger.info("marking %d entities as missing, purging %d",
-                              len(to_set_missing), len(to_purge))
+            self._logger.info(
+                "marking %d entities as missing, purging %d",
+                len(to_set_missing),
+                len(to_purge),
+            )
 
-            manage.NetboxEntity.objects.filter(
-                id__in=[e.id for e in to_purge]).delete()
+            manage.NetboxEntity.objects.filter(id__in=[e.id for e in to_purge]).delete()
             manage.NetboxEntity.objects.filter(
                 id__in=[e.id for e in to_set_missing],
                 gone_since__isnull=True,
@@ -96,21 +105,29 @@ class EntityManager(DefaultManager):
         if not graph:
             return to_purge
         collected = set(entitykey(e) for e in self.get_managed())
-        missing = (miss for miss in self.missing
-                   if miss.device is not None and miss in to_purge)
+        missing = (
+            miss
+            for miss in self.missing
+            if miss.device is not None and miss in to_purge
+        )
         for miss in missing:
             if miss not in graph:
                 self._logger.warning(
                     "missing entity cannot be found in dependency graph, maybe "
                     "the plugin that originally collected it didn't run? : "
-                    "%r : %r", miss, graph.nodes())
+                    "%r : %r",
+                    miss,
+                    graph.nodes(),
+                )
                 continue
             try:
                 sub = subtree(graph, miss)
             except nx.NetworkXError as err:
                 self._logger.warning(
                     "Ignoring suspicious error during processing of entity "
-                    "relationships in ENTITY-MIB::entPhysicalTable: %s", err)
+                    "relationships in ENTITY-MIB::entPhysicalTable: %s",
+                    err,
+                )
                 continue
             # filter away any missing entity whose index appears to have
             # been re-used
@@ -132,20 +149,23 @@ class EntityManager(DefaultManager):
 
     @transaction.atomic()
     def _verify_stack_degradation(self, missing):
-        chassis_count = sum(e.physical_class == e.CLASS_CHASSIS
-                            for e in self.existing)
+        chassis_count = sum(e.physical_class == e.CLASS_CHASSIS for e in self.existing)
         if chassis_count < 2:
             # we only care about multi-chassis set-ups
             return
 
-        chassis = [m for m in missing
-                   if m.physical_class == manage.NetboxEntity.CLASS_CHASSIS]
+        chassis = [
+            m for m in missing if m.physical_class == manage.NetboxEntity.CLASS_CHASSIS
+        ]
         if not chassis:
             return
         else:
-            self._logger.warning("%d of %d chassis is missing: %s",
-                                 len(chassis), chassis_count,
-                                 ", ".join(c.name for c in chassis))
+            self._logger.warning(
+                "%d of %d chassis is missing: %s",
+                len(chassis),
+                chassis_count,
+                ", ".join(c.name for c in chassis),
+            )
         for chass in chassis:
             chassis_event.start(chass.device, chass.netbox, chass.id).save()
 
@@ -157,8 +177,8 @@ class EntityManager(DefaultManager):
         """
         managed = super(EntityManager, self).get_managed()
         graph = build_graph(
-            managed,
-            lambda ent: [ent.contained_in] if ent.contained_in else [])
+            managed, lambda ent: [ent.contained_in] if ent.contained_in else []
+        )
         return topological_sort(graph)
 
 
@@ -181,6 +201,7 @@ def parententitykey(ent):
 
 class NetboxEntity(Shadow):
     """A NetboxEntity shadow class"""
+
     __shadowclass__ = manage.NetboxEntity
     manager = EntityManager
 
@@ -192,7 +213,7 @@ class NetboxEntity(Shadow):
 
     def __setattr__(self, key, value):
         if key == 'index' and value is not None:
-            value = six.text_type(value)
+            value = str(value)
         if key == 'contained_in' and value == 0:
             value = None
         super(NetboxEntity, self).__setattr__(key, value)
@@ -216,9 +237,12 @@ class NetboxEntity(Shadow):
         :type containers: nav.ipdevpoll.storage.ContainerRepository
         """
         if cls in containers:
-            entities = itervalues(containers[cls])
-            return [e for e in entities
-                    if e.physical_class == manage.NetboxEntity.CLASS_CHASSIS]
+            entities = containers[cls].values()
+            return [
+                e
+                for e in entities
+                if e.physical_class == manage.NetboxEntity.CLASS_CHASSIS
+            ]
         else:
             return []
 
@@ -229,9 +253,10 @@ class NetboxEntity(Shadow):
         :type containers: nav.ipdevpoll.storage.ContainerRepository
         """
         if cls in containers:
-            entities = itervalues(containers[cls])
-            return [e for e in entities
-                    if e.contained_in is None or e.contained_in == -1]
+            entities = containers[cls].values()
+            return [
+                e for e in entities if e.contained_in is None or e.contained_in == -1
+            ]
         else:
             return []
 
@@ -241,6 +266,7 @@ class EntityIndex(object):
     Given a sequence of of nav.models.manage.NetboxEntity objects, indexes them
     in various ways applicable for matching them against collected entities.
     """
+
     def __init__(self, entities):
         self.entities = set(entities)
         self.by_id = self.index_by_id()
@@ -282,7 +308,7 @@ class EntityIndex(object):
         for ent in self.entities:
             if ent.device and ent.device.serial:
                 by_serial[(ent.source, ent.device.serial)].append(ent)
-        by_serial = {k: v[0] for k, v in iteritems(by_serial) if len(v) == 1}
+        by_serial = {k: v[0] for k, v in by_serial.items() if len(v) == 1}
         return by_serial
 
     def index_by_name(self):
@@ -294,5 +320,5 @@ class EntityIndex(object):
         for ent in self.entities:
             if ent.name:
                 by_name[(ent.source, ent.name)].append(ent)
-        by_name = {k: v[0] for k, v in iteritems(by_name) if len(v) == 1}
+        by_name = {k: v[0] for k, v in by_name.items() if len(v) == 1}
         return by_name

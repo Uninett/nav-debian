@@ -17,6 +17,7 @@ class NetworkExplorerSearchTest(TestCase):
     Will not cover all code paths on an empty database.
 
     """
+
     def test_search_expand_swport(self):
         search.search_expand_swport(1)
 
@@ -116,15 +117,10 @@ class ViewsTest(TestDataMixin, TestCase):
 
 
 class FormsTest(TestDataMixin, TestCase):
-
     def test_search_form(self):
 
         valid_form = NetworkSearchForm(self.valid_data)
         invalid_form = NetworkSearchForm(self.invalid_data)
 
-        self.assertTrue(
-            valid_form.is_valid(),
-            msg='Valid form failed validaion')
-        self.assertFalse(
-            invalid_form.is_valid(),
-            msg='Invalid form passed validation')
+        self.assertTrue(valid_form.is_valid(), msg='Valid form failed validaion')
+        self.assertFalse(invalid_form.is_valid(), msg='Invalid form passed validation')

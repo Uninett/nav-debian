@@ -117,24 +117,13 @@ _Description: Should apache2 be restarted after upgrades of NAV?
  webserver have to be restarted. You can also restart apache2 by
  manually executing 'invoke-rc.d apache2 restart'.
 
-Template: nav/cricket_remove_unused_dirs
+Template: nav/report_move_old_config_files
 Type: note
-_Description: Remove unused Cricket configuration
- The Cricket trees `switch-ports` and `router-interfaces` have been
- consolidated into a single `ports` tree, where all physical ports' traffic
- stats now also are collected. The debian-package both runs the usual
- `syncdb.py` command, and also `mcc.py` once manually (as the navcron
- user) to ensure the Cricket config tree is updated right away.
- .
- When everything is up and running again, you can optionally delete the
- `switch-ports` and `router-interfaces` directories from your
- `cricket-config` directory (/etc/nav/cricket-config/), as they are no
- longer used by NAV. If you do not delete these directories they will
- appear in the cricket-view, but will not contain any data.
- .
- NAV now supplies its own `subtree-sets` configuration to Cricket. If you
- have made manual changes to your Cricket collection setup and/or this
- file, you may need to update your setup accordingly.
+_Description: Move old report generator configuration files
+ The report configuration files `report.conf` and `report.local.conf` have been
+ deprecated in favor of a `report.conf.d/` config directory.  This upgrade will
+ move the old configuration files into the new directory, to ensure your report
+ configuration will persist.
 
 Template: nav/nav3_to_4_upgrade
 Type: note

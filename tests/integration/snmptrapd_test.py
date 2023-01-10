@@ -4,17 +4,19 @@ import configparser
 import pytest
 import signal
 import time
-from nav.config import find_configfile
+from nav.config import find_config_file
 from nav.snmptrapd.plugin import load_handler_modules
-
+from nav.snmptrapd.trap import SNMPTrap
 
 # Implementation tests for plugins
+
 
 def test_loading_plugin_with_initialize_method_raises_no_exception():
     loader = load_handler_modules(['nav.snmptrapd.handlers.weathergoose'])
 
-    assert loader[0] == __import__('nav.snmptrapd.handlers.weathergoose',
-                                   globals(), locals(), ['weathergoose'])
+    assert loader[0] == __import__(
+        'nav.snmptrapd.handlers.weathergoose', globals(), locals(), ['weathergoose']
+    )
 
     assert hasattr(loader[0], 'initialize')
 
@@ -22,21 +24,24 @@ def test_loading_plugin_with_initialize_method_raises_no_exception():
 def test_plugin_loader_raises_no_exception_if_plugin_has_no_initialize_method():
     loader = load_handler_modules(['nav.snmptrapd.handlers.airespace'])
 
-    assert loader[0] == __import__('nav.snmptrapd.handlers.airespace',
-                                   globals(), locals(), 'airespace')
+    assert loader[0] == __import__(
+        'nav.snmptrapd.handlers.airespace', globals(), locals(), 'airespace'
+    )
     assert not hasattr(loader[0], 'initialize')
 
 
 def test_plugin_loader_reading_in_modules_from_config_file():
-    configfile = find_configfile("snmptrapd.conf")
+    configfile = find_config_file("snmptrapd.conf")
     config = configparser.ConfigParser()
     config.read(configfile)
     list_from_config = config.get('snmptrapd', 'handlermodules').split(',')
 
     assert type(list_from_config) == list
     if len(list_from_config) <= 0:
-        pytest.skip("Requires at least one plugin in snmptrapd.conf to run"
-                    " this integration test with loading plugins")
+        pytest.skip(
+            "Requires at least one plugin in snmptrapd.conf to run"
+            " this integration test with loading plugins"
+        )
 
     loaded_modules = load_handler_modules(list_from_config)
     assert len(list_from_config) == len(loaded_modules)
@@ -70,3 +75,20 @@ def test_traplistener_does_not_raise_error_on_signals():
         handler.close()
         signal.signal(signal.SIGALRM, signal.SIG_DFL)
         signal.alarm(0)
+
+
+class TestSnmpTrap:
+    def test_trap_agent_should_be_correctly_identified(self, localhost_using_legacy_db):
+        trap = SNMPTrap(
+            src="127.0.0.1",
+            agent="127.0.0.1",
+            type=None,
+            genericType=None,
+            snmpTrapOID=None,
+            uptime=None,
+            community="public",
+            version=2,
+            varbinds={},
+        )
+        netbox = trap.netbox
+        assert netbox.netboxid == localhost_using_legacy_db

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2009-2012 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -21,7 +22,6 @@ import re
 
 from IPy import IP
 
-from django.utils import six
 from twisted.internet import defer
 from twisted.internet.defer import Deferred
 from twisted.internet import reactor
@@ -62,7 +62,7 @@ def binary_mac_to_hex(binary_mac):
     """
     if binary_mac:
         binary_mac = binary_mac[-6:].rjust(MAX_MAC_ADDRESS_LENGTH, b'\x00')
-        return ":".join("%02x" % x for x in six.iterbytes(binary_mac))
+        return ":".join("%02x" % x for x in binary_mac)
 
 
 def truncate_mac(mac):
@@ -95,10 +95,7 @@ def is_invalid_database_string(string):
     that cannot be decoded as UTF-8, or is another type of object, it is considered
     invalid.
     """
-    return (
-        (isinstance(string, six.text_type) and "\x00" in string)
-        or is_invalid_utf8(string)
-    )
+    return (isinstance(string, str) and "\x00" in string) or is_invalid_utf8(string)
 
 
 def is_invalid_utf8(string):
@@ -108,7 +105,7 @@ def is_invalid_utf8(string):
     returned.
 
     """
-    if isinstance(string, six.binary_type):
+    if isinstance(string, bytes):
         try:
             string.decode('utf-8')
         except UnicodeDecodeError:
@@ -140,6 +137,7 @@ def get_multibridgemib(agentproxy):
 
     """
     from nav.mibs.bridge_mib import MultiBridgeMib
+
     instances = yield get_dot1d_instances(agentproxy)
     defer.returnValue(MultiBridgeMib(agentproxy, instances))
 
@@ -160,8 +158,9 @@ def get_dot1d_instances(agentproxy):
     from nav.mibs.cisco_vtp_mib import CiscoVTPMib
     from nav.mibs.entity_mib import EntityMib
 
-    enterprise_id = yield (Snmpv2Mib(agentproxy).get_sysObjectID().
-                           addCallback(get_enterprise_id))
+    enterprise_id = yield (
+        Snmpv2Mib(agentproxy).get_sysObjectID().addCallback(get_enterprise_id)
+    )
     if enterprise_id == VENDOR_ID_CISCOSYSTEMS:
         mibclasses = [EntityMib, CiscoVTPMib]
         modifier = lambda x: x
@@ -186,6 +185,24 @@ def get_dot1d_instances(agentproxy):
             defer.returnValue(result)
 
     defer.returnValue([])
+
+
+@defer.inlineCallbacks
+def get_arista_vrf_instances(agentproxy) -> Deferred:
+    """
+    Gets a list of alternative VRF instances from an Arista agent
+
+    :returns: A list of [(description, community), ...] for each alternate
+              VRF
+
+    """
+    from nav.mibs.arista_vrf_mib import AristaVrfMib
+
+    vrf_mib = AristaVrfMib(agentproxy)
+    states = yield vrf_mib.get_vrf_states(only='active')
+    vrfs = [('', agentproxy.community)]
+    vrfs.extend((vrf, f"{agentproxy.community}@{vrf}") for vrf in states)
+    defer.returnValue(vrfs)
 
 
 _VLAN_RE = re.compile('^vlan([0-9]+)', re.IGNORECASE)

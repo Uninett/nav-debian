@@ -25,6 +25,7 @@ from nav.statemon.event import Event
 
 class FtpChecker(AbstractChecker):
     """File Transfer Protocol"""
+
     DESCRIPTION = "FTP"
     OPTARGS = (
         ('username', ''),
@@ -43,7 +44,7 @@ class FtpChecker(AbstractChecker):
 
             # This cannot happen on Linux (debian)
             # A bug has been reported on FreeBSD so we CYA
-            if sys.version_info >= (3,) and isinstance(welcome, bytes):
+            if isinstance(welcome, bytes):
                 welcome = welcome.decode('utf-8', 'replace')
 
             # Get server version from the banner.

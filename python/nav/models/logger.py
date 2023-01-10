@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2007-2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -19,16 +20,15 @@ Django ORM wrapper for the NAV logger database
 
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from nav.models.fields import VarcharField
 
 
-@python_2_unicode_compatible
 class LoggerCategory(models.Model):
     """
     Model for the logger.category-table
     """
+
     category = VarcharField(db_column='category', unique=True, primary_key=True)
 
     def __str__(self):
@@ -38,17 +38,15 @@ class LoggerCategory(models.Model):
         db_table = '"logger"."category"'
 
 
-@python_2_unicode_compatible
 class Origin(models.Model):
     """
     Model for the logger.origin-table
     """
+
     origin = models.AutoField(db_column='origin', primary_key=True)
     name = VarcharField(db_column='name')
     category = models.ForeignKey(
-        LoggerCategory,
-        on_delete=models.CASCADE,
-        db_column='category'
+        LoggerCategory, on_delete=models.CASCADE, db_column='category'
     )
 
     def __str__(self):
@@ -58,11 +56,11 @@ class Origin(models.Model):
         db_table = '"logger"."origin"'
 
 
-@python_2_unicode_compatible
 class Priority(models.Model):
     """
     Model for the logger.priority-table
     """
+
     priority = models.AutoField(db_column='priority', primary_key=True)
     keyword = VarcharField(db_column='keyword', unique=True)
     description = VarcharField(db_column='description')
@@ -74,25 +72,21 @@ class Priority(models.Model):
         db_table = '"logger"."priority"'
 
 
-@python_2_unicode_compatible
 class LogMessageType(models.Model):
     """
     Model for the logger.log_message_type-table
     """
+
     type = models.AutoField(db_column='type', primary_key=True)
     priority = models.ForeignKey(
-        Priority,
-        on_delete=models.CASCADE,
-        db_column='priority'
+        Priority, on_delete=models.CASCADE, db_column='priority'
     )
     facility = VarcharField(db_column='facility')
     mnemonic = VarcharField(db_column='mnemonic')
 
     def __str__(self):
         return u"{0}-{1}-{2}".format(
-            self.facility,
-            self.priority,
-            self.mnemonic
+            self.facility, self.priority, self.mnemonic
         ).upper()
 
     class Meta(object):
@@ -104,23 +98,14 @@ class LogMessage(models.Model):
     """
     Model for the logger.log_message-table
     """
+
     id = models.AutoField(db_column='id', primary_key=True)
     time = models.DateTimeField(db_column='time', auto_now=True)
-    origin = models.ForeignKey(
-        Origin,
-        on_delete=models.CASCADE,
-        db_column='origin'
-    )
+    origin = models.ForeignKey(Origin, on_delete=models.CASCADE, db_column='origin')
     newpriority = models.ForeignKey(
-        Priority,
-        on_delete=models.CASCADE,
-        db_column='newpriority'
+        Priority, on_delete=models.CASCADE, db_column='newpriority'
     )
-    type = models.ForeignKey(
-        LogMessageType,
-        on_delete=models.CASCADE,
-        db_column='type'
-    )
+    type = models.ForeignKey(LogMessageType, on_delete=models.CASCADE, db_column='type')
     message = VarcharField(db_column='message')
 
     class Meta(object):
@@ -131,6 +116,7 @@ class ErrorError(models.Model):
     """
     Model for the logger.errorerror-table
     """
+
     id = models.AutoField(db_column='id', primary_key=True)
     message = VarcharField(db_column='message')
 
@@ -145,26 +131,16 @@ class MessageView(models.Model):
     Do not change attributes unless You know what You are doing!
     Check: https://docs.djangoproject.com/en/dev/ref/models/options/
     """
+
     origin = models.ForeignKey(
-        Origin,
-        on_delete=models.CASCADE,
-        db_column='origin',
-        primary_key=True
+        Origin, on_delete=models.CASCADE, db_column='origin', primary_key=True
     )
-    type = models.ForeignKey(
-        LogMessageType,
-        on_delete=models.CASCADE,
-        db_column='type'
-    )
+    type = models.ForeignKey(LogMessageType, on_delete=models.CASCADE, db_column='type')
     newpriority = models.ForeignKey(
-        Priority,
-        on_delete=models.CASCADE,
-        db_column='newpriority'
+        Priority, on_delete=models.CASCADE, db_column='newpriority'
     )
     category = models.ForeignKey(
-        LoggerCategory,
-        on_delete=models.CASCADE,
-        db_column='category'
+        LoggerCategory, on_delete=models.CASCADE, db_column='category'
     )
     time = models.DateTimeField(db_column='time')
 

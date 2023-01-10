@@ -1,3 +1,123 @@
+nav (5.5.2-2bullseye) buster; urgency=medium
+
+  * Package ported to Debian 11 (Bullseye)
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 10 Nov 2022 09:29:29 +0000
+
+nav (5.5.2-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 10 Nov 2022 09:25:02 +0000
+
+nav (5.5.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 09 Nov 2022 08:38:24 +0000
+
+nav (5.5.0-2) buster; urgency=medium
+
+  * Fix crashing ipdevpoll and wsgi process
+    - By bundling a compatible version of pyOpenSSL
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 07 Nov 2022 14:04:44 +0000
+
+nav (5.5.0-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 04 Nov 2022 12:27:10 +0000
+
+nav (5.4.0-1) buster; urgency=medium
+
+  * New upstream release.
+    - Include new CHANGELOG.md and older changelog entries from HISTORY
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 19 May 2022 20:11:33 +0000
+
+nav (5.3.0-2) buster; urgency=medium
+
+  * Mark package architecture as amd64
+    - Some bundled Python dependencies produce binary libraries as part of
+      their build process.
+  * Updated README.Debian
+  * Install service_identity module to remove unnecessary UserWarnings
+    - Although NAV doesn't use TLS feature of Twisted, Twisted still
+      complains.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Tue, 01 Mar 2022 13:49:19 +0000
+
+nav (5.3.0-1) buster; urgency=medium
+
+  * New upstream release.
+    - Automatically move old report config files if present on upgrade.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Tue, 22 Feb 2022 16:55:39 +0000
+
+nav (5.2.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 23 Sep 2021 12:02:57 +0000
+
+nav (5.2.0-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 16 Sep 2021 08:49:13 +0000
+
+nav (5.1.4-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 24 Jun 2021 09:31:56 +0000
+
+nav (5.1.3-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 09 Apr 2021 07:32:35 +0000
+
+nav (5.1.2-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Fri, 15 Jan 2021 09:37:49 +0000
+
+nav (5.1.1-3) buster; urgency=medium
+
+  * Ensure updating log file permissions doesn't crash.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 05 Jan 2021 13:50:01 +0000
+
+nav (5.1.1-2) buster; urgency=medium
+
+  * Rebuilt without unintended experimental virtualenv build options.
+  * Update permissions on existing log files on upgrade.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Tue, 08 Dec 2020 11:02:29 +0000
+
+nav (5.1.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Mon, 07 Dec 2020 11:47:26 +0000
+
+nav (5.1.0-2) buster; urgency=medium
+
+  * Add python3-distutils dependency
+    - It appears it is required now to get virtualenvs working on Debian
+      Buster 
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Nov 2020 15:18:59 +0000
+
+nav (5.1.0-1buster) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Nov 2020 14:25:14 +0000
+
 nav (5.0.8-2buster) stretch; urgency=medium
 
   * Repackaged for Debian Buster

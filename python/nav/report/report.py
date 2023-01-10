@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008-2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,12 +17,10 @@
 """Representing a report object."""
 
 import re
-
-from django.utils import six
+from urllib.parse import quote_plus
 
 
 class Field(object):
-
     def __init__(self):
         self.title = ""
         self.raw = ""
@@ -53,7 +52,7 @@ class Report(object):
 
         # oh, the smell, it kills me!
         if self.limit:
-            self.formatted = database.result[self.offset:self.limit+self.offset]
+            self.formatted = database.result[self.offset : self.limit + self.offset]
         else:
             self.formatted = database.result
         self.dbresult = database.result
@@ -70,8 +69,7 @@ class Report(object):
 
         self.fields = configuration.sql_select + self.extra
         self.sql_fields = configuration.sql_select
-        (self.field_name_map,
-         self.field_num_map) = self.build_field_maps(self.fields)
+        (self.field_name_map, self.field_num_map) = self.build_field_maps(self.fields)
         self.fields_count = len(self.fields)
         self.shown = self.hide_index()
 
@@ -80,8 +78,9 @@ class Report(object):
         self.table = self.make_table_contents()
         footers = self.make_table_footers(self.sums)
         self.table.set_footers(footers)
-        headers = self.make_table_headers(self.name, self.explain,
-                                          configuration.order_by)
+        headers = self.make_table_headers(
+            self.name, self.explain, configuration.order_by
+        )
         self.table.set_headers(headers)
 
         self.form = self.make_form(self.name)
@@ -296,10 +295,9 @@ class Report(object):
                     links = link_pattern.findall(uri)
                     if links:
                         for column_ref in links:
-                            value = six.text_type(
-                                line[self.field_name_map[column_ref]]) or ""
+                            value = str(line[self.field_name_map[column_ref]]) or ""
                             pattern = '$' + column_ref
-                            uri = uri.replace(pattern, value)
+                            uri = uri.replace(pattern, quote_plus(value))
                     newfield.set_hyperlink(uri)
 
                 newline.append(newfield)
@@ -314,8 +312,7 @@ class Report(object):
         for num, field_name in self.field_num_map.items():
             field = None
             # does not use aggregate function elements
-            if (not self.extra.count(field_name)
-                and not self.sql_fields[num].count("(")):
+            if not self.extra.count(field_name) and not self.sql_fields[num].count("("):
                 field = Field()
                 field.raw = self.sql_fields[num]
                 if field_name in name:
@@ -330,6 +327,7 @@ class Report(object):
 
 class Table(object):
     """A table that will contain the results of the report"""
+
     def __init__(self):
         self.rows = []
         self.header = []
@@ -394,6 +392,7 @@ class Row(object):
 
 class Cell(object):
     """One cell of the table"""
+
     text = uri = explanation = sum = None
 
     def __init__(self, text=u"", uri=u"", explanation=u""):
@@ -477,7 +476,7 @@ def unicode_utf8(thing):
     If the argument is None, it is returned unchanged.
 
     """
-    if isinstance(thing, six.binary_type):
+    if isinstance(thing, bytes):
         return thing.decode('utf-8')
     elif thing is not None:
-        return six.text_type(thing)
+        return str(thing)

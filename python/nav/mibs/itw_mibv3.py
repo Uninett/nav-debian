@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008-2019 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -20,7 +21,6 @@ A class that tries to retrieve all sensors from WeatherGoose II.
 Uses the vendor-specifica IT-WATCHDOGS-MIB-V3 to detect and collect
 sensor-information.
 """
-from django.utils.six import itervalues
 from twisted.internet import defer
 
 from nav.mibs import reduce_index
@@ -45,7 +45,7 @@ TABLES = {
                 'climateIO2',
                 'climateIO3',
                 'climateDewPointC',
-            }
+            },
         }
     ],
     'tempSensorTable': [
@@ -55,7 +55,7 @@ TABLES = {
             'name': 'tempSensorName',
             'sensors': {
                 'tempSensorTempC',
-            }
+            },
         }
     ],
     'airFlowSensorTable': [
@@ -68,7 +68,7 @@ TABLES = {
                 'airFlowSensorFlow',
                 'airFlowSensorHumidity',
                 'airFlowSensorDewPointC',
-            }
+            },
         }
     ],
     'doorSensorTable': [
@@ -78,7 +78,7 @@ TABLES = {
             'name': 'doorSensorName',
             'sensors': {
                 'doorSensorStatus',
-            }
+            },
         }
     ],
     'waterSensorTable': [
@@ -88,7 +88,7 @@ TABLES = {
             'name': 'waterSensorName',
             'sensors': {
                 'waterSensorDampness',
-            }
+            },
         }
     ],
     'currentMonitorTable': [
@@ -98,7 +98,7 @@ TABLES = {
             'name': 'currentMonitorName',
             'sensors': {
                 'currentMonitorDeciAmps',
-            }
+            },
         }
     ],
     'millivoltMonitorTable': [
@@ -108,7 +108,7 @@ TABLES = {
             'name': 'millivoltMonitorName',
             'sensors': {
                 'millivoltMonitorMV',
-            }
+            },
         }
     ],
     'dewPointSensorTable': [
@@ -120,7 +120,7 @@ TABLES = {
                 'dewPointSensorDewPointC',
                 'dewPointSensorTempC',
                 'dewPointSensorHumidity',
-            }
+            },
         }
     ],
     'digitalSensorTable': [
@@ -130,7 +130,7 @@ TABLES = {
             'name': 'digitalSensorName',
             'sensors': {
                 'digitalSensorDigital',
-            }
+            },
         }
     ],
     'cpmSensorTable': [
@@ -140,7 +140,7 @@ TABLES = {
             'name': 'cpmSensorName',
             'sensors': {
                 'cpmSensorStatus',
-            }
+            },
         }
     ],
     'smokeAlarmTable': [
@@ -150,7 +150,7 @@ TABLES = {
             'name': 'smokeAlarmName',
             'sensors': {
                 'smokeAlarmStatus',
-            }
+            },
         }
     ],
     'neg48VdcSensorTable': [
@@ -160,7 +160,7 @@ TABLES = {
             'name': 'neg48VdcSensorName',
             'sensors': {
                 'neg48VdcSensorVoltage',
-            }
+            },
         }
     ],
     'pos30VdcSensorTable': [
@@ -170,7 +170,7 @@ TABLES = {
             'name': 'pos30VdcSensorName',
             'sensors': {
                 'pos30VdcSensorVoltage',
-            }
+            },
         }
     ],
     'analogSensorTable': [
@@ -180,7 +180,7 @@ TABLES = {
             'name': 'analogSensorName',
             'sensors': {
                 'analogSensorAnalog',
-            }
+            },
         }
     ],
     'powMonTable': [
@@ -200,7 +200,7 @@ TABLES = {
                 'powMonPowerFactor',
                 'powMonOutlet1',
                 'powMonOutlet2',
-            }
+            },
         }
     ],
     # 'powerTable': [
@@ -233,7 +233,7 @@ TABLES = {
                 'pow3ChRealPower' + ch,
                 'pow3ChApparentPower' + ch,
                 'pow3ChPowerFactor' + ch,
-            }
+            },
         }
         for ch in ('A', 'B', 'C')
     ],
@@ -245,7 +245,7 @@ TABLES = {
             'sensors': {
                 'outlet1Status',
                 'outlet2Status',
-            }
+            },
         }
     ],
     'vsfcTable': [
@@ -261,7 +261,7 @@ TABLES = {
                 'vsfcExt2TempC',
                 'vsfcExt3TempC',
                 'vsfcExt4TempC',
-            }
+            },
         }
     ],
     'ctrl3ChTable': [
@@ -277,7 +277,7 @@ TABLES = {
                 'ctrl3ChRealPower' + ch,
                 'ctrl3ChApparentPower' + ch,
                 'ctrl3ChPowerFactor' + ch,
-            }
+            },
         }
         for ch in ('A', 'B', 'C')
     ],
@@ -289,7 +289,7 @@ TABLES = {
             'sensors': {
                 'ctrlGrpAmps' + ch,
                 'ctrlGrpAmps' + ch + 'Volts',
-            }
+            },
         }
         for ch in ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')
     ],
@@ -309,7 +309,7 @@ TABLES = {
                 'ctrlOutletPOADelay',
                 'ctrlOutletkWattHrs',
                 'ctrlOutletPower',
-            }
+            },
         }
     ],
     'dstsTable': [
@@ -323,7 +323,7 @@ TABLES = {
                 'dstsSource' + ch + 'Active',
                 'dstsPowerStatus' + ch,
                 'dstsSource' + ch + 'TempC',
-            }
+            },
         }
         for ch in ('A', 'B')
     ],
@@ -336,7 +336,7 @@ TABLES = {
                 'ctrlRelayLatchingMode',
                 'ctrlRelayOverride',
                 'ctrlRelayAcknowledge',
-            }
+            },
         }
     ],
     'climateRelayTable': [
@@ -352,7 +352,7 @@ TABLES = {
                 'climateRelayIO4',
                 'climateRelayIO5',
                 'climateRelayIO6',
-            }
+            },
         }
     ],
     'airSpeedSwitchSensorTable': [
@@ -362,7 +362,7 @@ TABLES = {
             'name': 'airSpeedSwitchSensorName',
             'sensors': {
                 'airSpeedSwitchSensorAirSpeed',
-            }
+            },
         }
     ],
     'ctrl3ChIECTable': [
@@ -379,21 +379,22 @@ TABLES = {
                 'ctrl3ChIECRealPower' + ch,
                 'ctrl3ChIECApparentPower' + ch,
                 'ctrl3ChIECPowerFactor' + ch,
-            }
+            },
         }
         for ch in ('A', 'B', 'C')
-    ]
+    ],
 }
 
 
 class ItWatchDogsMibV3(BaseITWatchDogsMib):
     """A class that tries to retrieve all sensors from WeatherGoose II"""
+
     mib = get_mib('IT-WATCHDOGS-MIB-V3')
     TABLES = TABLES
 
     def _get_power_dms_params(self, power_dms):
         sensors = []
-        for power_dm in itervalues(power_dms):
+        for power_dm in power_dms.values():
             power_dm_avail = power_dm.get('powerDMAvail')
             if power_dm_avail:
                 power_dm_oid = power_dm.get(0)
@@ -402,24 +403,30 @@ class ItWatchDogsMibV3(BaseITWatchDogsMib):
                 aux_count = power_dm.get('powerDMUnitInfoAuxCount')
                 for i in range(1, (aux_count + 1)):
                     aux_numb = str(i)
-                    aux_name = (name + ' ' +
-                                power_dm.get('powerDMChannelGroup' + aux_numb))
-                    aux_name += ': ' + power_dm_oid.get('powerDMChannelName' +
-                                                        aux_numb)
-                    aux_name += (' - ' +
-                                 power_dm_oid.get('powerDMChannelFriendly' +
-                                                  aux_numb))
+                    aux_name = (
+                        name + ' ' + power_dm.get('powerDMChannelGroup' + aux_numb)
+                    )
+                    aux_name += ': ' + power_dm_oid.get('powerDMChannelName' + aux_numb)
+                    aux_name += ' - ' + power_dm_oid.get(
+                        'powerDMChannelFriendly' + aux_numb
+                    )
                     sensor = 'powerDMDeciAmps' + aux_numb
                     conf = convert_units(self.mib, sensor)
-                    sensors.append(self._make_result_dict(
-                        power_dm_oid,
-                        self._get_oid_for_sensor(sensor),
-                        serial, sensor, name=aux_name, **conf))
+                    sensors.append(
+                        self._make_result_dict(
+                            power_dm_oid,
+                            self._get_oid_for_sensor(sensor),
+                            serial,
+                            sensor,
+                            name=aux_name,
+                            **conf,
+                        )
+                    )
         return sensors
 
     def _get_io_expanders_params(self, io_expanders):
         sensors = []
-        for io_expander in itervalues(io_expanders):
+        for io_expander in io_expanders.values():
             io_expander_avail = io_expander.get('ioExpanderAvail', 0)
             if io_expander_avail:
                 io_expander_oid = io_expander.get(0)
@@ -427,47 +434,76 @@ class ItWatchDogsMibV3(BaseITWatchDogsMib):
                 name = io_expander.get('ioExpanderName')
                 for i in range(1, 33):
                     exp_numb = str(i)
-                    exp_name = (name + ': ' +
-                                io_expander.get('ioExpanderFriendlyName' +
-                                                exp_numb))
-                    sensors.append(self._make_result_dict(
-                        io_expander_oid,
-                        self._get_oid_for_sensor('ioExpanderIO' + exp_numb),
-                        serial, 'ioExpanderIO' + exp_numb, name=exp_name))
+                    exp_name = (
+                        name
+                        + ': '
+                        + io_expander.get('ioExpanderFriendlyName' + exp_numb)
+                    )
+                    sensors.append(
+                        self._make_result_dict(
+                            io_expander_oid,
+                            self._get_oid_for_sensor('ioExpanderIO' + exp_numb),
+                            serial,
+                            'ioExpanderIO' + exp_numb,
+                            name=exp_name,
+                        )
+                    )
                 for i in range(1, 4):
                     relay_numb = str(i)
-                    relay_name = (name + ': ' +
-                                  io_expander.get('ioExpanderRelayName' +
-                                                  relay_numb))
-                    sensors.append(self._make_result_dict(
-                        io_expander_oid,
-                        self._get_oid_for_sensor('ioExpanderRelayState' +
-                                                 relay_numb),
-                        serial, 'ioExpanderRelayState' + relay_numb,
-                        name=relay_name))
-                    sensors.append(self._make_result_dict(
-                        io_expander_oid,
-                        self._get_oid_for_sensor('ioExpanderRelayLatchingMode' +
-                                                 relay_numb),
-                        serial, 'ioExpanderRelayLatchingMode' + relay_numb,
-                        name=relay_name))
-                    sensors.append(self._make_result_dict(
-                        io_expander_oid,
-                        self._get_oid_for_sensor('ioExpanderRelayOverride' +
-                                                 relay_numb),
-                        serial, 'ioExpanderRelayOverride' + relay_numb,
-                        name=relay_name))
-                    sensors.append(self._make_result_dict(
-                        io_expander_oid,
-                        self._get_oid_for_sensor('ioExpanderRelayAcknowledge' +
-                                                 relay_numb),
-                        serial, 'ioExpanderRelayAcknowledge' + relay_numb,
-                        name=relay_name))
+                    relay_name = (
+                        name
+                        + ': '
+                        + io_expander.get('ioExpanderRelayName' + relay_numb)
+                    )
+                    sensors.append(
+                        self._make_result_dict(
+                            io_expander_oid,
+                            self._get_oid_for_sensor(
+                                'ioExpanderRelayState' + relay_numb
+                            ),
+                            serial,
+                            'ioExpanderRelayState' + relay_numb,
+                            name=relay_name,
+                        )
+                    )
+                    sensors.append(
+                        self._make_result_dict(
+                            io_expander_oid,
+                            self._get_oid_for_sensor(
+                                'ioExpanderRelayLatchingMode' + relay_numb
+                            ),
+                            serial,
+                            'ioExpanderRelayLatchingMode' + relay_numb,
+                            name=relay_name,
+                        )
+                    )
+                    sensors.append(
+                        self._make_result_dict(
+                            io_expander_oid,
+                            self._get_oid_for_sensor(
+                                'ioExpanderRelayOverride' + relay_numb
+                            ),
+                            serial,
+                            'ioExpanderRelayOverride' + relay_numb,
+                            name=relay_name,
+                        )
+                    )
+                    sensors.append(
+                        self._make_result_dict(
+                            io_expander_oid,
+                            self._get_oid_for_sensor(
+                                'ioExpanderRelayAcknowledge' + relay_numb
+                            ),
+                            serial,
+                            'ioExpanderRelayAcknowledge' + relay_numb,
+                            name=relay_name,
+                        )
+                    )
         return sensors
 
     @defer.inlineCallbacks
     def get_all_sensors(self):
-        """ Try to retrieve all available sensors in this WxGoose"""
+        """Try to retrieve all available sensors in this WxGoose"""
         result = yield super(ItWatchDogsMibV3, self).get_all_sensors()
 
         custom_tables = {
@@ -476,8 +512,7 @@ class ItWatchDogsMibV3(BaseITWatchDogsMib):
         }
         for table, handler in custom_tables.items():
             self._logger.debug('get_all_sensors: table = %s', table)
-            sensors = yield self.retrieve_table(
-                                        table).addCallback(reduce_index)
+            sensors = yield self.retrieve_table(table).addCallback(reduce_index)
             self._logger.debug('get_all_sensors: %s = %s', table, sensors)
             result.extend(handler(sensors))
 

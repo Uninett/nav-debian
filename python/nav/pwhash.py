@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2016 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -22,7 +23,7 @@ import hashlib
 import base64
 import re
 
-from django.utils import crypto, six
+from django.utils import crypto
 
 from nav import errors
 
@@ -48,13 +49,14 @@ DEFAULT_METHOD = 'pbkdf2'
 
 
 def generate_salt():
-    """"Generate and return a salt string"""
+    """ "Generate and return a salt string"""
     saltlen = 8
     if hasattr(os, 'urandom') and callable(os.urandom):
         raw_salt = os.urandom(saltlen)
     else:
-        raw_salt = "".join([chr(x) for x in
-                            [random.randint(0, 255) for x in range(saltlen)]])
+        raw_salt = "".join(
+            [chr(x) for x in [random.randint(0, 255) for x in range(saltlen)]]
+        )
 
     return base64.b64encode(raw_salt).strip().decode('ASCII')
 
@@ -65,6 +67,7 @@ class Hash(object):
     Use str() to extract a string representation of a hash, suitable
     for storage.
     """
+
     _hashmatch = re.compile(r'\{([^\}]+)\}([^\$]+)\$(.+)$')
 
     def __init__(self, method=DEFAULT_METHOD, salt=None, password=None):
@@ -99,9 +102,9 @@ class Hash(object):
         """Update the hash with a new password."""
 
         salt = self.salt
-        if isinstance(salt, six.text_type):
+        if isinstance(salt, str):
             salt = salt.encode('utf-8')
-        if isinstance(password, six.text_type):
+        if isinstance(password, str):
             password = password.encode('utf-8')
 
         hasher = KNOWN_METHODS[self.method]
@@ -123,8 +126,9 @@ class Hash(object):
 
     def verify(self, password):
         """Verify a password against this hash."""
-        otherhash = self.__class__(method=self.method, salt=self.salt,
-                                   password=password)
+        otherhash = self.__class__(
+            method=self.method, salt=self.salt, password=password
+        )
         return self == otherhash
 
 

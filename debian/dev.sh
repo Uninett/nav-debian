@@ -1,5 +1,5 @@
 #!/bin/sh -x
-TAG=debdev:buster
+TAG=debdev:bullseye
 projdir=$(basename $(dirname $PWD))
 if [ -n "$NONINTERACTIVE" ]; then
     TTYARGS="--tty"

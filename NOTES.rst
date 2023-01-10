@@ -8,14 +8,279 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
-NAV 5.1 (unreleased)
-====================
+NAV 5.5
+=======
+
+Dependency changes
+------------------
+
+None :-)
+
+API changes
+-----------
+
+The ``/netbox/`` API endpoint adds a new read-only attribute:
+``mac_addresses``. This is a list of MAC addresses associated with an IP
+Device's chassis, typically collected from either ``LLDP-MIB`` or
+``BRIDGE-MIB``. In most cases, devices will only have a single address here,
+but sometimes, the two MIBs will disagree on what is the main "chassis"
+address.
+
+The ``/interface`` endpoint has gained two new read-only attributes for LAG
+information:
+
+* ``aggregator``: An interface that is part of an aggregate will have the
+  aggregate interface specified here. The aggregator will be identified by both
+  its ``id`` and ``ifname`` attributes.
+* ``bundled_interfaces``: An interface that aggregates multiple interfaces will
+  have those interfaces listed here. Each interface in the list will be
+  identified by their ``id`` and ``ifname`` attrbutes.
+
+Software upgrade history
+------------------------
+
+NAV has finally regained the ability to save device software, firmware and/or
+hardware upgrades as events to their history, as the new ``deviceSwUpgrade``,
+``deviceFwUpgrade`` and ``deviceHwUpgrade`` alert types have been added to the
+``deviceNotice`` event hierarchy.  These alerts can now be subscribed to in
+Alert Profiles, and will be searchable in the Device History tool.  See also
+:doc:`reference/alerttypes` for the full list of events/alerts NAV provides.
+
+Juniper ``BUILTIN`` devices
+---------------------------
+
+Juniper equipment tends to report soldered-on linecards as field-replaceable
+modules through their implementation of ``ENTITY-MIB::entPhysicalTable``. These
+modules are also all reported as having the same serial number: ``BUILTIN``.
+
+NAV versions prior to 5.5.1 did not safeguard against this Juniper bug. This
+would cause NAV installations that monitor Juniper equipment to have a single
+device with the ``BUILTIN`` serial number, which was shared between all
+monitored Juniper netboxes.  The attributes of ``BUILTIN`` devices (such as
+software or firmware revision) would be different across most Juniper netboxes,
+causing them to compete for updates of the attributes in the NAV database.
+
+This went under the radar until NAV 5.5.0 re-introduced the ``device*Upgrade``
+set of alerts. Now, every time a Juniper netbox is polleed and the shared
+``BUILTIN`` device's software/hardware/firmware revision was changed, an alert
+would be generated. For those unfortunate enough to subscribe to all NAV
+alerts, this would lead to a storm of alerts.
+
+Subsequently, NAV 5.5.1 deletes this shared ``BUILTIN`` device from the
+database, and adds functionality to ignore any module or entity that reports
+this as its serial number.
+
+
+NAV 5.4
+=======
+
+Dependency changes
+------------------
+
+Changed dependencies
+~~~~~~~~~~~~~~~~~~~~
+
+These Python modules have changed version requirements:
+
+* :mod:`sphinx` ==4.4.0
+* :mod:`pynetsnmp-2` >=0.1.8,<0.2.0
+* :mod:`napalm` ==3.4.1
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+Dependencies to these Python modules have been added:
+
+* :mod:`sphinxcontrib-programoutput` ==0.17
+
+Removed dependencies
+~~~~~~~~~~~~~~~~~~~~
+
+* The :mod:`six` Python module is no longer required. It was only needed under
+  Python 2 to keep compatibility with both Python 2 and 3, but NAV 5.1 dropped
+  support for Python 2.
+
+
+NAV 5.3
+=======
+
+Changes in governance and code ownership
+----------------------------------------
+
+On January 1st 2022, Uninett, NSD and Unit (all entities owned by the Norwegian
+government) were merged into the new governmental agency *Sikt - Norwegian
+Agency for Shared Services in Education and Research*.
+
+This does not change our commitment to develop and provide NAV as free and open
+source software. We still have the same ownership and the same goals - we're
+just doing everything under a new name.
+
+In the coming year, references to Uninett, both in the NAV documentation, code
+and related web sites will slowly change into Sikt, but for some time going
+forward, there will be references to both names.  For more information about
+the new organization, we refer you to https://sikt.no/about-sikt
+
+
+Dependency changes
+------------------
+
+.. IMPORTANT:: NAV 5.3 requires PostgreSQL to be at least version *9.6*.
+
+Furthermore, NAV 5.3 moves to Django 3.2, resulting in several changes in
+version dependencies of related Python libraries. These changes are normally
+taken care of for you when using ``pip`` and/or virtual environments with the
+supplied :file:`requirements.txt` file:
+
+* :mod:`Django` >=3.2,<3.3
+* :mod:`django-filter` >=2
+* :mod:`django-crispy-forms` >=1.8,<1.9
+* :mod:`crispy-forms-foundation` >=0.7,<0.8
+* :mod:`djangorestframework` >=3.12,<3.13
+* :mod:`Markdown` ==3.3.6
+
+The new Django version also removes support for Python 2, and therefore removed
+the bundled copy of the :mod:`six` library that NAV utilized for compatibility
+with both Python versions. Therefore, until Python 2 compatibility code has
+been removed entirely from NAV, NAV now depends on:
+
+* :mod:`six`
+
+To ensure NAV runs properly on Python 3.9, these dependency changes have also
+taken place:
+
+* :mod:`IPy` ==1.01
+* :mod:`twisted` >=20.0.0,<21
+* :mod:`networkx` ==2.6.3
+* :mod:`dnspython` <3.0.0,>=2.1.0
+
+To ensure the NAV documentation is built correctly, Sphinx needs an upgrade as
+well:
+
+* :mod:`Sphinx` ==3.5.4
 
 Backwards incompatible changes
 ------------------------------
 
+Report configuration files have moved
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The report generator in previous versions of NAV read two single configuration
+files from the :file:`report/` configuration directory, in the following order:
+
+1. :file:`report.conf`
+2. :file:`report.local.conf`
+
+NAV 5.3 replaces these files with a :file:`report/report.conf.d/` style
+directory. Every non-hidden file that matches the ``*.conf`` glob pattern will
+be read from this directory in alphabetical order by filename.
+
+If you have made local changes to your :file:`report/report.conf` or
+:file:`report/report.local.conf` files, please move these configuration files
+into the new :file:`report/report.conf.d/` directory, to ensure you can still
+generate your reports as expected.
+
+NAV 5.2
+=======
+
+Dependency changes
+------------------
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+For building the NAV documentation, the Python module
+:mod:`sphinxcontrib-django` is now required (it is not required for the NAV
+runtime, though).
+
+
+Changed versions
+~~~~~~~~~~~~~~~~
+
+NAV 5.2 moved to a newer version of the Python module :mod:`feedparser`,
+because of Python 3 issues with the old version. The new requirement is:
+
+* :mod:`feedparser` == 6.0.8
+
+Due to recent dependency conflicts with Napalm, NAV also changed the version
+requirement for the :mod:`dnspython` module. This is the current requirement:
+
+* :mod:`dnspython` <3.0.0,>=2.1.0
+
+
+Backwards incompatible changes
+------------------------------
+
+Changed Alert severity level definitions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While a severity value was always attached to each NAV alert, and could be used
+for matching in Alert Profiles, these values have always been poorly defined
+and underused. They were loosely understood to be in the range *0-100*, where
+*100* was the highest severity and *0* was the lowest, but more or less every
+alert ever issued by NAV was set to a severity value of 50.
+
+NAV 5.2 changes the entire severity scale and its interpretation to be a value
+in the range of **1 through 5**, where *1* is the **highest** severity and *5*
+is the **lowest**. This can be roughly interpreted as:
+
+- **5** = *Information*
+- **4** = *Low*
+- **3** = *Moderate*
+- **2** = *High*
+- **1** = *Critical*
+
+More importantly, NAV 5.2 adds the ability for you to configure how these
+values are set. Read more about this in the :ref:`event engine reference
+documentation on severity levels <severity_levels>`.
+
+Changes for developers
+----------------------
+
+NAV 5.2 requires all Python code to be formatted using Black, and introduces
+Git pre-commit hooks to ensure all Python code is formatted using Black before
+commits are accepted. Read all about it in :doc:`hacking/hacking`.
+
+NAV 5.1
+=======
+
+Dependency changes
+------------------
+
+Changed versions
+~~~~~~~~~~~~~~~~
+
+NAV 5.1 moves to Django 2.2, resulting in several changes in version
+dependencies of related libraries:
+
+* :mod:`Django`>=2.2,<2.3
+* :mod:`django-filter`>=2
+* :mod:`django-crispy-forms`>=1.7,<1.8
+* :mod:`crispy-forms-foundation`>=0.7,<0.8
+* :mod:`djangorestframework`>=3.9,<3.10
+
+Also, the Python library :mod:`Pillow` requirement has been moved to version
+8.0 (In reality, NAV is compatible with all versions from 3 through 8, as only
+the thumbnail API call is used, but the latest version is recommended due to
+reported security vulnerabilities in the older versions).
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+For NAPALM management profiles and Juniper support in PortAdmin, a dependency
+on the NAPALM_ library has been added:
+
+* :mod:`napalm` version 3.0
+
+Removed dependencies
+~~~~~~~~~~~~~~~~~~~~
+
+NAV no longer requires the :mod:`configparser` or :mod:`py2-ipaddress` Python
+modules. They were only needed under Python 2 to keep compatibility with both
+Python 2 and 3, but NAV 5.1 drops support for Python 2, as previously
+announced.
+
 Changed configuration files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 These configuration files changed:
 
@@ -23,9 +288,44 @@ These configuration files changed:
   to ``commit``, for the sake of a a more platform and management protocol
   agnostic view of the world.
 
+* :file:`daemons.yml`: Daemon entries now support the config option
+  ``privileged``, which defaults to ``false``. A daemon with ``privileged`` set
+  to ``true`` will be run as ``root``. Only :program:`snmptrapd` and
+  :program:`pping` will need to run using ``privileged: true``, as these
+  daemons need to create privileged communication sockets at startup (but they
+  will drop root privileges immediately after the sockets have been
+  created). **This means snmptrapd and pping will not start if you keep
+  the old version of this config file unchanged.**
+
+
+Things to be aware of
+---------------------
+
+.. note:: NAV 5.1 fixes a bug where some NAV daemons were run as root, giving
+          them an unnecessarily high privilege level (never a good
+          idea™). After upgrading, you may find some of these daemons failing
+          to start because their existing log files are only writeable by the
+          ``root`` user. You should ensure the NAV log files are all writable
+          by the user NAV runs as (``navcron``, in most cases).
+
+
 
 New features
 ------------
+
+Juniper support in PortAdmin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PortAdmin has gained the ability to configure Juniper switches. Juniper does
+not support configuration through SNMP writes, so the new management profile
+type NAPALM_ has been introduced, which enables PortAdmin to use Juniper
+specific NETCONF and RPC calls to get and set switch port configuration.
+
+Please read the :doc:`management profiles reference docs
+</reference/management-profiles>` for more details.
+
+.. _`NAPALM`: https://napalm.readthedocs.io/en/latest/
+
 
 Device filter options for distributed monitoring with pping and ipdevpoll
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1470,7 +1770,7 @@ been deprecated, and new API endpoints have been written for NAV 4.1.
 
 Although the API is still in flux, it can be used to retrieve various data
 from a NAV installation. See further documentation at
-https://nav.uninett.no/doc/dev/howto/using_the_api.html . We know a lot of
+https://nav.readthedocs.io/en/latest/howto/using_the_api.html . We know a lot of
 people are eager to integrate with NAV to utilize its data in their own
 solutions, so any feedback you may have regarding the API is much appreciated
 by the developers.

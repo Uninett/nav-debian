@@ -146,9 +146,9 @@ def _scale(number):
     if number is None:
         number = 0
 
-    tera, number = divmod(number, 1024 ** 4)
-    giga, number = divmod(number, 1024 ** 3)
-    mega, number = divmod(number, 1024 ** 2)
+    tera, number = divmod(number, 1024**4)
+    giga, number = divmod(number, 1024**3)
+    mega, number = divmod(number, 1024**2)
     kilo, number = divmod(number, 1024)
 
     return tera, giga, mega, kilo, number
@@ -185,7 +185,7 @@ def calculate_stop_time(acctstarttime, acctstoptime, acctsessiontime):
 
     # Check if session is still active
     if stop_time is None:
-        if (time_seconds + session_time) > (time.time()-ACCT_REAUTH_TIMEOUT):
+        if (time_seconds + session_time) > (time.time() - ACCT_REAUTH_TIMEOUT):
             stop_time = "Still Active"
         else:
             stop_time = "Timed Out"

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,7 +18,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.template.defaultfilters import urlize
 from django.urls import reverse
-from django.utils.encoding import force_text
+from nav.compatibility import force_str
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
@@ -35,6 +36,7 @@ class AccountSerializer(serializers.ModelSerializer):
 
 class AcknowledgementSerializer(serializers.ModelSerializer):
     """Serializer for alert acknowledgements"""
+
     account = AccountSerializer()
 
     comment_html = serializers.CharField(source='comment', read_only=True)
@@ -55,6 +57,7 @@ class AcknowledgementSerializer(serializers.ModelSerializer):
 
 class AlertTypeSerializer(serializers.ModelSerializer):
     """Serializer for alert types"""
+
     class Meta(object):
         model = event.AlertType
         fields = ('name', 'description')
@@ -62,6 +65,7 @@ class AlertTypeSerializer(serializers.ModelSerializer):
 
 class EventTypeSerializer(serializers.ModelSerializer):
     """Serializer for event types"""
+
     class Meta(object):
         model = event.EventType
         fields = ('id', 'description')
@@ -88,7 +92,7 @@ class AlertSerializerBase(serializers.ModelSerializer):
     @staticmethod
     def get_subject(obj):
         """Return textual description of object"""
-        return force_text(obj.get_subject())
+        return force_str(obj.get_subject())
 
     @staticmethod
     def get_subject_url(obj):
@@ -116,15 +120,17 @@ class AlertSerializerBase(serializers.ModelSerializer):
     @staticmethod
     def get_event_history_url(obj):
         """Returns a device history URL for this type of event"""
-        return "".join([reverse('devicehistory-view'), '?eventtype=', 'e_',
-                        obj.event_type.id])
+        return "".join(
+            [reverse('devicehistory-view'), '?eventtype=', 'e_', obj.event_type.id]
+        )
 
     @staticmethod
     def get_netbox_history_url(obj):
         """Returns a device history URL for this subject, if it is a Netbox"""
         if AlertHistorySerializer.get_subject_type(obj) == 'Netbox':
-            return reverse('devicehistory-view-netbox',
-                           kwargs={'netbox_id': obj.get_subject().id})
+            return reverse(
+                'devicehistory-view-netbox', kwargs={'netbox_id': obj.get_subject().id}
+            )
 
     @staticmethod
     def get_subject_type(obj):
@@ -136,7 +142,8 @@ class AlertSerializerBase(serializers.ModelSerializer):
         """Returns all the device groups for the netbox if any"""
         try:
             netbox = obj.netbox
-            return netbox.groups.values_list('id', flat=True) or None
+            values = netbox.groups.values_list('id', flat=True)
+            return list(values) if values else None
         except Exception:
             pass
 

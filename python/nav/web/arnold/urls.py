@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2012 (SD -311000) Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,60 +16,68 @@
 #
 """Urlconfig for arnold"""
 
-from django.conf.urls import url
+from django.urls import re_path
 from nav.web.arnold import views
 
 
 urlpatterns = [
-    url(r"^$",
-        views.render_detained_ports,
-        name="arnold_index"),
-    url(r"^history/$",
-        views.render_history,
-        name="arnold-history"),
-    url(r"^details/(?P<did>\d+)$",
-        views.render_details,
-        name="arnold-details"),
-    url(r"^detainedports/$",
-        views.render_detained_ports,
-        name="arnold-detainedports"),
-    url(r"^search/$",
-        views.render_search,
-        name="arnold-search"),
-    url(r"^manualdetention/$",
+    re_path(r"^$", views.render_detained_ports, name="arnold_index"),
+    re_path(r"^history/$", views.render_history, name="arnold-history"),
+    re_path(r"^details/(?P<did>\d+)$", views.render_details, name="arnold-details"),
+    re_path(
+        r"^detainedports/$", views.render_detained_ports, name="arnold-detainedports"
+    ),
+    re_path(r"^search/$", views.render_search, name="arnold-search"),
+    re_path(
+        r"^manualdetention/$",
         views.render_manual_detention_step_one,
-        name="arnold-manual-detention"),
-    url(r"^manualdetention/(?P<target>[^/]+)$",
+        name="arnold-manual-detention",
+    ),
+    re_path(
+        r"^manualdetention/(?P<target>[^/]+)$",
         views.render_manual_detention_step_two,
-        name="arnold-manual-detention-step-two"),
-    url(r"^enable/(?P<did>\d+)$",
+        name="arnold-manual-detention-step-two",
+    ),
+    re_path(
+        r"^enable/(?P<did>\d+)$",
         views.choose_detentions,
-        name="arnold-choose-detentions"),
-    url(r"^doenable/$",
-        views.lift_detentions,
-        name="arnold-lift-detentions"),
-    url(r"^predefined/$",
+        name="arnold-choose-detentions",
+    ),
+    re_path(r"^doenable/$", views.lift_detentions, name="arnold-lift-detentions"),
+    re_path(
+        r"^predefined/$",
         views.render_detention_profiles,
-        name="arnold-detention-profiles"),
-    url(r"^predefined/add$",
+        name="arnold-detention-profiles",
+    ),
+    re_path(
+        r"^predefined/add$",
         views.render_edit_detention_profile,
-        name="arnold-detention-profile-add"),
-    url(r"^predefined/edit/(?P<did>\d+)$",
+        name="arnold-detention-profile-add",
+    ),
+    re_path(
+        r"^predefined/edit/(?P<did>\d+)$",
         views.render_edit_detention_profile,
-        name="arnold-detention-profile-edit"),
-    url(r"^addreason/$",
+        name="arnold-detention-profile-edit",
+    ),
+    re_path(r"^addreason/$", views.render_justifications, name="arnold-justificatons"),
+    re_path(
+        r"^addreason/edit/(?P<jid>\d+)$",
         views.render_justifications,
-        name="arnold-justificatons"),
-    url(r"^addreason/edit/(?P<jid>\d+)$",
-        views.render_justifications,
-        name="arnold-justificatons-edit"),
-    url(r"^addreason/delete/(?P<jid>\d+)$",
+        name="arnold-justificatons-edit",
+    ),
+    re_path(
+        r"^addreason/delete/(?P<jid>\d+)$",
         views.delete_justification,
-        name="arnold-justificatons-delete"),
-    url(r"^addquarantinevlan/$",
+        name="arnold-justificatons-delete",
+    ),
+    re_path(
+        r"^addquarantinevlan/$",
         views.render_quarantine_vlans,
-        name="arnold-quarantinevlans"),
-    url(r"^addquarantinevlan/edit/(?P<qid>\d+)$",
+        name="arnold-quarantinevlans",
+    ),
+    re_path(
+        r"^addquarantinevlan/edit/(?P<qid>\d+)$",
         views.render_quarantine_vlans,
-        name="arnold-quarantinevlans-edit"),
+        name="arnold-quarantinevlans-edit",
+    ),
 ]

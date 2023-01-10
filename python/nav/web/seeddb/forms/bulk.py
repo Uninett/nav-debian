@@ -16,7 +16,6 @@
 """Forms used for Bulk import of data"""
 
 from django import forms
-from django.utils import six
 
 from nav.bulkparse import BulkParseError, CommentStripper
 from nav.bulkimport import BulkImportError
@@ -24,16 +23,14 @@ from nav.bulkimport import BulkImportError
 
 class BulkImportForm(forms.Form):
     """Generic bulk import form"""
-    bulk_file = forms.FileField(label="Upload a bulk data file",
-                                required=False)
+
+    bulk_file = forms.FileField(label="Upload a bulk data file", required=False)
 
     bulk_data = forms.CharField(
         label="Or paste data here",
         required=False,
-        widget=forms.Textarea(attrs={
-            'rows': 25,
-            'cols': 80
-        }))
+        widget=forms.Textarea(attrs={'rows': 25, 'cols': 80}),
+    )
 
     def __init__(self, parser, *args, **kwargs):
         self.parser = parser
@@ -46,11 +43,7 @@ class BulkImportForm(forms.Form):
 
     def get_raw_data(self):
         """Returns the bulk data as an utf-8 encoded string"""
-        data = self.cleaned_data.get('bulk_data', None)
-        if six.PY2 and isinstance(data, six.string_types):
-            return data.encode('utf-8')
-        else:
-            return data
+        return self.cleaned_data.get('bulk_data', None)
 
     def get_parser(self):
         """Returns a parser instance primed with the form's bulk data"""
@@ -106,18 +99,23 @@ class BulkImportForm(forms.Form):
         processed = []
         for line_num, objects in importer:
             if isinstance(objects, BulkParseError):
-                processed.append({
-                    'status': (isinstance(objects, BulkImportError)
-                               and 'other' or 'syntax'),
-                    'line_number': line_num,
-                    'input': lines[line_num - 1],
-                    'message': objects,
-                })
+                processed.append(
+                    {
+                        'status': (
+                            isinstance(objects, BulkImportError) and 'other' or 'syntax'
+                        ),
+                        'line_number': line_num,
+                        'input': lines[line_num - 1],
+                        'message': objects,
+                    }
+                )
             else:
-                processed.append({
-                    'status': 'ok',
-                    'line_number': line_num,
-                    'input': lines[line_num - 1],
-                    'message': ''
-                })
+                processed.append(
+                    {
+                        'status': 'ok',
+                        'line_number': line_num,
+                        'input': lines[line_num - 1],
+                        'message': '',
+                    }
+                )
         return processed

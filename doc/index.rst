@@ -19,14 +19,14 @@ Getting help
 * Post a question on `the nav-users mailing list`_ or search the
   `nav-users mailing list archives`_.
 
-* Ask a question on the `#nav IRC channel`_ on freenode.
+* Ask a question on the `#nav IRC channel`_ on Libera.Chat.
 
 * Report a bug in our `bug tracker`_.
 
 .. _wiki pages: https://nav.uninett.no/wiki/
-.. _nav-users mailing list archives: https://sympa.uninett.no/lists/uninett.no/arc/nav-users
-.. _the nav-users mailing list: https://sympa.uninett.no/lists/uninett.no/info/nav-users
-.. _#nav IRC channel: irc://irc.freenode.net/nav
+.. _nav-users mailing list archives: https://lister.sikt.no/hyperkitty/list/nav-users@lister.sikt.no/
+.. _the nav-users mailing list: https://lister.sikt.no/postorius/lists/nav-users.lister.sikt.no/
+.. _#nav IRC channel: irc://irc.libera.chat/nav
 .. _bug tracker: https://github.com/Uninett/nav
 
 First steps
@@ -43,6 +43,7 @@ See also :doc:`the release notes <release-notes>` for this version (|version|).
 * **Howto guides:**
   :doc:`howto/manual-install-on-debian` |
   :doc:`howto/installing-graphite-on-debian` |
+  :doc:`howto/commandline-utilities` |
   :doc:`Troubleshooting topology problems <howto/debugging-topology>` |
   :doc:`faq/graph_gaps` |
   :doc:`Migrating data between NAV installations <howto/migrate-data>` |
@@ -54,3 +55,9 @@ See also :doc:`the release notes <release-notes>` for this version (|version|).
 * **For developers:**
   :doc:`Making a new release <hacking/release-procedure>` |
   :doc:`Hacking index <hacking/index>`
+
+
+Digging deeper
+==============
+
+Check out the :doc:`reference material index <reference/index>`.

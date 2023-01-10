@@ -24,8 +24,6 @@ import math
 from itertools import groupby
 from functools import reduce
 
-from django.utils.six import iteritems
-
 
 def identity(obj):
     """identity(obj) == obj for all obj"""
@@ -55,7 +53,7 @@ def avg(lst):
     """
     if not lst:
         return 0
-    return float(sum(lst))/len(lst)
+    return float(sum(lst)) / len(lst)
 
 
 def weighted_avg(lst):
@@ -70,7 +68,7 @@ def weighted_avg(lst):
         return 0
     total = sum(value * weight for value, weight in lst)
     num = sum(weight for value, weight in lst)
-    return float(total)/num
+    return float(total) / num
 
 
 def argmax(fun, lst):
@@ -110,8 +108,7 @@ def numeric(obj):
 
 
 def float_or_nan(string):
-    """Convert a string to a float if possible, otherwise return the NaN value.
-    """
+    """Convert a string to a float if possible, otherwise return the NaN value."""
     try:
         return float(string)
     except ValueError:
@@ -137,8 +134,7 @@ def compose(*functions):
       compose(f_1, f_2, ..., f_n)(x) == f_1(f_2(...(f_n(x))))
 
     """
-    return reduce(lambda f1, f2: lambda x: f1(f2(x)),
-                  functions)
+    return reduce(lambda f1, f2: lambda x: f1(f2(x)), functions)
 
 
 def subdict(dct, keys):
@@ -168,7 +164,7 @@ def filter_dict(fun, dct):
     true.
 
     """
-    return subdict(dct, [key for key, val in iteritems(dct) if fun(val)])
+    return subdict(dct, [key for key, val in dct.items() if fun(val)])
 
 
 def map_dict(fun, dct):
@@ -178,7 +174,7 @@ def map_dict(fun, dct):
     replaced by the result of applying fun to it.
 
     """
-    return {k: fun(v) for k, v in iteritems(dct)}
+    return {k: fun(v) for k, v in dct.items()}
 
 
 def union_dict(*dicts):
@@ -201,12 +197,12 @@ def union_dict(*dicts):
 
 def concat_list(lists):
     """Concatenate a list of lists."""
-    return reduce(lambda a, b: a+b, lists, [])
+    return reduce(lambda a, b: a + b, lists, [])
 
 
 def concat_str(strs):
     """Concatenate a list of strings."""
-    return reduce(lambda a, b: a+b, strs, '')
+    return reduce(lambda a, b: a + b, strs, '')
 
 
 class lazy_dict(object):
@@ -403,8 +399,7 @@ class lazy_dict(object):
             self.unevaluated.remove(key)
 
     def force_and_call(self, key, method, *args):
-        """Call a method on the underlying dict after forcing evaluation of key.
-        """
+        """Call a method on the underlying dict after forcing evaluation of key."""
         self.force(key)
         return type(dict).__getattribute__(dict, method)(self.storage, *args)
 
@@ -422,5 +417,3 @@ def map_dict_lazy(fun, dct):
 def first(lst):
     """Extract the first element from a list or other indexable object."""
     return lst[0]
-
-

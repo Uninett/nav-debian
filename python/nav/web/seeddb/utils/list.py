@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -21,17 +22,24 @@ from functools import reduce
 
 from django.db.models import Model
 from django.shortcuts import render
-from django.db.models.fields import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist
 from django.urls import reverse
-from django.utils.six import iteritems
 
 from nav.django.utils import get_verbose_name
 
 
-def render_list(request, queryset, value_list, edit_url=None,
-                edit_url_attr='pk', filter_form=None,
-                template='seeddb/list.html', extra_context=None,
-                add_descriptions=False):
+def render_list(
+    request,
+    queryset,
+    value_list,
+    edit_url=None,
+    edit_url_attr='pk',
+    filter_form=None,
+    template='seeddb/list.html',
+    extra_context=None,
+    add_descriptions=False,
+    add_related=None,
+):
     """Renders a Seed DB list.
 
     Parameters:
@@ -56,12 +64,13 @@ def render_list(request, queryset, value_list, edit_url=None,
     if not edit_url:
         rows, datakeys = _process_objects(queryset, value_list)
     else:
-        rows, datakeys = _process_objects(queryset, value_list,
-                                          edit_url, edit_url_attr)
+        rows, datakeys = _process_objects(queryset, value_list, edit_url, edit_url_attr)
 
     labels = _label(queryset.model, value_list, datakeys)
     if add_descriptions:
         _add_descriptions(rows, queryset)
+    if add_related is not None:
+        add_related(rows)
 
     context = {
         'object_list': rows,
@@ -78,12 +87,12 @@ def render_list(request, queryset, value_list, edit_url=None,
 
 
 def _filter_query(filter_form, queryset):
-    """Apply filter_form to queryset.
-    """
+    """Apply filter_form to queryset."""
     if filter_form and filter_form.is_valid():
+        # Convert UI fieldname to DB lookup
+        mapper = getattr(filter_form, "map_formfieldname_to_queryname", lambda x: x)
         filter_data = filter_form.cleaned_data.items()
-        filter_tuples = [(key, value) for key, value in filter_data if value]
-        query_filter = dict(filter_tuples)
+        query_filter = {mapper(key): value for key, value in filter_data if value}
         queryset = queryset.filter(**query_filter)
     return queryset
 
@@ -105,7 +114,7 @@ def _process_objects(queryset, value_list, edit_url=None, edit_url_attr=None):
             value = _getattr(obj, attr)
             if isinstance(value, dict):
                 datakeys[attr].update(value)
-    datakeys = {k: list(sorted(v)) for k, v in iteritems(datakeys)}
+    datakeys = {k: list(sorted(v)) for k, v in datakeys.items()}
 
     def _getvalues(obj):
         for attr in value_list:

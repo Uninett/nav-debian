@@ -1,3 +1,19 @@
+#
+# Copyright (C) 2012-2019 Uninett AS
+# Copyright (C) 2022 Sikt
+#
+# This file is part of Network Administration Visualized (NAV).
+#
+# NAV is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License version 3 as published by
+# the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.  You should have received a copy of the GNU General Public License
+# along with NAV. If not, see <http://www.gnu.org/licenses/>.
+#
 """Template tags used in info subsystem"""
 from datetime import datetime, timedelta
 import time
@@ -13,11 +29,7 @@ register = template.Library()
 def time_since(timestamp):
     """Convert a timestamp to human readable time since"""
 
-    mapping = {'minute': 'min',
-               'hour': 'hr',
-               'week': 'wk',
-               'month': 'mo',
-               'year': 'yr'}
+    mapping = {'minute': 'min', 'hour': 'hr', 'week': 'wk', 'month': 'mo', 'year': 'yr'}
 
     if timestamp is None:
         return "Never"
@@ -168,3 +180,10 @@ def sortdict(dictionary, reverse=False):
 def is_list(value):
     """Returns True if the value is a list"""
     return isinstance(value, list)
+
+
+@register.filter
+def dunderless(mapping):
+    """Returns a mapping with all elements of the input mapping except for ones whose key starts with dunder"""
+    mapping = {k: v for k, v in mapping.items() if not k.startswith('__')}
+    return mapping

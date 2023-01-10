@@ -21,7 +21,7 @@ from nav.portadmin.vlan import FantasyVlan
 
 
 class PortAdminConfig(NAVConfigParser):
-    """"PortAdmin config parser"""
+    """ "PortAdmin config parser"""
 
     DEFAULT_CONFIG_FILES = (join("portadmin", "portadmin.conf"),)
     DEFAULT_CONFIG = """
@@ -33,6 +33,7 @@ commit = on
 timeout = 3
 retries = 3
 trunk_edit = true
+link_edit = true
 
 [authorization]
 vlan_auth = off
@@ -93,9 +94,13 @@ enabled = false
         """
         return self.getboolean("general", "trunk_edit", fallback=True)
 
+    def get_link_edit(self):
+        """Gets config option for link edit"""
+        return self.getboolean("general", "link_edit", fallback=True)
+
     def is_dot1x_enabled(self):
         """Checks if dot1x config option is true"""
-        self.getboolean("dot1x", "enabled", fallback=False)
+        return self.getboolean("dot1x", "enabled", fallback=False)
 
     def is_cisco_voice_enabled(self):
         """Checks if the Cisco config option is enabled"""

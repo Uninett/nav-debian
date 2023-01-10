@@ -1,5 +1,6 @@
 #
 # Copyright 2013 (C) Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -31,17 +32,19 @@ order.
 from __future__ import absolute_import
 
 import re
+
 # This module is NOT deprecated, even though many of the functions in it are
 # pylint: disable=W0402
 import string
 
-from django.utils import six
-from django.utils.encoding import python_2_unicode_compatible
-
 # A range of left shift values for the 6 bytes in a MAC address
-_SHIFT_RANGE = tuple(x*8 for x in reversed(range(6)))
+_SHIFT_RANGE = tuple(x * 8 for x in reversed(range(6)))
 # Legal delimiters and the number of nybbles between them.
-DELIMS_AND_STEPS = {'.': 4, ':': 2, '-': 2, }
+DELIMS_AND_STEPS = {
+    '.': 4,
+    ':': 2,
+    '-': 2,
+}
 # Only these characters are allowed in a MacAddress after delimiters have
 # been stripped.
 MAC_ADDRESS_PATTERN = re.compile('^[a-fA-F0-9]+$')
@@ -50,9 +53,6 @@ MAC_ADDR_NYBBLES = 12
 # Obviously number of bits for a nybble.
 NUM_BITS_IN_NYBBLE = 4
 
-if six.PY3:
-    long = int
-
 
 class MacAddress(object):
     """A representation of a single MAC address"""
@@ -60,7 +60,7 @@ class MacAddress(object):
     # Default delimiter for a mac-address as a string.
     DEFAULT_DELIM = ':'
     # Maximum value for a mac-address when all bits are set.
-    MAX_MAC_ADDR_VALUE = 0xffffffffffff
+    MAX_MAC_ADDR_VALUE = 0xFFFFFFFFFFFF
     # Strip for delimiters and test against this pattern.
     MAC_ADDRESS_PATTERN = re.compile('^[a-fA-F0-9]{6,12}$')
     # To hold the value for a mac-address as an int.
@@ -70,11 +70,11 @@ class MacAddress(object):
         # pylint: disable=W0212
         if isinstance(addr, MacAddress):
             self._addr = addr._addr
-        elif isinstance(addr, six.integer_types):
-            self._addr = long(addr)
+        elif isinstance(addr, int):
+            self._addr = addr
             if self._addr < 0 or self._addr > self.MAX_MAC_ADDR_VALUE:
                 raise ValueError('Illegal value for MacAddress')
-        elif isinstance(addr, six.string_types):
+        elif isinstance(addr, str):
             self._addr = self._parse_address_string(addr)
         else:
             raise ValueError('Illegal parameter-type')
@@ -85,24 +85,23 @@ class MacAddress(object):
         hexstring = octets_to_hexstring(binary_mac)
         return cls(hexstring.rjust(MAC_ADDR_NYBBLES, "0"))
 
-    def tolong(self):
-        """Returns a long integer representation of this MacAddress"""
+    def toint(self):
+        """Returns an integer representation of this MacAddress"""
         return self._addr
 
     @staticmethod
     def _parse_address_string(addr):
-        """Parses the mac-address string and returns a long int
+        """Parses the mac-address string and returns an int
         representation of it
 
         """
-        if not isinstance(addr, six.string_types):
+        if not isinstance(addr, str):
             raise TypeError('addr argument must be string or unicode')
         addr = _clean_hexstring(addr)
         if len(addr) != MAC_ADDR_NYBBLES:
-            raise ValueError('Mac-address must be %s nybbles long' %
-                             MAC_ADDR_NYBBLES)
+            raise ValueError('Mac-address must be %s nybbles long' % MAC_ADDR_NYBBLES)
 
-        addr_bytes = [long(addr[x:x + 2], 16) for x in range(0, len(addr), 2)]
+        addr_bytes = [int(addr[x : x + 2], 16) for x in range(0, len(addr), 2)]
         addr = sum(n << shift for n, shift in zip(addr_bytes, _SHIFT_RANGE))
         return addr
 
@@ -115,8 +114,9 @@ class MacAddress(object):
         >>> ma.__str__()
         'e4:2f:3d:5'
         """
-        return _int_to_delimited_hexstring(self._addr, self.DEFAULT_DELIM,
-                                           DELIMS_AND_STEPS[self.DEFAULT_DELIM])
+        return _int_to_delimited_hexstring(
+            self._addr, self.DEFAULT_DELIM, DELIMS_AND_STEPS[self.DEFAULT_DELIM]
+        )
 
     def __repr__(self):
         """Print the representation of the Object.
@@ -124,10 +124,9 @@ class MacAddress(object):
         >>> MacAddress('e4:2f:3d:5')
         MacAddress('e4:2f:3d:5')
         """
-        return ("MacAddress('%s')" %
-                _int_to_delimited_hexstring(
-                    self._addr, self.DEFAULT_DELIM,
-                    DELIMS_AND_STEPS[self.DEFAULT_DELIM]))
+        return "MacAddress('%s')" % _int_to_delimited_hexstring(
+            self._addr, self.DEFAULT_DELIM, DELIMS_AND_STEPS[self.DEFAULT_DELIM]
+        )
 
     def __lt__(self, other):
         return self._compare(other, lambda s, o: s < o)
@@ -170,11 +169,9 @@ class MacAddress(object):
             return _int_to_delimited_hexstring(self._addr, '', 2)
         if delim not in DELIMS_AND_STEPS:
             raise ValueError('Illegal delimiter')
-        return _int_to_delimited_hexstring(self._addr, delim,
-                                           DELIMS_AND_STEPS[delim])
+        return _int_to_delimited_hexstring(self._addr, delim, DELIMS_AND_STEPS[delim])
 
 
-@python_2_unicode_compatible
 class MacPrefix(object):
     """Represents the prefix of a range of MacAddress objects.
 
@@ -187,18 +184,21 @@ class MacPrefix(object):
     as prefix[0] and so on.
 
     """
+
     MIN_PREFIX_LEN = 6
 
     def __init__(self, prefix, min_prefix_len=MIN_PREFIX_LEN):
-        prefix = _clean_hexstring(six.text_type(prefix))
+        prefix = _clean_hexstring(str(prefix))
 
         self._mask_len = len(prefix)
         if self._mask_len < min_prefix_len:
-            raise ValueError("MacPrefix must be at least %s nybbles long" %
-                             min_prefix_len)
+            raise ValueError(
+                "MacPrefix must be at least %s nybbles long" % min_prefix_len
+            )
         if self._mask_len > MAC_ADDR_NYBBLES:
-            raise ValueError("MacPrefix must be no longer than %s nybbles" %
-                             MAC_ADDR_NYBBLES)
+            raise ValueError(
+                "MacPrefix must be no longer than %s nybbles" % MAC_ADDR_NYBBLES
+            )
 
         self._base = MacAddress(prefix.ljust(MAC_ADDR_NYBBLES, '0'))
 
@@ -243,7 +243,7 @@ class MacPrefix(object):
         >>> ma[-1]
         MacAddress('e4:23:1d:ff:ff:ff')
         """
-        if not isinstance(key, six.integer_types):
+        if not isinstance(key, int):
             raise TypeError
         if key < 0:
             if abs(key) <= len(self):
@@ -253,14 +253,13 @@ class MacPrefix(object):
         else:
             if key >= len(self):
                 raise IndexError
-        return MacAddress(self._base.tolong() + long(key))
+        return MacAddress(self._base.toint() + int(key))
 
     def __str__(self):
-        base = six.text_type(self._base)
-        digitpos = [pos for pos, char in enumerate(base)
-                    if char in string.hexdigits]
+        base = str(self._base)
+        digitpos = [pos for pos, char in enumerate(base) if char in string.hexdigits]
         digitpos = digitpos[self._mask_len - 1]
-        base = base[:digitpos + 1]
+        base = base[: digitpos + 1]
         return base.rstrip(u''.join(DELIMS_AND_STEPS.keys()))
 
     def __repr__(self):
@@ -269,10 +268,10 @@ class MacPrefix(object):
 
 # Helper functions used by both classes
 
+
 def _clean_hexstring(hexstr):
     stripped = ''.join(
-        i for i in hexstr.strip().replace(" ", "")
-        if i not in DELIMS_AND_STEPS
+        i for i in hexstr.strip().replace(" ", "") if i not in DELIMS_AND_STEPS
     )
     if not MAC_ADDRESS_PATTERN.match(stripped):
         raise ValueError("Not a valid hexadecimal string: %s" % hexstr)
@@ -281,15 +280,14 @@ def _clean_hexstring(hexstr):
 
 def _int_to_delimited_hexstring(mac_addr, delim, step):
     """Formats a long value to a delimited hexadecimal string"""
-    mac_addr = ('%x' % mac_addr)
+    mac_addr = '%x' % mac_addr
     mac_addr = mac_addr.rjust(MAC_ADDR_NYBBLES, '0')
-    return delim.join(mac_addr[x:x + step]
-                      for x in range(0, len(mac_addr), step))
+    return delim.join(mac_addr[x : x + step] for x in range(0, len(mac_addr), step))
 
 
 def octets_to_hexstring(octets):
     """Converts an octet string to a printable hexadecimal string"""
-    if isinstance(octets, six.binary_type):
-        return ''.join("%02x" % byte for byte in six.iterbytes(octets))
+    if isinstance(octets, bytes):
+        return ''.join("%02x" % byte for byte in octets)
     else:
-        return ''.join("%02x" % ord(byte) for byte in six.iterbytes(octets))
+        return ''.join("%02x" % ord(byte) for byte in octets)

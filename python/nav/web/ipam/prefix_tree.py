@@ -28,7 +28,6 @@ import logging
 from IPy import IP, IPSet
 
 from django.urls import reverse, NoReverseMatch
-from django.utils import six
 
 from nav.web.ipam.util import get_available_subnets
 from nav.models.manage import Prefix
@@ -39,6 +38,7 @@ _logger = logging.getLogger(__name__)
 
 class PrefixHeap(object):
     "Pseudo-heap ordered topologically by prefixes"
+
     def __init__(self, children=None):
         if children is None:
             children = []
@@ -47,9 +47,7 @@ class PrefixHeap(object):
     @property
     def fields(self):
         "Return the children of the heap as a dictionary"
-        payload = {
-            "children": [child.fields for child in self.children]
-        }
+        payload = {"children": [child.fields for child in self.children]}
         return payload
 
     def is_leaf(self):
@@ -85,12 +83,13 @@ class PrefixHeap(object):
 
     def add(self, node):
         "Add a node to the heap"
-        assert isinstance(node, PrefixHeap), \
-            "Can only add classes inheriting from PrefixHeap"
+        assert isinstance(
+            node, PrefixHeap
+        ), "Can only add classes inheriting from PrefixHeap"
         # first, try adding to children (recursively)
         i = bisect.bisect_left(self.children, node)
-        if i > 0 and node in self.children[i-1]:
-            child = self.children[i-1]
+        if i > 0 and node in self.children[i - 1]:
+            child = self.children[i - 1]
             node.parent = child
             child.add(node)
             return
@@ -108,9 +107,11 @@ class PrefixHeap(object):
 # exposes a clean, non-nested attribute contract (we promise that the field 'x'
 # will exist and be populated with some value) etc.
 
+
 @functools.total_ordering
 class IpNode(PrefixHeap):
     "PrefixHeap node class"
+
     def __init__(self, ip_addr, net_type):
         super(IpNode, self).__init__()
         self._ip = IP(ip_addr)
@@ -137,23 +138,19 @@ class IpNode(PrefixHeap):
 
     # Comparison utilities
     def __contains__(self, other):
-        assert isinstance(other, IpNode), \
-            "Can only compare with other IpNode elements"
+        assert isinstance(other, IpNode), "Can only compare with other IpNode elements"
         return other.ip in self.ip
 
     def __cmp__(self, other):
-        assert isinstance(other, IpNode), \
-            "Can only compare with other IpNode elements"
+        assert isinstance(other, IpNode), "Can only compare with other IpNode elements"
         return self.ip.__cmp__(other.ip)
 
     def __eq__(self, other):
-        assert isinstance(other, IpNode), \
-            "Can only compare with other IpNode elements"
+        assert isinstance(other, IpNode), "Can only compare with other IpNode elements"
         return self.ip == other.ip
 
     def __lt__(self, other):
-        assert isinstance(other, IpNode), \
-            "Can only compare with other IpNode elements"
+        assert isinstance(other, IpNode), "Can only compare with other IpNode elements"
         return self.ip < other.ip
 
 
@@ -179,7 +176,7 @@ class IpNodeFacade(IpNode):
         "bits",
         "empty_ranges",
         "is_reservable",
-        "parent_pk"
+        "parent_pk",
     ]
 
     def __init__(self, ip_addr, pk, net_type, sort_fn=None):
@@ -204,7 +201,7 @@ class IpNodeFacade(IpNode):
     @property
     def empty_ranges(self):
         "Ranges within the node not spanned by its children"
-        return [six.text_type(prefix) for prefix in self.not_in_use()]
+        return [str(prefix) for prefix in self.not_in_use()]
 
     @property
     def net_ident(self):
@@ -268,7 +265,7 @@ class IpNodeFacade(IpNode):
     @property
     def prefix(self):
         "Return the prefix (as a string)"
-        return six.text_type(self.ip)
+        return str(self.ip)
 
     @property
     def children_pks(self):
@@ -286,7 +283,7 @@ class IpNodeFacade(IpNode):
     @property
     def organization(self):
         "The name of the organization connected to the prefix"
-        return six.text_type(getattr(self, "_organization", ""))
+        return str(getattr(self, "_organization", ""))
 
     @property
     def description(self):
@@ -301,6 +298,7 @@ class IpNodeFacade(IpNode):
 
 class FauxNode(IpNodeFacade):
     "'Fake' nodes (manual constructor) in a prefix heap"
+
     def __init__(self, ip_addr, pk, net_type):
         super(FauxNode, self).__init__(ip_addr, pk, net_type)
 
@@ -344,6 +342,7 @@ class FakeVLAN(object):
 
 class PrefixNode(IpNodeFacade):
     "Wrapper node for Prefix results"
+
     def __init__(self, prefix, sort_fn=None):
         self._prefix = prefix  # cache of prefix
         ip_addr = prefix.net_address
@@ -354,9 +353,11 @@ class PrefixNode(IpNodeFacade):
         if vlan is None:
             _logger.warning(
                 "Prefix % id=% does not have a VLAN relation",
-                prefix.net_address, prefix.id)
+                prefix.net_address,
+                prefix.id,
+            )
             vlan = FakeVLAN()
-        net_type = six.text_type(vlan.net_type)
+        net_type = str(vlan.net_type)
         super(PrefixNode, self).__init__(ip_addr, primary_key, net_type, sort_fn)
         self._description = vlan.description
         self._organization = vlan.organization
@@ -368,8 +369,14 @@ class PrefixNode(IpNodeFacade):
             self.FIELDS.append("vlan_usage")
 
 
-def make_prefix_heap(prefixes, initial_children=None, family=None,
-                     sort_fn=None, show_available=False, show_unused=False):
+def make_prefix_heap(
+    prefixes,
+    initial_children=None,
+    family=None,
+    sort_fn=None,
+    show_available=False,
+    show_unused=False,
+):
     """Return a prefix heap of all prefixes. Might optionally filter out IPv4
     and IPv6 as needed.
 
@@ -387,11 +394,7 @@ def make_prefix_heap(prefixes, initial_children=None, family=None,
         A prefix heap (tree)
 
     """
-    rfc1918 = IPSet([
-        IP("10.0.0.0/8"),
-        IP("172.16.0.0/12"),
-        IP("192.168.0.0/16")
-        ])
+    rfc1918 = IPSet([IP("10.0.0.0/8"), IP("172.16.0.0/12"), IP("192.168.0.0/16")])
 
     def accept(prefix):
         "Helper function for filtering prefixes by IP family"
@@ -411,8 +414,7 @@ def make_prefix_heap(prefixes, initial_children=None, family=None,
         heap.add(node)
     # Add marker nodes for available ranges/prefixes
     if show_available:
-        scopes = (child for child in heap.walk_roots() if child.net_type in
-                  ["scope"])
+        scopes = (child for child in heap.walk_roots() if child.net_type in ["scope"])
         subnets = (get_available_nodes([scope.ip]) for scope in scopes)
         for subnet in subnets:
             heap.add_many(subnet)
@@ -426,9 +428,7 @@ def make_prefix_heap(prefixes, initial_children=None, family=None,
     return heap
 
 
-SORT_BY = {
-    "vlan_number": lambda x: x.vlan_number
-}
+SORT_BY = {"vlan_number": lambda x: x.vlan_number}
 
 
 def get_available_nodes(ips):
@@ -447,21 +447,21 @@ def nodes_from_ips(ips, klass="empty"):
 
 def make_tree(prefixes, family=None, root_ip=None, show_all=None, sort_by="ip"):
     """Return a prefix heap initially populated with RFC1918 addresses. Accepts
-parameters rfc1918, ipv4 and ipv6 to return addresses of those respective
-families. Do note that we distinguish between 'real' IPv4, which is everything
-not part of the RFC1918 ranges.
+    parameters rfc1918, ipv4 and ipv6 to return addresses of those respective
+    families. Do note that we distinguish between 'real' IPv4, which is everything
+    not part of the RFC1918 ranges.
 
-    Args:
-        prefixes: a queryset for or list of nav.models.manage.Prefix
-        family: a list of address types to allow (of "ipv4", "ipv6", "rfc1918")
-        root_ip: prefix string or IPy.IP object to use as the root of the tree
-        show_all: whether or not to create fake nodes that fill in available
-            within a parent (e.g. unused subnets) or nodes that are detected
-            within this prefix for NAV, but still not present in the heap
-        sort_by: key to sort the nodes/children by
+        Args:
+            prefixes: a queryset for or list of nav.models.manage.Prefix
+            family: a list of address types to allow (of "ipv4", "ipv6", "rfc1918")
+            root_ip: prefix string or IPy.IP object to use as the root of the tree
+            show_all: whether or not to create fake nodes that fill in available
+                within a parent (e.g. unused subnets) or nodes that are detected
+                within this prefix for NAV, but still not present in the heap
+            sort_by: key to sort the nodes/children by
 
-    Returns:
-        A prefix heap (tree)
+        Returns:
+            A prefix heap (tree)
 
     """
     family = {"ipv4", "ipv6", "rfc1918"} if family is None else set(family)
@@ -480,7 +480,7 @@ not part of the RFC1918 ranges.
         "family": family,
         "sort_fn": SORT_BY.get(sort_by, None),
         "show_available": show_all,
-        "show_unused": show_all
+        "show_unused": show_all,
     }
     return make_prefix_heap(prefixes, **opts)
 

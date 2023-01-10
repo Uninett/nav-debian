@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,8 +17,9 @@
 """Report widget"""
 from django.http import HttpResponse, JsonResponse, QueryDict
 from nav.models.profiles import AccountNavlet
-from nav.web.report.views import CONFIG_FILE_PACKAGE, make_report
+from nav.web.report.views import CONFIG_DIR, make_report
 from nav.report.generator import ReportList
+from nav.config import list_config_files_from_dir
 from . import Navlet, NAVLET_MODE_EDIT, NAVLET_MODE_VIEW
 
 
@@ -39,14 +41,21 @@ class ReportWidget(Navlet):
         query_string = navlet.preferences.get('query_string')
 
         if self.mode == NAVLET_MODE_EDIT:
-            report_list = ReportList(CONFIG_FILE_PACKAGE).get_report_list()
+            report_list = ReportList(
+                list_config_files_from_dir(CONFIG_DIR)
+            ).get_report_list()
+
             context['report_list'] = report_list
             context['current_report_id'] = report_id
             context['query_string'] = query_string
         elif self.mode == NAVLET_MODE_VIEW:
             full_context = make_report(
-                self.request, report_id, None,
-                QueryDict(query_string).copy(), paginate=False)
+                self.request,
+                report_id,
+                None,
+                QueryDict(query_string).copy(),
+                paginate=False,
+            )
             if full_context:
                 report = full_context.get('report')
                 context['report'] = report
@@ -57,14 +66,14 @@ class ReportWidget(Navlet):
     def post(self, request):
         """Save navlet options on post"""
         try:
-            navlet = AccountNavlet.objects.get(pk=self.navlet_id,
-                                               account=request.account)
+            navlet = AccountNavlet.objects.get(
+                pk=self.navlet_id, account=request.account
+            )
         except AccountNavlet.DoesNotExist:
             return HttpResponse(status=404)
         else:
             navlet.preferences['report_id'] = request.POST.get('report_id')
-            navlet.preferences['query_string'] = request.POST.get(
-                'query_string')
+            navlet.preferences['query_string'] = request.POST.get('query_string')
             navlet.save()
             return JsonResponse(navlet.preferences)
 

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,7 +17,6 @@
 """macwatch Django models"""
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 
 from nav.macaddress import MacPrefix
 from nav.models.fields import VarcharField
@@ -24,20 +24,17 @@ from nav.models.manage import Cam
 from nav.models.profiles import Account
 
 
-@python_2_unicode_compatible
 class MacWatch(models.Model):
     """Data-model for mac-address that should get watched
     by bin/macwatch.py"""
+
     MAC_ADDR_DELIM_CHAR = ':'
 
     id = models.AutoField(db_column='id', primary_key=True)
     # TODO: Create MACAddressField in Django
     mac = models.CharField(db_column='mac', max_length=17, unique=True)
     userid = models.ForeignKey(
-        Account,
-        on_delete=models.CASCADE,
-        db_column='userid',
-        null=False
+        Account, on_delete=models.CASCADE, db_column='userid', null=False
     )
     description = VarcharField(db_column='description', null=True)
     created = models.DateTimeField(db_column='created', auto_now_add=True)
@@ -68,27 +65,19 @@ class MacWatch(models.Model):
         :rtype: nav.macaddress.MacPrefix
         """
         filtered_mac = self._filtered_mac_addr()
-        prefix_mac = filtered_mac[0:self.prefix_length]
+        prefix_mac = filtered_mac[0 : self.prefix_length]
         return MacPrefix(prefix_mac)
 
 
-@python_2_unicode_compatible
 class MacWatchMatch(models.Model):
     """Extra model (helper-model) for mac-watch when macwatch
     only has a mac-adress prefix"""
+
     id = models.AutoField(db_column='id', primary_key=True)
     macwatch = models.ForeignKey(
-        MacWatch,
-        on_delete=models.CASCADE,
-        db_column='macwatch',
-        null=False
+        MacWatch, on_delete=models.CASCADE, db_column='macwatch', null=False
     )
-    cam = models.ForeignKey(
-        Cam,
-        on_delete=models.CASCADE,
-        db_column='cam',
-        null=False
-    )
+    cam = models.ForeignKey(Cam, on_delete=models.CASCADE, db_column='cam', null=False)
     posted = models.DateTimeField(db_column='posted', auto_now_add=True)
 
     class Meta(object):
@@ -96,4 +85,8 @@ class MacWatchMatch(models.Model):
 
     def __str__(self):
         return u'id=%s; macwatch = %s; cam = %s; posted = %s' % (
-            self.id, self.macwatch, self.cam, self.posted)
+            self.id,
+            self.macwatch,
+            self.cam,
+            self.posted,
+        )

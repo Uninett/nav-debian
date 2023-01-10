@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009-2012, 2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,7 +18,6 @@
 ipdevpoll plugin to collect information about physical entities, if any,
 within a Netbox, from the ENTITY-MIB::entPhysicalTable (RFC 4133 and RFC 6933)
 """
-from django.utils import six
 from twisted.internet import defer
 
 from nav.Snmp import safestring
@@ -25,6 +25,7 @@ from nav.ipdevpoll.shadows.entity import NetboxEntity
 
 from nav.mibs.entity_mib import EntityMib, EntityTable
 from nav.ipdevpoll import Plugin, shadows
+from nav.ipdevpoll.plugins.modules import get_ignored_serials
 from nav.ipdevpoll.timestamps import TimestampChecker
 from nav.models import manage
 from nav.oids import OID
@@ -39,8 +40,13 @@ class Entity(Plugin):
         super(Entity, self).__init__(*args, **kwargs)
         self.alias_mapping = {}
         self.entitymib = EntityMib(self.agent)
-        self.stampcheck = TimestampChecker(self.agent, self.containers,
-                                           INFO_VAR_NAME)
+        self.stampcheck = TimestampChecker(self.agent, self.containers, INFO_VAR_NAME)
+
+    @classmethod
+    def on_plugin_load(cls):
+        from nav.ipdevpoll.config import ipdevpoll_conf
+
+        cls.ignored_serials = get_ignored_serials(ipdevpoll_conf)
 
     @defer.inlineCallbacks
     def handle(self):
@@ -48,8 +54,7 @@ class Entity(Plugin):
         need_to_collect = yield self._need_to_collect()
         # if need_to_collect:
         if True:
-            physical_table = (
-                yield self.entitymib.get_entity_physical_table())
+            physical_table = yield self.entitymib.get_entity_physical_table()
             self._logger.debug("found %d entities", len(physical_table))
             self._process_entities(physical_table)
         self.stampcheck.save()
@@ -66,8 +71,9 @@ class Entity(Plugin):
         """Process the list of collected entities."""
         # be able to look up all entities using entPhysicalIndex
         entities = EntityTable(result)
-        containers = [self._container_from_entity(entity)
-                      for entity in entities.values()]
+        containers = [
+            self._container_from_entity(entity) for entity in entities.values()
+        ]
         self._fix_hierarchy(containers)
 
     def _fix_hierarchy(self, containers):
@@ -75,7 +81,7 @@ class Entity(Plugin):
         ghosts = set()
         for container in containers:
             if container.contained_in:
-                parent_id = six.text_type(container.contained_in)
+                parent_id = str(container.contained_in)
                 parent = by_index.get(parent_id)
                 if parent:
                     container.contained_in = parent
@@ -86,31 +92,35 @@ class Entity(Plugin):
         if ghosts:
             self._logger.info(
                 "kick your device vendor in the shin. entPhysicalContainedIn "
-                "values refer to non-existant entities: %s", ", ".join(ghosts))
+                "values refer to non-existant entities: %s",
+                ", ".join(ghosts),
+            )
 
-    field_map = {k: 'entPhysical'+v for k, v in dict(
-        index='Index',
-        descr='Descr',
-        vendor_type='VendorType',
-        contained_in='ContainedIn',
-        physical_class='Class',
-        parent_relpos='ParentRelPos',
-        name='Name',
-        hardware_revision='HardwareRev',
-        firmware_revision='FirmwareRev',
-        software_revision='SoftwareRev',
-        mfg_name='MfgName',
-        model_name='ModelName',
-        alias='Alias',
-        asset_id='AssetID',
-        fru='IsFRU',
-        mfg_date='MfgDate',
-        uris='Uris',
-        serial='SerialNum',
-    ).items()}
+    field_map = {
+        k: 'entPhysical' + v
+        for k, v in dict(
+            index='Index',
+            descr='Descr',
+            vendor_type='VendorType',
+            contained_in='ContainedIn',
+            physical_class='Class',
+            parent_relpos='ParentRelPos',
+            name='Name',
+            hardware_revision='HardwareRev',
+            firmware_revision='FirmwareRev',
+            software_revision='SoftwareRev',
+            mfg_name='MfgName',
+            model_name='ModelName',
+            alias='Alias',
+            asset_id='AssetID',
+            fru='IsFRU',
+            mfg_date='MfgDate',
+            uris='Uris',
+            serial='SerialNum',
+        ).items()
+    }
 
-    class_map = {name: value
-                 for value, name in manage.NetboxEntity.CLASS_CHOICES}
+    class_map = {name: value for value, name in manage.NetboxEntity.CLASS_CHOICES}
 
     def _container_from_entity(self, ent):
         device_key = 'ENTITY-MIB:' + str(ent.get(0))
@@ -132,9 +142,10 @@ class Entity(Plugin):
             if value is not None:
                 setattr(container, attr, value)
 
-        if getattr(container, 'serial', None):
+        serial_num = getattr(container, 'serial', None)
+        if serial_num and serial_num not in self.ignored_serials:
             device = self.containers.factory(container.serial, shadows.Device)
-            device.serial = container.serial
+            device.serial = serial_num
             for key in ('hardware', 'firmware', 'software'):
                 val = getattr(container, key + '_revision')
                 if val:

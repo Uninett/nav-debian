@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2014, 2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -18,9 +19,17 @@ from collections import defaultdict
 from operator import itemgetter
 
 from django import forms
+from django.forms.utils import pretty_name
 from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import (Layout, Row, Column, Field, Submit,
-                                            HTML, Fieldset)
+from crispy_forms_foundation.layout import (
+    Layout,
+    Row,
+    Column,
+    Field,
+    Submit,
+    HTML,
+    Fieldset,
+)
 
 from nav.models.event import EventType, AlertType
 from nav.models.manage import Organization, Category, NetboxGroup, Location
@@ -31,12 +40,12 @@ from . import STATELESS_THRESHOLD
 class StatusPanelForm(forms.Form):
     """Form representing the status panel options for the user"""
 
-    stateless = forms.BooleanField(required=False,
-                                   help_text='Show stateless events')
+    stateless = forms.BooleanField(required=False, help_text='Show stateless events')
     stateless_threshold = NumberField(
         required=True,
         initial=STATELESS_THRESHOLD,
-        help_text='Hours back in time to look for stateless events')
+        help_text='Hours back in time to look for stateless events',
+    )
     on_maintenance = forms.BooleanField(required=False)
     acknowledged = forms.BooleanField(required=False)
 
@@ -46,63 +55,57 @@ class StatusPanelForm(forms.Form):
         alert_types = get_alert_types()
 
         self.fields['event_type'] = forms.MultipleChoiceField(
-            choices=get_event_types(),
-            required=False
+            choices=get_event_types(), required=False
         )
-
         self.fields['alert_type'] = forms.MultipleChoiceField(
-            choices=alert_types,
-            required=False
+            choices=alert_types, required=False
         )
         self.fields['category'] = forms.MultipleChoiceField(
-            choices=get_categories(),
-            required=False
+            choices=get_categories(), required=False
         )
         self.fields['organization'] = forms.MultipleChoiceField(
-            choices=get_organizations(),
-            required=False
+            choices=get_organizations(), required=False
         )
         self.fields['device_group'] = forms.MultipleChoiceField(
-            choices=get_device_groups(),
-            required=False
+            choices=get_device_groups(), required=False
         )
-
         self.fields['location'] = forms.MultipleChoiceField(
-            choices=get_locations(),
-            required=False
+            choices=get_locations(), required=False
+        )
+        self.fields['severity'] = forms.MultipleChoiceField(
+            choices=get_severity(), required=False
         )
 
         self.fields['not_event_type'] = forms.MultipleChoiceField(
-            choices=get_event_types(),
-            required=False
+            choices=get_event_types(), required=False
         )
         self.fields['not_alert_type'] = forms.MultipleChoiceField(
-            choices=alert_types,
-            required=False
+            choices=alert_types, required=False
         )
         self.fields['not_category'] = forms.MultipleChoiceField(
-            choices=get_categories(),
-            required=False
+            choices=get_categories(), required=False
         )
         self.fields['not_organization'] = forms.MultipleChoiceField(
-            choices=get_organizations(),
-            required=False
+            choices=get_organizations(), required=False
         )
         self.fields['not_device_group'] = forms.MultipleChoiceField(
-            choices=get_device_groups(),
-            required=False
+            choices=get_device_groups(), required=False
         )
         self.fields['not_location'] = forms.MultipleChoiceField(
-            choices=get_locations(),
-            required=False
+            choices=get_locations(), required=False
+        )
+        self.fields['not_severity'] = forms.MultipleChoiceField(
+            choices=get_severity(), required=False
         )
 
         self.fields['status_filters'] = forms.MultipleChoiceField(
-            choices=[(t, forms.forms.pretty_name(t))
-                     for t, f in self.fields.items()
-                     if isinstance(f, forms.MultipleChoiceField)],
+            choices=[
+                (t, pretty_name(t))
+                for t, f in self.fields.items()
+                if isinstance(f, forms.MultipleChoiceField)
+            ],
             required=False,
-            label='Choose fields to filter status by'
+            label='Choose fields to filter status by',
         )
 
         column_class = 'medium-6'
@@ -122,20 +125,27 @@ class StatusPanelForm(forms.Form):
                         Field('event_type', css_class='select2'),
                         Field('location', css_class='select2'),
                         Field('organization', css_class='select2'),
+                        Field('severity', css_class='select2'),
                         Field('not_alert_type', css_class='select2'),
                         Field('not_category', css_class='select2'),
                         Field('not_device_group', css_class='select2'),
                         Field('not_event_type', css_class='select2'),
                         Field('not_location', css_class='select2'),
                         Field('not_organization', css_class='select2'),
-                        css_class='field_list'),
-                    css_class=column_class),
-                Column('stateless', 'stateless_threshold',
-                       'acknowledged', 'on_maintenance',
-                       css_class=column_class),
+                        Field('not_severity', css_class='select2'),
+                        css_class='field_list',
+                    ),
+                    css_class=column_class,
+                ),
+                Column(
+                    'stateless',
+                    'stateless_threshold',
+                    'acknowledged',
+                    'on_maintenance',
+                    css_class=column_class,
+                ),
             ),
             HTML('<hr>'),
-
         )
 
     def clean_stateless_threshold(self):
@@ -152,10 +162,14 @@ class StatusWidgetForm(StatusPanelForm):
     This form is used in the status widget and is more suitable for a smaller
     screen size.
     """
+
     extra_columns = forms.MultipleChoiceField(
         required=False,
-        choices=(('room.location', 'Location'), ('room', 'Room'),
-                 ('organization', 'Organization'))
+        choices=(
+            ('room.location', 'Location'),
+            ('room', 'Room'),
+            ('organization', 'Organization'),
+        ),
     )
 
     def __init__(self, *args, **kwargs):
@@ -166,48 +180,67 @@ class StatusWidgetForm(StatusPanelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row(
-                Column(Field('event_type', css_class='select2'),
-                       css_class=column_class),
-                Column(Field('not_event_type', css_class='select2'),
-                       css_class=column_class),
+                Column(
+                    Field('event_type', css_class='select2'), css_class=column_class
+                ),
+                Column(
+                    Field('not_event_type', css_class='select2'), css_class=column_class
+                ),
             ),
             Row(
-                Column(Field('category', css_class='select2'),
-                       css_class=column_class),
-                Column(Field('not_category', css_class='select2'),
-                       css_class=column_class),
+                Column(Field('category', css_class='select2'), css_class=column_class),
+                Column(
+                    Field('not_category', css_class='select2'), css_class=column_class
+                ),
             ),
             Row(
-                Column(Field('alert_type', css_class='select2'),
-                       css_class=column_class),
-                Column(Field('not_alert_type', css_class='select2'),
-                       css_class=column_class),
+                Column(
+                    Field('alert_type', css_class='select2'), css_class=column_class
+                ),
+                Column(
+                    Field('not_alert_type', css_class='select2'), css_class=column_class
+                ),
             ),
             Row(
-                Column(Field('organization', css_class='select2'),
-                       css_class=column_class),
-                Column(Field('not_organization', css_class='select2'),
-                       css_class=column_class),
+                Column(
+                    Field('organization', css_class='select2'), css_class=column_class
+                ),
+                Column(
+                    Field('not_organization', css_class='select2'),
+                    css_class=column_class,
+                ),
             ),
             Row(
-                Column(Field('device_group', css_class='select2'),
-                       css_class=column_class),
-                Column(Field('not_device_group', css_class='select2'),
-                       css_class=column_class),
+                Column(
+                    Field('device_group', css_class='select2'), css_class=column_class
+                ),
+                Column(
+                    Field('not_device_group', css_class='select2'),
+                    css_class=column_class,
+                ),
             ),
             Row(
-                Column(Field('location', css_class='select2'),
-                       css_class=column_class),
-                Column(Field('not_location', css_class='select2'),
-                       css_class=column_class),
+                Column(Field('location', css_class='select2'), css_class=column_class),
+                Column(
+                    Field('not_location', css_class='select2'), css_class=column_class
+                ),
             ),
             Row(
-                Column('stateless', 'stateless_threshold',
-                       css_class=column_class),
-                Column('acknowledged', 'on_maintenance', 'extra_columns',
-                       css_class=column_class)
+                Column(Field('severity', css_class='select2'), css_class=column_class),
+                Column(
+                    Field('not_severity', css_class='select2'), css_class=column_class
+                ),
             ),
-            Submit('submit', 'Save')
+            Row(
+                Column('stateless', 'stateless_threshold', css_class=column_class),
+                Column(
+                    'acknowledged',
+                    'on_maintenance',
+                    'extra_columns',
+                    css_class=column_class,
+                ),
+            ),
+            Submit('submit', 'Save'),
         )
 
 
@@ -228,8 +261,7 @@ def get_alert_types():
     """
     alert_types = defaultdict(list)
     for alert_type in AlertType.objects.all():
-        alert_types[alert_type.event_type_id].append(
-            (alert_type.name, alert_type.name))
+        alert_types[alert_type.event_type_id].append((alert_type.name, alert_type.name))
 
     return sorted(alert_types.items(), key=itemgetter(0))
 
@@ -252,3 +284,8 @@ def get_device_groups():
 def get_locations():
     """Gets all locations formatted as choices"""
     return [(l.id, l.id) for l in Location.objects.all()]
+
+
+def get_severity():
+    """Gets all severity values formatted as choices"""
+    return [(i, i) for i in range(1, 6)]

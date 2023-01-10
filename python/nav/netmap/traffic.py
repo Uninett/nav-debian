@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2012, 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,8 +17,6 @@
 """Functions for attaching traffic metadata to netmap"""
 import logging
 from collections import defaultdict
-
-from django.utils.six import iteritems
 
 from nav.metrics.data import get_metric_average
 from nav.metrics.graphs import get_metric_meta
@@ -45,8 +44,7 @@ class InterfaceLoad(object):
         self.load_in_percent = get_traffic_load_in_percent(in_bps, link_speed)
         self.rgb = get_traffic_rgb(self.load_in_percent)
         if self.load_in_percent is not None:
-            self.formatted_load_in_percent = "{0:.2f}".format(
-                self.load_in_percent)
+            self.formatted_load_in_percent = "{0:.2f}".format(self.load_in_percent)
         else:
             self.formatted_load_in_percent = None
 
@@ -78,14 +76,13 @@ class Traffic(object):
         self.target = None
 
     def __repr__(self):
-        return "<Traffic source={0!r} target={1!r}>".format(
-            self.source, self.target)
+        return "<Traffic source={0!r} target={1!r}>".format(self.source, self.target)
 
     def to_json(self):
         """to_json presentation for given Traffic in an edge"""
         return {
             'source': self.source and self.source.to_json() or None,
-            'target': self.target and self.target.to_json() or None
+            'target': self.target and self.target.to_json() or None,
         }
 
 
@@ -126,7 +123,7 @@ def get_traffic_for(interfaces):
 
     _logger.debug("received %d metrics in response", len(data))
 
-    for metric, value in iteritems(data):
+    for metric, value in data.items():
         interface = metric_mapping[metric]
         if INOCTETS in metric:
             traffic[interface].update({INOCTETS: value})
@@ -163,7 +160,7 @@ def _merge_metrics(metrics):
             emit = "%s.{%s}.{%s}" % (
                 ".".join(current_prefix),
                 ",".join(interfaces),
-                ",".join((INOCTETS, OUTOCTETS))
+                ",".join((INOCTETS, OUTOCTETS)),
             )
             current_prefix = prefix
             interfaces.clear()

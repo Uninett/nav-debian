@@ -65,6 +65,18 @@ rm_conffile() {
     fi
 }
 
+mv_report_config_files() {
+    if [ -d /etc/nav/report/report.conf.d ]; then
+        echo "Moving report configuration files"
+        if [ -f /etc/nav/report/report.conf ]; then
+            mv -f /etc/nav/report/report.conf /etc/nav/report/report.conf.d/
+        fi
+        if [ -f /etc/nav/report/report.local.conf ]; then
+            mv -f /etc/nav/report/report.local.conf /etc/nav/report/report.conf.d/
+        fi
+    fi
+}
+
 disable_RUN_NAV () {
     systemctl disable nav.service
 }
@@ -313,6 +325,15 @@ EOF
 	# psuwatch cronjob is obsolete
 	if dpkg --compare-versions "$OLDVERSION" lt "5.0.0-2"; then
             rm_conffile nav /etc/nav/cron.d/psuwatch
+	fi
+
+	# Ensure existing log files are owned, and therefore writeable by navcron
+	if [ -n "$OLDVERSION" ] && dpkg --compare-versions "$OLDVERSION" lt "5.1.1-2"; then
+            chown -f navcron /var/log/nav/*.log /var/log/nav/*.log.*gz
+	fi
+
+	if dpkg --compare-versions "$OLDVERSION" lt "5.3.0-1"; then
+            mv_report_config_files
 	fi
 
 	if [ -n "$OLDVERSION" ]; then

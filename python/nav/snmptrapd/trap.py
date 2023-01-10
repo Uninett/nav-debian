@@ -33,8 +33,18 @@ class SNMPTrap(object):
     :
     """
 
-    def __init__(self, src, agent, type, genericType, snmpTrapOID, uptime,
-                 community, version, varbinds):
+    def __init__(
+        self,
+        src,
+        agent,
+        type,
+        genericType,
+        snmpTrapOID,
+        uptime,
+        community,
+        version,
+        varbinds,
+    ):
         self.src = src
         self.agent = agent
         self.type = type
@@ -55,14 +65,18 @@ class SNMPTrap(object):
         conn = getConnection('snmptrapd')
         cur = conn.cursor()
         cur.execute(
-            "SELECT netboxid, sysname, roomid FROM netbox WHERE ip = %s",
+            "SELECT DISTINCT netboxid, sysname, roomid "
+            "FROM netbox "
+            "LEFT JOIN interface USING (netboxid) "
+            "LEFT JOIN gwportprefix USING (interfaceid) "
+            "WHERE %s IN (ip, gwip) ",
             (self.agent,),
         )
 
         if cur.rowcount < 1:
             _logger.warning(
-                "Unable to match trap agent %s to a NAV-monitored device",
-                self.agent)
+                "Unable to match trap agent %s to a NAV-monitored device", self.agent
+            )
             return None
 
         return AgentNetbox(*cur.fetchone())
@@ -76,9 +90,14 @@ class SNMPTrap(object):
     def __str__(self):
         text = "Got snmp version %s trap\n" % self.version
         text = (text + "Src: %s, Community: %s, Uptime: %s\n") % (
-            self.src, self.community, self.uptime)
+            self.src,
+            self.community,
+            self.uptime,
+        )
         text = (text + "Type %s, snmpTrapOID: %s\n") % (
-            self.genericType, self.snmpTrapOID)
+            self.genericType,
+            self.snmpTrapOID,
+        )
 
         for key in sorted(self.varbinds.keys()):
             val = self.varbinds[key]

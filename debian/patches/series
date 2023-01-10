@@ -1,2 +1,5 @@
 nav-start-mkdir-var-run
 config-debian-dirs
+add-python-gammu-dependency
+install-service-identity-module
+bundle-pyopenssl

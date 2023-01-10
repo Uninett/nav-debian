@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,80 +16,85 @@
 #
 """Django URL configuration for webfront"""
 
-from django.conf.urls import url
+from django.urls import re_path
 from django.views.generic import RedirectView
 
 from nav.web.webfront import views
 
 
 urlpatterns = [
-    url(r'^$',
-        views.index,
-        name='webfront-index'),
-    url(r'^index/login/',
-        views.login,
-        name='webfront-login'),
-    url(r'^index/logout/',
-        views.logout,
-        name='webfront-logout'),
-
+    re_path(r'^$', views.index, name='webfront-index'),
+    re_path(r'^index/login/', views.login, name='webfront-login'),
+    re_path(r'^index/logout/', views.logout, name='webfront-logout'),
     # Dashboard
-    url(r'^index/dashboard/(?P<did>\d+)',
-        views.index,
-        name='dashboard-index-id'),
-    url(r'^index/dashboard/add/$',
-        views.add_dashboard,
-        name='add-dashboard'),
-    url(r'^index/dashboard/set_default/(?P<did>\d+)/$',
+    re_path(r'^index/dashboard/(?P<did>\d+)', views.index, name='dashboard-index-id'),
+    re_path(r'^index/dashboard/add/$', views.add_dashboard, name='add-dashboard'),
+    re_path(
+        r'^index/dashboard/set_default/(?P<did>\d+)/$',
         views.set_default_dashboard,
-        name='set-default-dashboard'),
-    url(r'^index/dashboard/rename/(?P<did>\d+)/$',
+        name='set-default-dashboard',
+    ),
+    re_path(
+        r'^index/dashboard/rename/(?P<did>\d+)/$',
         views.rename_dashboard,
-        name='rename-dashboard'),
-    url(r'^index/dashboard/delete/(?P<did>\d+)/$',
+        name='rename-dashboard',
+    ),
+    re_path(
+        r'^index/dashboard/delete/(?P<did>\d+)/$',
         views.delete_dashboard,
-        name='delete-dashboard'),
-    url(r'^index/dashboard/columns/(?P<did>\d+)/$',
+        name='delete-dashboard',
+    ),
+    re_path(
+        r'^index/dashboard/columns/(?P<did>\d+)/$',
         views.save_dashboard_columns,
-        name='save-dashboard-columns'),
-    url(r'^index/dashboard/moveto/(?P<did>\d+)/$',
+        name='save-dashboard-columns',
+    ),
+    re_path(
+        r'^index/dashboard/moveto/(?P<did>\d+)/$',
         views.moveto_dashboard,
-        name='moveto-dashboard'),
-    url(r'^index/dashboard/export/(?P<did>\d+)$',
+        name='moveto-dashboard',
+    ),
+    re_path(
+        r'^index/dashboard/export/(?P<did>\d+)$',
         views.export_dashboard,
-        name='export-dashboard'),
-    url(r'^index/dashboard/import$',
-        views.import_dashboard,
-        name='import-dashboard'),
-    url(r'^index/dashboard/',
-        views.index,
-        name='dashboard-index'),
-
-    url(r'^about/',
-        views.about,
-        name='webfront-about'),
-    url(r'^doc/(?P<path>.+)$',
-        RedirectView.as_view(url='/static/doc/%(path)s', permanent=True)),
-    url(r'^doc/$',
-        RedirectView.as_view(url='/static/doc/index.html', permanent=True)),
-    url(r'^uploads/(?P<path>.*)$',
-        RedirectView.as_view(url='/static/uploads/%(path)s', permanent=True)),
-    url(r'^toolbox/$',
-        views.toolbox,
-        name='webfront-toolbox'),
-    url(r'^preferences/$',
-        views.preferences,
-        name='webfront-preferences'),
-    url(r'^preferences/savelinks$',
+        name='export-dashboard',
+    ),
+    re_path(
+        r'^index/dashboard/import$', views.import_dashboard, name='import-dashboard'
+    ),
+    re_path(r'^index/dashboard/', views.index, name='dashboard-index'),
+    re_path(r'^about/', views.about, name='webfront-about'),
+    re_path(
+        r'^doc/(?P<path>.+)$',
+        RedirectView.as_view(url='/static/doc/%(path)s', permanent=True),
+    ),
+    re_path(
+        r'^doc/$', RedirectView.as_view(url='/static/doc/index.html', permanent=True)
+    ),
+    re_path(
+        r'^uploads/(?P<path>.*)$',
+        RedirectView.as_view(url='/static/uploads/%(path)s', permanent=True),
+    ),
+    re_path(r'^toolbox/$', views.toolbox, name='webfront-toolbox'),
+    re_path(r'^preferences/$', views.preferences, name='webfront-preferences'),
+    re_path(
+        r'^preferences/savelinks$',
         views.save_links,
-        name='webfront-preferences-savelinks'),
-    url(r'^preferences/changepassword$',
+        name='webfront-preferences-savelinks',
+    ),
+    re_path(
+        r'^preferences/changepassword$',
         views.change_password,
-        name='webfront-preferences-changepassword'),
-    url(r'^preferences/setcolumns$',
+        name='webfront-preferences-changepassword',
+    ),
+    re_path(
+        r'^preferences/setcolumns$',
         views.set_widget_columns,
-        name='webfront-preferences-setwidgetcolumns'),
-    url(r'^preferences/set_account_preference$',
+        name='webfront-preferences-setwidgetcolumns',
+    ),
+    re_path(
+        r'^preferences/set_account_preference$',
         views.set_account_preference,
-        name='set-account-preference'),
+        name='set-account-preference',
+    ),
 ]

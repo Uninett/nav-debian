@@ -3,7 +3,10 @@ import os
 import io
 import re
 import shlex
+from itertools import cycle
+from shutil import which
 import subprocess
+import time
 
 import pytest
 from django.test import Client
@@ -31,9 +34,19 @@ def pytest_configure(config):
     os.environ['TARGETURL'] = "http://localhost:8000/"
     start_gunicorn()
 
+    # Bootstrap Django config
     from nav.bootstrap import bootstrap_django
+
     bootstrap_django('pytest')
+
+    # Install custom reactor for Twisted tests
+    from nav.ipdevpoll.epollreactor2 import install
+
+    install()
+
+    # Setup test environment for Django
     from django.test.utils import setup_test_environment
+
     setup_test_environment()
 
 
@@ -46,10 +59,16 @@ def start_gunicorn():
     workspace = os.path.join(os.environ.get('WORKSPACE', ''), 'reports')
     errorlog = os.path.join(workspace, 'gunicorn-error.log')
     accesslog = os.path.join(workspace, 'gunicorn-access.log')
-    gunicorn = subprocess.Popen(['gunicorn',
-                                 '--error-logfile', errorlog,
-                                 '--access-logfile', accesslog,
-                                 'navtest_wsgi:application'])
+    gunicorn = subprocess.Popen(
+        [
+            'gunicorn',
+            '--error-logfile',
+            errorlog,
+            '--access-logfile',
+            accesslog,
+            'navtest_wsgi:application',
+        ]
+    )
 
 
 def stop_gunicorn():
@@ -64,10 +83,9 @@ def stop_gunicorn():
 #                                                                      #
 ########################################################################
 TESTARGS_PATTERN = re.compile(
-    r'^# +-\*-\s*testargs:\s*(?P<args>.*?)\s*(-\*-)?\s*$',
-    re.MULTILINE)
-NOTEST_PATTERN = re.compile(
-    r'^# +-\*-\s*notest\s*(-\*-)?\s*$', re.MULTILINE)
+    r'^# +-\*-\s*testargs:\s*(?P<args>.*?)\s*(-\*-)?\s*$', re.MULTILINE
+)
+NOTEST_PATTERN = re.compile(r'^# +-\*-\s*notest\s*(-\*-)?\s*$', re.MULTILINE)
 BINDIR = './bin'
 
 
@@ -78,6 +96,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("binary", _nav_binary_tests(), ids=ids)
     elif 'admin_navlet' in metafunc.fixturenames:
         from nav.models.profiles import AccountNavlet
+
         navlets = AccountNavlet.objects.filter(account__login='admin')
         metafunc.parametrize("admin_navlet", navlets)
 
@@ -90,15 +109,18 @@ def _nav_binary_tests():
 
 
 def _nav_binary_list():
-    files = sorted(os.path.join(BINDIR, f)
-                   for f in os.listdir(BINDIR)
-                   if not _is_excluded(f))
+    files = sorted(
+        os.path.join(BINDIR, f) for f in os.listdir(BINDIR) if not _is_excluded(f)
+    )
     return (f for f in files if os.path.isfile(f))
 
 
 def _is_excluded(filename):
-    return (filename.endswith('~') or filename.startswith('.') or
-            filename.startswith('Makefile'))
+    return (
+        filename.endswith('~')
+        or filename.startswith('.')
+        or filename.startswith('Makefile')
+    )
 
 
 def _scan_testargs(filename):
@@ -122,6 +144,7 @@ def _scan_testargs(filename):
         else:
             return []
 
+
 ##################
 #                #
 # Other fixtures #
@@ -132,6 +155,7 @@ def _scan_testargs(filename):
 @pytest.fixture()
 def management_profile():
     from nav.models.manage import ManagementProfile
+
     profile = ManagementProfile(
         name="Test connection profile",
         protocol=ManagementProfile.PROTOCOL_SNMP,
@@ -139,7 +163,7 @@ def management_profile():
             "version": 2,
             "community": "public",
             "write": False,
-        }
+        },
     )
     profile.save()
     yield profile
@@ -149,13 +173,48 @@ def management_profile():
 @pytest.fixture()
 def localhost(management_profile):
     from nav.models.manage import Netbox, NetboxProfile
-    box = Netbox(ip='127.0.0.1', sysname='localhost.example.org',
-                 organization_id='myorg', room_id='myroom', category_id='SRV')
+
+    box = Netbox(
+        ip='127.0.0.1',
+        sysname='localhost.example.org',
+        organization_id='myorg',
+        room_id='myroom',
+        category_id='SRV',
+    )
     box.save()
     NetboxProfile(netbox=box, profile=management_profile).save()
     yield box
     print("teardown test device")
     box.delete()
+
+
+@pytest.fixture()
+def localhost_using_legacy_db():
+    """Alternative to the Django-based localhost fixture, for tests that operate on
+    code that uses legacy database connections.
+    """
+    from nav.db import getConnection
+
+    conn = getConnection('default')
+    cursor = conn.cursor()
+
+    sql = """
+    INSERT INTO netbox
+    (ip, sysname, orgid, roomid, catid)
+    VALUES
+    (%s, %s, %s, %s, %s)
+    RETURNING netboxid;
+    """
+    cursor.execute(
+        sql, ('127.0.0.1', 'localhost.example.org', 'myorg', 'myroom', 'SRV')
+    )
+    netboxid = cursor.fetchone()[0]
+    conn.commit()
+    yield netboxid
+
+    print("teardown localhost device using legacy connection")
+    cursor.execute("DELETE FROM netbox WHERE netboxid=%s", (netboxid,))
+    conn.commit()
 
 
 @pytest.fixture(scope='session')
@@ -168,8 +227,7 @@ def client():
     url = reverse('webfront-login')
     username = os.environ.get('ADMINUSERNAME', 'admin')
     password = os.environ.get('ADMINPASSWORD', 'admin')
-    client_.post(url, {'username': username,
-                       'password': password})
+    client_.post(url, {'username': username, 'password': password})
     return client_
 
 
@@ -220,10 +278,12 @@ def token():
     from nav.models.api import APIToken
     from datetime import datetime, timedelta
 
-    token = APIToken(token='xxxxxx',
-                     expires=datetime.now() + timedelta(days=1),
-                     client_id=1,
-                     permission='write')
+    token = APIToken(
+        token='xxxxxx',
+        expires=datetime.now() + timedelta(days=1),
+        client_id=1,
+        permission='write',
+    )
     token.save()
     return token
 
@@ -233,6 +293,76 @@ def api_client(token):
     """Creates a client for API access"""
 
     from rest_framework.test import APIClient
+
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION='Token ' + token.token)
     return client
+
+
+@pytest.fixture(scope='session')
+def snmpsim():
+    """Sets up an external snmpsimd process so that SNMP communication can be simulated
+    by the test that declares a dependency to this fixture. Data fixtures are loaded
+    from the snmp_fixtures subdirectory.
+    """
+    snmpsimd = which('snmpsimd.py')
+    assert snmpsimd, "Could not find snmpsimd.py"
+    workspace = os.getenv('WORKSPACE', os.getenv('HOME', '/source'))
+    proc = subprocess.Popen(
+        [
+            snmpsimd,
+            '--data-dir={}/tests/integration/snmp_fixtures'.format(workspace),
+            '--log-level=error',
+            '--agent-udpv4-endpoint=127.0.0.1:1024',
+        ],
+        env={'HOME': workspace},
+    )
+
+    while not _lookfor('0100007F:0400', '/proc/net/udp'):
+        print("Still waiting for snmpsimd to listen for queries")
+        proc.poll()
+        time.sleep(0.1)
+
+    yield
+    proc.kill()
+
+
+@pytest.fixture()
+def snmp_agent_proxy(snmpsim, snmp_ports):
+    """Returns an AgentProxy instance prepared to talk to localhost. The open() method
+    has not been called, so its attributes can be changed before the socket is opened.
+    """
+    from nav.ipdevpoll.snmp import AgentProxy
+    from nav.ipdevpoll.snmp.common import SNMPParameters
+
+    port = next(snmp_ports)
+    agent = AgentProxy(
+        '127.0.0.1',
+        1024,
+        community='placeholder',
+        snmpVersion='v2c',
+        protocol=port.protocol,
+        snmp_parameters=SNMPParameters(timeout=1, max_repetitions=5, throttle_delay=0),
+    )
+    return agent
+
+
+_ports = None  # to store a cycling generator of snmp client ports
+
+
+@pytest.fixture(scope='session')
+def snmp_ports():
+    """Returns a cyclic generator of snmpprotocol.port() to use for agent proxies"""
+    from pynetsnmp.twistedsnmp import snmpprotocol
+
+    global _ports
+
+    if _ports is None:
+        _ports = cycle(snmpprotocol.port() for i in range(50))
+    return _ports
+
+
+def _lookfor(string, filename):
+    """Very simple grep-like function"""
+    data = io.open(filename, 'r', encoding='utf-8').read()
+    return string in data

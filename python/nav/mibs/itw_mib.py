@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2008-2019 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -21,8 +22,7 @@ A class that tries to retrieve all sensors from WeatherGoose I.
 Uses the vendor-specifica IT-WATCHDOGS-MIB to detect and collect
 sensor-information.
 """
-from django.utils.encoding import smart_text
-from django.utils.six import itervalues
+from nav.compatibility import smart_str
 from twisted.internet import defer
 
 from nav.mibs import reduce_index
@@ -47,7 +47,7 @@ TABLES = {
                 'climateIO1',
                 'climateIO2',
                 'climateIO3',
-            }
+            },
         }
     ],
     'tempSensorTable': [
@@ -57,7 +57,7 @@ TABLES = {
             'name': 'tempSensorName',
             'sensors': {
                 'tempSensorTempC',
-            }
+            },
         }
     ],
     'airFlowSensorTable': [
@@ -69,7 +69,7 @@ TABLES = {
                 'airFlowSensorTempC',
                 'airFlowSensorFlow',
                 'airFlowSensorHumidity',
-            }
+            },
         }
     ],
     'doorSensorTable': [
@@ -79,7 +79,7 @@ TABLES = {
             'name': 'doorSensorName',
             'sensors': {
                 'doorSensorStatus',
-            }
+            },
         }
     ],
     'waterSensorTable': [
@@ -89,7 +89,7 @@ TABLES = {
             'name': 'waterSensorName',
             'sensors': {
                 'waterSensorDampness',
-            }
+            },
         }
     ],
     'currentMonitorTable': [
@@ -99,7 +99,7 @@ TABLES = {
             'name': 'currentMonitorName',
             'sensors': {
                 'currentMonitorAmps',
-            }
+            },
         }
     ],
     'millivoltMonitorTable': [
@@ -109,7 +109,7 @@ TABLES = {
             'name': 'millivoltMonitorName',
             'sensors': {
                 'millivoltMonitorMV',
-            }
+            },
         }
     ],
     'dewPointSensorTable': [
@@ -121,7 +121,7 @@ TABLES = {
                 'dewPointSensorDewPoint',
                 'dewPointSensorTempC',
                 'dewPointSensorHumidity',
-            }
+            },
         }
     ],
     'digitalSensorTable': [
@@ -131,7 +131,7 @@ TABLES = {
             'name': 'digitalSensorName',
             'sensors': {
                 'digitalSensorDigital',
-            }
+            },
         }
     ],
     'cpmSensorTable': [
@@ -141,7 +141,7 @@ TABLES = {
             'name': 'cpmSensorName',
             'sensors': {
                 'cpmSensorStatus',
-            }
+            },
         }
     ],
     'smokeAlarmTable': [
@@ -151,7 +151,7 @@ TABLES = {
             'name': 'smokeAlarmName',
             'sensors': {
                 'smokeAlarmStatus',
-            }
+            },
         }
     ],
     'neg48VdcSensorTable': [
@@ -161,7 +161,7 @@ TABLES = {
             'name': 'neg48VdcSensorName',
             'sensors': {
                 'neg48VdcSensorVoltage',
-            }
+            },
         }
     ],
     'pos30VdcSensorTable': [
@@ -171,7 +171,7 @@ TABLES = {
             'name': 'pos30VdcSensorName',
             'sensors': {
                 'pos30VdcSensorVoltage',
-            }
+            },
         }
     ],
     'analogSensorTable': [
@@ -181,7 +181,7 @@ TABLES = {
             'name': 'analogSensorName',
             'sensors': {
                 'analogSensorAnalog',
-            }
+            },
         }
     ],
     'powerMonitorTable': [
@@ -201,7 +201,7 @@ TABLES = {
                 'powMonPwrFact',
                 'powMonOutlet1',
                 'powMonOutlet2',
-            }
+            },
         }
     ],
     'powerOnlyTable': [
@@ -215,7 +215,7 @@ TABLES = {
                 'powerRealPow',
                 'powerAppPow',
                 'powerPwrFactor',
-            }
+            },
         }
     ],
     'power3ChTable': [
@@ -234,7 +234,7 @@ TABLES = {
                 'pow3ChRealPow' + ch,
                 'pow3ChAppPow' + ch,
                 'pow3ChPwrFact' + ch,
-            }
+            },
         }
         for ch in ('A', 'B', 'C')
     ],
@@ -246,7 +246,7 @@ TABLES = {
             'sensors': {
                 'outlet1Status',
                 'outlet2Status',
-            }
+            },
         }
     ],
     'vsfcTable': [
@@ -262,7 +262,7 @@ TABLES = {
                 'vsfcExt2TempC',
                 'vsfcExt3TempC',
                 'vsfcExt4TempC',
-            }
+            },
         }
     ],
     'ctrl3ChTable': [
@@ -278,7 +278,7 @@ TABLES = {
                 'ctrl3ChRealPow' + ch,
                 'ctrl3ChAppPow' + ch,
                 'ctrl3ChPwrFact' + ch,
-            }
+            },
         }
         for ch in ('A', 'B', 'C')
     ],
@@ -289,7 +289,7 @@ TABLES = {
             'name': 'ctrlGrpAmpsName',
             'sensors': {
                 'ctrlGrpAmps' + ch,
-            }
+            },
         }
         for ch in ('A', 'B', 'C', 'D', 'E', 'F')
     ],
@@ -305,7 +305,7 @@ TABLES = {
                 'ctrlOutletUpDelay',
                 'ctrlOutletDwnDelay',
                 'ctrlOutletRbtDelay',
-            }
+            },
         }
     ],
     'dstsTable': [
@@ -319,7 +319,7 @@ TABLES = {
                 'dstsSource' + ch + 'Active',
                 'dstsPowerStatus' + ch,
                 'dstsSource' + ch + 'TempC',
-            }
+            },
         }
         for ch in ('A', 'B')
     ],
@@ -327,7 +327,6 @@ TABLES = {
 
 
 class BaseITWatchDogsMib(mibretriever.MibRetriever):
-
     def _get_oid_for_sensor(self, sensor_name):
         """Return the OID for the given sensor-name as a string; Return
         None if sensor-name is not found.
@@ -340,13 +339,14 @@ class BaseITWatchDogsMib(mibretriever.MibRetriever):
                 oid_str = sensor_def.get('oid')
         return oid_str
 
-    def _make_result_dict(self, sensor_oid, base_oid, serial, desc,
-                          u_o_m=None, **kwargs):
-        """ Make a simple dictionary to return to plugin"""
+    def _make_result_dict(
+        self, sensor_oid, base_oid, serial, desc, u_o_m=None, **kwargs
+    ):
+        """Make a simple dictionary to return to plugin"""
         if not sensor_oid or not base_oid or not serial or not desc:
             return {}
         oid = OID(base_oid) + OID(sensor_oid)
-        internal_name = smart_text(serial) + desc
+        internal_name = smart_str(serial) + desc
         res = {
             'oid': oid,
             'unit_of_measurement': u_o_m,
@@ -364,7 +364,7 @@ class BaseITWatchDogsMib(mibretriever.MibRetriever):
         serial_col = sensor_group['serial']
         sensors = sensor_group['sensors']
 
-        for row in itervalues(table_data):
+        for row in table_data.values():
             if not avail_col or row.get(avail_col):
                 oid = row.get(0)
                 serial = row.get(serial_col)
@@ -372,22 +372,27 @@ class BaseITWatchDogsMib(mibretriever.MibRetriever):
                 for sensor in sensors:
                     conf = convert_units(self.mib, sensor)
                     conf.update(get_range(self.mib, sensor))
-                    result.append(self._make_result_dict(
-                        oid,
-                        self._get_oid_for_sensor(sensor),
-                        serial, sensor, name=name, **conf))
+                    result.append(
+                        self._make_result_dict(
+                            oid,
+                            self._get_oid_for_sensor(sensor),
+                            serial,
+                            sensor,
+                            name=name,
+                            **conf,
+                        )
+                    )
 
         return result
 
     @defer.inlineCallbacks
     def get_all_sensors(self):
-        """ Try to retrieve all internal available sensors in this WxGoose"""
+        """Try to retrieve all internal available sensors in this WxGoose"""
 
         result = []
         for table, sensor_groups in self.TABLES.items():
             self._logger.debug('get_all_sensors: table = %s', table)
-            sensors = yield self.retrieve_table(
-                table).addCallback(reduce_index)
+            sensors = yield self.retrieve_table(table).addCallback(reduce_index)
             self._logger.debug('get_all_sensors: %s = %s', table, sensors)
             for sensor_group in sensor_groups:
                 result.extend(self._handle_sensor_group(sensor_group, sensors))
@@ -462,5 +467,6 @@ def convert_units(mib, node):
 
 class ItWatchDogsMib(BaseITWatchDogsMib):
     """A class that tries to retrieve all sensors from WeatherGoose I"""
+
     mib = get_mib('IT-WATCHDOGS-MIB')
     TABLES = TABLES

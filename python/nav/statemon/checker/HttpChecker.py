@@ -1,5 +1,6 @@
 #
-# Copyright (C) 2018 Uninett AS
+# Copyright (C) 2018, 2020 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,29 +17,31 @@
 """HTTP Service Checker"""
 import contextlib
 import socket
+import base64
+import http.client
 
-from django.utils.six.moves.urllib.parse import urlsplit
-from django.utils.six.moves import http_client
+from urllib.parse import urlsplit
 
 from nav import buildconf
 from nav.statemon.event import Event
 from nav.statemon.abstractchecker import AbstractChecker
 
 
-class HTTPConnection(http_client.HTTPConnection):
+class HTTPConnection(http.client.HTTPConnection):
     """Customized HTTP protocol interface"""
+
     def __init__(self, timeout, host, port=80):
-        http_client.HTTPConnection.__init__(self, host, port)
+        http.client.HTTPConnection.__init__(self, host, port)
         self.timeout = timeout
         self.connect()
 
     def connect(self):
-        self.sock = socket.create_connection((self.host, self.port),
-                                             self.timeout)
+        self.sock = socket.create_connection((self.host, self.port), self.timeout)
 
 
 class HttpChecker(AbstractChecker):
     """HTTP"""
+
     IPV6_SUPPORT = True
     DESCRIPTION = "HTTP"
     OPTARGS = (
@@ -58,12 +61,13 @@ class HttpChecker(AbstractChecker):
 
     def execute(self):
         ip, port = self.get_address()
-        url = self.args.get('url', '')
+        url = self.args.get('url', '/')
         username = self.args.get('username')
         password = self.args.get('password', '')
-        if not url:
-            url = "/"
         _protocol, vhost, path, query, _fragment = urlsplit(url)
+        if ':' in vhost:
+            vhost, port = vhost.split(':', 1)
+            port = int(port)
 
         with contextlib.closing(self.connect(ip, port or self.PORT)) as i:
 
@@ -73,14 +77,16 @@ class HttpChecker(AbstractChecker):
             if '?' in url:
                 path = path + '?' + query
             i.putrequest('GET', path)
-            i.putheader('User-Agent',
-                        'NAV/servicemon; version %s' % buildconf.VERSION)
+            i.putheader('User-Agent', 'NAV/servicemon; version %s' % buildconf.VERSION)
             if username:
-                auth = "%s:%s" % (username, password)
-                i.putheader("Authorization", "Basic %s" % auth.encode("base64"))
+                auth = "{}:{}".format(username, password).encode("utf-8")
+                auth = base64.b64encode(auth).decode("utf-8")
+                i.putheader("Authorization", "Basic {}".format(auth))
             i.endheaders()
             response = i.getresponse()
-            if 200 <= response.status < 400 or (response.status == 401 and not username):
+            if 200 <= response.status < 400 or (
+                response.status == 401 and not username
+            ):
                 status = Event.UP
                 version = response.getheader('SERVER')
                 self.version = version

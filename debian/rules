@@ -13,12 +13,12 @@ export SETUPTOOLS_SCM_PRETEND_VERSION = $(VERSION_UPSTREAM)
 .PHONY: override_dh_auto_install override_dh_auto_test
 
 override_dh_virtualenv:
-	dh_virtualenv --python python3 --preinstall 'pip>=18' --preinstall 'setuptools>=40' --preinstall 'idna<2.9' --setuptools
+	dh_virtualenv
 
 	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python setup.py build_sphinx
 	dh_installdocs build/sphinx/html
 	dh_installdocs NOTES.rst
-	dh_installchangelogs CHANGES
+	dh_installchangelogs CHANGELOG.md HISTORY
 
 	# copy initial set of config files
 	mkdir $(DEBIAN_ROOT)/etc/nav && cp -a $(CURDIR)/python/nav/etc/* $(DEBIAN_ROOT)/etc/nav/
@@ -34,5 +34,11 @@ override_dh_virtualenv:
 	# consider many of the baser requirements to already be satisfied by
 	# the build system.
 	rm -f $(DEBIAN_ROOT)/opt/venvs/nav/lib/python*/no-global-site-packages.txt
+
+override_dh_strip:
+	dh_strip --exclude=/site-packages/
+
+override_dh_shlibdeps:
+	dh_shlibdeps --exclude=/site-packages/
 
 override_dh_auto_test:

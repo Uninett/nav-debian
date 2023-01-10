@@ -17,7 +17,7 @@ these have been a mainstay in the Norwegian higher education sector for years.
 
 For any other vendors, we suggest that you just add your devices to NAV and
 see whether NAV reports what you want it to report. If it doesn't, submit a
-question to the mailing list, nav-users@uninett.no.
+question to the mailing list, nav-users@lister.sikt.no.
 
 Why are there gaps in my graphs?
 --------------------------------
@@ -117,7 +117,7 @@ problems. To do so, get a GSM device that's supported by `Gammu
 
 We've found it's best to avoid handsets, as these are built to be exactly
 that: Handsets. Sometimes, they require some form of user-interaction to
-continue operating, which isn't always feasible in a datacenter. At Uninett,
+continue operating, which isn't always feasible in a datacenter. At Sikt,
 we've had good results with GSM terminals from Siemens/Cinterion/Gemalto.
 
 

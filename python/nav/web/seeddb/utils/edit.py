@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -29,7 +30,6 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponseRedirect, Http404
 from django.db.models import Q
 from django.urls import reverse, NoReverseMatch
-from django.utils import six
 
 from nav.web.message import new_message, Messages
 from nav.models.manage import Netbox, NetboxCategory, NetboxGroup
@@ -37,11 +37,19 @@ from nav.models.manage import Netbox, NetboxCategory, NetboxGroup
 _logger = logging.getLogger(__name__)
 
 
-def render_edit(request, model, form_model, object_id, redirect,
-                template='seeddb/edit.html',
-                lon=None, lat=None, extra_context=None, action='edit'):
+def render_edit(
+    request,
+    model,
+    form_model,
+    object_id,
+    redirect,
+    template='seeddb/edit.html',
+    lon=None,
+    lat=None,
+    extra_context=None,
+    action='edit',
+):
     """Handles editing for objects in seeddb."""
-
     if not extra_context:
         extra_context = {}
 
@@ -73,8 +81,7 @@ def render_edit(request, model, form_model, object_id, redirect,
             else:
                 obj = form.save()
 
-            new_message(request, "Saved %s %s" % (verbose_name, obj),
-                        Messages.SUCCESS)
+            new_message(request, "Saved %s %s" % (verbose_name, obj), Messages.SUCCESS)
             try:
                 return HttpResponseRedirect(reverse(redirect, args=(obj.pk,)))
             except NoReverseMatch:
@@ -91,17 +98,22 @@ def render_edit(request, model, form_model, object_id, redirect,
     }
     if obj:
         if obj.pk:
-            context.update({
-                'title': 'Edit %s "%s"' % (verbose_name, obj),
-                'sub_active': {'edit': True},
-            })
+            context.update(
+                {
+                    'title': 'Edit %s' % verbose_name,
+                    'detail_page_name': obj,
+                    'sub_active': {'edit': True},
+                }
+            )
         else:
-            context.update({
-                'title': 'Copy %s "%s"' % (verbose_name, original_pk),
-                'sub_active': {'edit': True},
-            })
-    extra_context.update(context)
-    return render(request, template, extra_context)
+            context.update(
+                {
+                    'title': 'Copy %s "%s"' % (verbose_name, original_pk),
+                    'sub_active': {'edit': True},
+                }
+            )
+    context.update(extra_context)
+    return render(request, template, context)
 
 
 def _get_object(model, object_id, identifier_attr='pk'):
@@ -126,9 +138,9 @@ def resolve_ip_and_sysname(name):
     except ValueError:
         ip_addr = IP(gethostbyname(name))
     try:
-        sysname = gethostbyaddr(six.text_type(ip_addr))[0]
+        sysname = gethostbyaddr(str(ip_addr))[0]
     except SocketError:
-        sysname = six.text_type(ip_addr)
+        sysname = str(ip_addr)
     return (ip_addr, sysname)
 
 
@@ -146,10 +158,9 @@ def does_ip_exist(ip_addr, netbox_id=None):
      - False if not.
     """
     if netbox_id:
-        ip_qs = Netbox.objects.filter(Q(ip=six.text_type(ip_addr)),
-                                      ~Q(id=netbox_id))
+        ip_qs = Netbox.objects.filter(Q(ip=str(ip_addr)), ~Q(id=netbox_id))
     else:
-        ip_qs = Netbox.objects.filter(ip=six.text_type(ip_addr))
+        ip_qs = Netbox.objects.filter(ip=str(ip_addr))
     return ip_qs.count() > 0
 
 
@@ -186,7 +197,8 @@ def _connect_group_to_devices(group, netbox_ids):
 
     # Delete existing netboxcategories that are not in request
     NetboxCategory.objects.filter(category=group).exclude(
-        netbox__pk__in=netboxids).delete()
+        netbox__pk__in=netboxids
+    ).delete()
 
     # Add new netboxcategories that are in request
     for netboxid in netboxids:

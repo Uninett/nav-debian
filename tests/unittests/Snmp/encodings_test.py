@@ -1,11 +1,9 @@
 from unittest import TestCase
-from django.utils import six
 
 from nav.Snmp import safestring
 
 
 class EncodingTests(TestCase):
-
     def test_latin1_encoded_ifalias_should_be_properly_decoded(self):
         result = safestring(b'A m\xf8\xf8se once bit my sister')
         expected = u'A m\xf8\xf8se once bit my sister'
@@ -22,7 +20,7 @@ class EncodingTests(TestCase):
 
     def test_unknown_encoding_should_not_raise_error(self):
         result = safestring(b'A m\x9b\x9bse once bit my sister')
-        self.assertTrue(isinstance(result, six.text_type))
+        self.assertTrue(isinstance(result, str))
 
     def test_number_should_be_encoded(self):
         result = safestring(42)

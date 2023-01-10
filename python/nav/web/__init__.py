@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2006, 2007, 2009, 2011, 2013, 2018 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -25,15 +26,13 @@ import os.path
 from django.http import HttpResponse
 
 import nav.logs
-from nav.config import find_configfile
+from nav.config import find_config_file
 
 
 _logger = logging.getLogger(__name__)
 
-default_app_config = 'nav.web.apps.NAVWebAppConfig'
-
 webfrontConfig = configparser.ConfigParser()
-_configfile = find_configfile(os.path.join('webfront', 'webfront.conf'))
+_configfile = find_config_file(os.path.join('webfront', 'webfront.conf'))
 if _configfile:
     webfrontConfig.read(_configfile)
 
@@ -67,7 +66,8 @@ def loginit():
     # Attempt to mimic Apache's standard log time format
     formatter = logging.Formatter(
         "[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] %(message)s",
-        "%a %b %d %H:%M:%S %Y")
+        "%a %b %d %H:%M:%S %Y",
+    )
     try:
         handler = logging.StreamHandler(sys.stderr)
     except IOError:

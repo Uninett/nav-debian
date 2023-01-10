@@ -13,6 +13,8 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
+# Sorry pylint, we can't shorten URLs, you dumbass.
+# pylint: disable=line-too-long
 """Juniper specific PortAdmin functionality.
 
 Some references:
@@ -30,6 +32,8 @@ from typing import List, Any, Dict, Tuple, Sequence
 
 from django.template.loader import get_template
 from napalm.base.exceptions import ConnectAuthError, ConnectionException
+from jnpr.junos.op.vlan import VlanTable
+from jnpr.junos.exception import RpcError
 
 from nav.napalm import connect as napalm_connect
 from nav.enterprise.ids import VENDOR_ID_JUNIPER_NETWORKS_INC
@@ -39,15 +43,15 @@ from nav.portadmin.handlers import (
     DeviceNotConfigurableError,
     AuthenticationError,
     NoResponseError,
-    ManagementError,
+    ProtocolError,
 )
 from nav.junos.nav_views import (
     EthernetSwitchingInterfaceTable,
     ElsEthernetSwitchingInterfaceTable,
+    ElsEthernetSwitchingInterfaceTableJunOS20,
     InterfaceConfigTable,
     ElsVlanTable,
 )
-from jnpr.junos.op.vlan import VlanTable
 
 from nav.portadmin.vlan import FantasyVlan
 from nav.util import first_true
@@ -59,21 +63,41 @@ __all__ = ["Juniper"]
 SNMP_STATUS_MAP = {"up": 1, "down": 2, True: 1, False: 2}
 
 
+def wrap_unhandled_rpc_errors(func):
+    """Decorates RPC-enabled handler function to ensure unhandled RpcErrors are
+    translated into ProtocolErrors, which can be reported nicely to the end user by
+    the PortAdmin framework
+    """
+
+    def wrap_rpc_errors(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except RpcError as error:
+            raise ProtocolError(f"Device raised RpcError: {error.message}") from error
+
+    return wrap_rpc_errors
+
+
 class Juniper(ManagementHandler):
     """Juniper specific version of a Napalm PortAdmin handler.
 
     Juniper switches do things a bit differently from the standard model supported by
     NAV. VLAN config is put on logical sub-units of the physical ports. SNMP-wise,
-    these count as separate, but related interfaces.
+    sub-units are presented as interfaces on a conceptually higher level than their
+    "parent" interface. NAV doesn't really understand or care about this unusual
+    relationship between pairs of interfaces - it will only see that the interfaces
+    are somehow related.
 
-    NAV's standard interpretation from collection is that the logical sub-units are
-    switch ports, since these are the interfaces listed in the BRIDGE-MIB, while the
-    parent ports are largely ignored as significant.
+    On non-ELS switches, the sub-interfaces are reported in the BRIDGE-MIB and
+    Q-BRIDGE-MIB, causing NAV to view these units as the actual switch ports. On ELS
+    switches, the parent interfaces are reported as the switch ports - yet, VLAN config
+    still belongs on unit 0 when uploading config changes outside of SNMP.
 
-    This implementation will therefore focus on the logical units as targets for
-    administration, but will infer which configuration properties belong on the
-    parent interface and fetch/set those parameters from that interface silently.
-
+    This implementation will therefore always consider any given switch port
+    reference to be a pair of master/unit interfaces, regardless of whether the
+    reference is to the master or the unit. When building new configuration, it will
+    split configuration options appropriatelt between the master and the unit before
+    uploading and merging config changes using NAPALM/PyEZ.
     """
 
     VENDOR = VENDOR_ID_JUNIPER_NETWORKS_INC
@@ -88,7 +112,7 @@ class Juniper(ManagementHandler):
         self._is_els = None
 
     @property
-    def profile(self) -> nav.models.manage.ManagementProtocol:
+    def profile(self) -> manage.ManagementProfile:
         """Returns the selected NAPALM profile for this netbox"""
         if not self._profile:
             profiles = self.netbox.profiles.filter(protocol=self.PROTOCOL)
@@ -117,12 +141,31 @@ class Juniper(ManagementHandler):
             self._is_els = self.device.device.facts.get("switch_style") == "VLAN_L2NG"
         return self._is_els
 
+    @property
+    def _els_ethernet_switching_interface_table(self):
+        return (
+            ElsEthernetSwitchingInterfaceTable
+            if self.junos_major_version < 20
+            else ElsEthernetSwitchingInterfaceTableJunOS20
+        )
+
+    @property
+    def junos_major_version(self) -> int:
+        """Returns the major JunOS version running on the switch"""
+        version = self.device.device.facts.get("version")
+        if version:
+            major, _ = version.split(".", maxsplit=1)
+            return int(major)
+
     def get_interfaces(
         self, interfaces: Sequence[manage.Interface] = None
     ) -> List[Dict[str, Any]]:
         vlan_map = self._get_untagged_vlans()
-        args = (interfaces[0].ifname,) if len(interfaces) == 1 else ()
-        interfaces = self.get_interface_information(*args)
+        if interfaces and len(interfaces) == 1:
+            # we can use a filter if only a single interface was specified
+            interfaces = self.get_interface_information(interfaces[0].ifname)
+        else:
+            interfaces = self.get_interface_information()
 
         def _convert(name, ifc):
             oper = ifc.get("is_up")
@@ -158,7 +201,7 @@ class Juniper(ManagementHandler):
                 if not vlan.tagged
             }
         else:
-            switching = ElsEthernetSwitchingInterfaceTable(self.device.device)
+            switching = self._els_ethernet_switching_interface_table(self.device.device)
             switching.get()
             return {port.ifname: port.tag for port in switching if not port.tagged}
 
@@ -178,7 +221,11 @@ class Juniper(ManagementHandler):
                     tag, netident=vlan_object.net_ident, descr=vlan_object.description
                 )
 
-        result = {_make_vlan(vlan) for vlan in self.vlans}
+        result = {
+            _make_vlan(vlan)
+            for vlan in self.vlans
+            if isinstance(vlan.tag, int) or vlan.tag.isdigit()
+        }
         return sorted(result, key=attrgetter("vlan"))
 
     def get_netbox_vlan_tags(self) -> List[int]:
@@ -197,7 +244,7 @@ class Juniper(ManagementHandler):
             switching.get(interface_name=interface.ifname)
             vlans = switching[interface.ifname].vlans
         else:
-            switching = ElsEthernetSwitchingInterfaceTable(self.device.device)
+            switching = self._els_ethernet_switching_interface_table(self.device.device)
             switching.get(interface_name=interface.ifname)
             vlans = [vlan for vlan in switching if vlan.tagged is not None]
 
@@ -205,6 +252,7 @@ class Juniper(ManagementHandler):
         untagged = first_true(vlans, pred=lambda vlan: not vlan.tagged)
         return (untagged.tag if untagged else None), tagged
 
+    @wrap_unhandled_rpc_errors
     def set_interface_description(self, interface: manage.Interface, description: str):
         # never set description on units but on master interface
         master, _ = split_master_unit(interface.ifname)
@@ -217,9 +265,11 @@ class Juniper(ManagementHandler):
         config = template.render(context)
         self.device.load_merge_candidate(config=config)
 
+    @wrap_unhandled_rpc_errors
     def set_vlan(self, interface: manage.Interface, vlan: int):
         self.set_access(interface, vlan)
 
+    @wrap_unhandled_rpc_errors
     def set_access(self, interface: manage.Interface, access_vlan: int):
         master, unit = split_master_unit(interface.ifname)
         current = InterfaceConfigTable(self.device.device).get(master)[master]
@@ -235,7 +285,8 @@ class Juniper(ManagementHandler):
         self.device.load_merge_candidate(config=config)
         self._save_access_interface(interface, access_vlan)
 
-    def _save_access_interface(self, interface: manage.Interface, access_vlan: int):
+    @staticmethod
+    def _save_access_interface(interface: manage.Interface, access_vlan: int):
         """Updates the Interface entry in the database with access config"""
         interface.trunk = False
         interface.vlan = access_vlan
@@ -246,6 +297,7 @@ class Juniper(ManagementHandler):
             pass
         interface.save()
 
+    @wrap_unhandled_rpc_errors
     def set_trunk(
         self, interface: manage.Interface, native_vlan: int, trunk_vlans: Sequence[int]
     ):
@@ -286,30 +338,38 @@ class Juniper(ManagementHandler):
 
         return SNMP_STATUS_MAP[admin]
 
-    def cycle_interface(self, interface: manage.Interface, wait: float = 5.0):
-        # It isn't clear yet how to do this on Juniper, since PortAdmin performs this
-        # step before the configuration alterations are actually committed.
-        pass
+    def cycle_interfaces(
+        self,
+        interfaces: Sequence[manage.Interface],
+        wait: float = 0,
+        commit: bool = False,
+    ):
+        # There is no need for waiting on Juniper; there is a need to commit,
+        # and that operation will likely delay at least as much as the wait would have
+        return super().cycle_interfaces(interfaces=interfaces, wait=0, commit=True)
 
+    @wrap_unhandled_rpc_errors
     def set_interface_down(self, interface: manage.Interface):
         # does not set oper on logical units, only on physical masters
-        master, unit = split_master_unit(interface.ifname)
+        master, _unit = split_master_unit(interface.ifname)
         template = get_template("portadmin/junos-disable-interface.djt")
         config = template.render({"ifname": master, "disable": True})
         self.device.load_merge_candidate(config=config)
 
         self._save_interface_oper(interface, interface.OPER_DOWN)
 
+    @wrap_unhandled_rpc_errors
     def set_interface_up(self, interface: manage.Interface):
         # does not set oper on logical units, only on physical masters
-        master, unit = split_master_unit(interface.ifname)
+        master, _unit = split_master_unit(interface.ifname)
         template = get_template("portadmin/junos-disable-interface.djt")
         config = template.render({"ifname": master, "disable": False})
         self.device.load_merge_candidate(config=config)
 
         self._save_interface_oper(interface, interface.OPER_UP)
 
-    def _save_interface_oper(self, interface: manage.Interface, ifoperstatus: int):
+    @staticmethod
+    def _save_interface_oper(interface: manage.Interface, ifoperstatus: int):
         master, unit = split_master_unit(interface.ifname)
         interface.ifoperstatus = ifoperstatus
         if unit:  # this was a logical unit, also set the state of the master ifc
@@ -318,6 +378,7 @@ class Juniper(ManagementHandler):
             )
             master_interface.update(ifoperstatus=ifoperstatus)
 
+    @wrap_unhandled_rpc_errors
     def commit_configuration(self):
         # Only take our sweet time to commit if there are pending changes
         if self.device.compare_config():

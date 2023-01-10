@@ -10,10 +10,12 @@ This section contains reference material for end-users.
 .. toctree::
    :maxdepth: 1
 
+   management-profiles
    arnold
    cabling_and_patch
    eventengine
    event-templates
+   alerttypes
    geomap
    ipam
    ipdevpoll

@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,7 +17,6 @@
 """HP STATISTICS-MIB"""
 from collections import namedtuple
 from IPy import IP
-from django.utils.six import iteritems
 from twisted.internet import defer
 
 from nav.smidumps import get_mib
@@ -27,6 +27,7 @@ MulticastStat = namedtuple("MulticastStat", "group ifindex vlan access")
 
 class StatisticsMib(mibretriever.MibRetriever):
     """HP STATISTICS-MIB"""
+
     mib = get_mib('STATISTICS-MIB')
 
     @defer.inlineCallbacks
@@ -47,9 +48,11 @@ class StatisticsMib(mibretriever.MibRetriever):
         :returns: A Deferred whose result is a list of MulticastStat tuples
         """
         column = "hpIgmpStatsPortAccess2"
-        ports = yield self.retrieve_columns(
-            [column]
-        ).addCallback(self.translate_result).addCallback(reduce_index)
+        ports = (
+            yield self.retrieve_columns([column])
+            .addCallback(self.translate_result)
+            .addCallback(reduce_index)
+        )
 
         def _split(item):
             index, columns = item
@@ -57,7 +60,8 @@ class StatisticsMib(mibretriever.MibRetriever):
             group = index[1:5]
             ifindex = index[5]
             access = columns[column]
-            return MulticastStat(IP('.'.join(str(i) for i in group)), ifindex,
-                                 vlan, access)
+            return MulticastStat(
+                IP('.'.join(str(i) for i in group)), ifindex, vlan, access
+            )
 
-        defer.returnValue([_split(i) for i in iteritems(ports)])
+        defer.returnValue([_split(i) for i in ports.items()])

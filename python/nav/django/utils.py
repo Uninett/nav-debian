@@ -16,7 +16,7 @@
 #
 
 """Utility methods for django used in NAV"""
-from django.db.models.fields import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist
 from django.urls import reverse
 from django.utils.http import urlencode
 
@@ -44,17 +44,16 @@ def get_account(request):
 
 def is_admin(account):
     """Check if user is a member of the administrator group"""
-    return account.accountgroup_set.filter(
-        pk=AccountGroup.ADMIN_GROUP).count() > 0
+    return account.accountgroup_set.filter(pk=AccountGroup.ADMIN_GROUP).count() > 0
 
 
 def get_verbose_name(model, lookup):
     """Verbose name introspection of ORM models.
-       Parameters:
-         - model: the django model
-         - lookup: name of the field to find verbose name of.
+    Parameters:
+      - model: the django model
+      - lookup: name of the field to find verbose name of.
 
-       Foreign key lookups is supported, ie. "othermodel__otherfield"
+    Foreign key lookups is supported, ie. "othermodel__otherfield"
     """
     if '__' not in lookup:
         return model._meta.get_field(lookup).verbose_name
@@ -93,15 +92,16 @@ def get_model_and_name(rel):
 def get_all_related_objects(model):
     """Gets all related objects based on django version"""
     return [
-        f for f in model._meta.get_fields()
-        if (f.one_to_many or f.one_to_one)
-        and f.auto_created and not f.concrete
+        f
+        for f in model._meta.get_fields()
+        if (f.one_to_many or f.one_to_one) and f.auto_created and not f.concrete
     ]
 
 
 def get_all_related_many_to_many_objects(model):
     """Gets all related many-to-many objects based on django version"""
     return [
-        f for f in model._meta.get_fields(include_hidden=True)
+        f
+        for f in model._meta.get_fields(include_hidden=True)
         if f.many_to_many and f.auto_created
     ]

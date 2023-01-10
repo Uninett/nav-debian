@@ -7,8 +7,9 @@ Checklist for releasing a new NAV version
 CI status check
 ---------------
 
-* Verify that the Jenkins jobs (at https://ci.nav.uninett.no/) related to the
-  current stable branch are all green.
+* Verify that the GitHub Actions workflows (at
+  https://github.com/Uninett/nav/actions ) related to the current stable branch
+  are all green.
 * If any tests are failing, these must be resolved before moving forward.
 
 
@@ -34,6 +35,25 @@ Getting the code
     git clone -b 4.8.x git@github.com:UNINETT/nav.git
     cd nav
 
+Ensure generated docs are up to date
+------------------------------------
+
+Some documentation source files need to be built using a running PostgreSQL
+database. If any changes have been made to the default event- and
+alert-hierarchies provided by NAV, these documentation source files need to be
+updated and checked into Git.
+
+If you have a full dev environment running (such as the environment defined by
+:file:`docker-compose.yml`), use the following to generate new docs and verify
+whether they have changed::
+
+    make doc
+    git status
+
+If you see files under the :file:`doc` directory were changed, these changes
+need to be checked into Git to ensure the documentation is up to date for the
+new release.
+
 
 Updating changelog and release notes
 ------------------------------------
@@ -46,8 +66,11 @@ Updating changelog and release notes
   ``pip install PyGithub``.
   (`PyGithub documentation <https://pygithub.readthedocs.io/en/latest/>`_)
 
-* Add a new entry to the CHANGES file for for the new release and paste the
-  list produced by the above command. Commit the changes::
+* Add a new entry :file:`CHANGELOG.md` for for the new release and paste the
+  list produced by the above command. Sort items into types of changes
+  according to the principles of `Keep A Changelog
+  <https://keepachangelog.com/en/1.0.0/>`_, and optionally change item titles
+  to be more end-user friendly if need be.  Commit the changes::
 
     git commit -m 'Update changelog for the upcoming X.Y.Z release'
 
@@ -62,9 +85,9 @@ Announcing the release
 ----------------------
 
 * Draft a new release for the new tag at GitHub.
-* Add a new release entry in the homepage admin panel at
-  https://nav.uninett.no/admin
-* Change the topic of the #nav freenode IRC channel to reference the new
+* Add a new release entry in the NAV homepage at
+  https://github.com/Uninett/nav-landing-page/tree/master/content/releases
+* Change the topic of the #nav Libera.Chat IRC channel to reference the new
   release + GitHub URL.
 * Send email announcement to the ``nav-users`` mailing list. Use previous
   release announcements as your template.

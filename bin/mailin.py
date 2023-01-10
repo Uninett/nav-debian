@@ -26,7 +26,7 @@ import configparser
 import argparse
 
 from nav.bootstrap import bootstrap_django
-from nav.config import find_configfile
+from nav.config import find_config_file
 
 bootstrap_django(__file__)
 
@@ -35,6 +35,7 @@ import nav.mailin
 from nav import logs
 
 import logging
+
 logging.raiseExceptions = False
 _logger = logging.getLogger('nav.mailin')
 conf = None
@@ -50,7 +51,7 @@ def main():
 
     # Todo: fail if config file is not found
     conf = configparser.ConfigParser()
-    conf.read(find_configfile(CONFIG_FILE))
+    conf.read(find_config_file(CONFIG_FILE))
 
     # Must do this after config, so logfile can be configurable
     if args.test:
@@ -75,12 +76,20 @@ def parse_args():
     """Parse program arguments"""
     parser = argparse.ArgumentParser(
         description="Parse RFC822 formatted mail messages from 3rd party "
-                    "software and convert them to NAV events, using plugins",
+        "software and convert them to NAV events, using plugins"
     )
-    parser.add_argument('-i', '--init', action='store_true',
-                        help='only load plugins and create event/alert types')
-    parser.add_argument('-t', '--test', action='store_true',
-                        help='write events to stdout instead of posting them.')
+    parser.add_argument(
+        '-i',
+        '--init',
+        action='store_true',
+        help='only load plugins and create event/alert types',
+    )
+    parser.add_argument(
+        '-t',
+        '--test',
+        action='store_true',
+        help='write events to stdout instead of posting them.',
+    )
     return parser.parse_args()
 
 
@@ -123,8 +132,7 @@ def add_mailin_subsystem():
 
     cursor.execute("select * from subsystem where name='mailin'")
     if cursor.rowcount == 0:
-        cursor.execute("INSERT INTO subsystem (name, descr) "
-                       "VALUES ('mailin', '')")
+        cursor.execute("INSERT INTO subsystem (name, descr) " "VALUES ('mailin', '')")
     conn.commit()
 
 
@@ -181,6 +189,7 @@ def init_logging(filename):
         if conf.has_option('main', 'logfile'):
             filename = conf.get('main', 'logfile')
         logs.init_generic_logging(logfile=filename, stderr=False)
+
 
 if __name__ == '__main__':
     main()

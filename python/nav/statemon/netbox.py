@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2018 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV)
 #
@@ -17,13 +18,12 @@
 # along with NAV; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-from django.utils import six
-
 
 class Netbox(object):
     """
     Class representing a NAV netbox
     """
+
     def __init__(self, netboxid, sysname, ip, up):
         self.netboxid = netboxid
         self.sysname = sysname
@@ -31,7 +31,7 @@ class Netbox(object):
         self.up = up
 
     def __eq__(self, obj):
-        if isinstance(obj, six.string_types):
+        if isinstance(obj, str):
             return self.ip == obj
         return self.netboxid == obj.netboxid
 

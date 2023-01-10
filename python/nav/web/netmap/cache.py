@@ -23,11 +23,10 @@ from django.core.cache import cache
 # TODO: This cache should be invalidated only when the topology is
 # changed, which is somewhat rare, so set to a reasonable long time
 # for now
-from django.utils import six
 
-CACHE_TIMEOUT = 60*60
+CACHE_TIMEOUT = 60 * 60
 # Data is collected every 5 minutes by NAV
-TRAFFIC_CACHE_TIMEOUT = 5*60
+TRAFFIC_CACHE_TIMEOUT = 5 * 60
 
 
 def cache_exists(*args):
@@ -38,6 +37,7 @@ def cache_exists(*args):
 # Cache model: Index traffic by location, then by traffic layer
 def cache_traffic(layer):
     "Utility wrapper to cache get_traffic functions for layer 2/3"
+
     def _decorator(func):
         @wraps(func)
         def get_traffic(location_or_room_id):
@@ -48,13 +48,16 @@ def cache_traffic(layer):
             result = func(location_or_room_id)
             cache.set(cache_key, result, TRAFFIC_CACHE_TIMEOUT)
             return result
+
         return get_traffic
+
     return _decorator
 
 
 # Cache model: Index by topology layer and view
 def cache_topology(layer):
     "Utility decorator to cache the topology graph of Netmap"
+
     def _decorator(func):
         @wraps(func)
         def get_traffic(*args, **kwargs):
@@ -72,7 +75,9 @@ def cache_topology(layer):
             result = func(*args, **kwargs)
             cache.set(cache_key, result, CACHE_TIMEOUT)
             return result
+
         return get_traffic
+
     return _decorator
 
 
@@ -88,10 +93,7 @@ def update_cached_node_positions(viewid, layer, updated_nodes):
         # Otherwise, don't update nodes not cached in the topology
         if node["id"] not in to_update["nodes"]:
             continue
-        diff = {
-            "x": node["x"],
-            "y": node["y"]
-        }
+        diff = {"x": node["x"], "y": node["y"]}
         to_update["nodes"][node["id"]]["position"] = diff
     cache.set(cache_key, to_update, CACHE_TIMEOUT)
 
@@ -114,10 +116,12 @@ def _cache_key(*args):
     => netmap:topology:layer3
 
     """
+
     def stringify(thing):
-        if isinstance(thing, six.binary_type):
+        if isinstance(thing, bytes):
             return thing.decode('utf-8')
         else:
-            return six.text_type(thing)
+            return str(thing)
+
     args = (stringify(a).replace(' ', '-') for a in args)
     return u'netmap:' + u':'.join(args)

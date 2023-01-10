@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009, 2011, 2012 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,8 +18,6 @@
 import re
 
 from twisted.internet import defer
-
-from django.utils import six
 
 import nav.bitvector
 from nav.smidumps import get_mib
@@ -91,11 +90,13 @@ class QBridgeMib(mibretriever.MibRetriever):
     @defer.inlineCallbacks
     def get_forwarding_database(self):
         "Retrieves the forwarding databases of the device"
-        columns = yield self.retrieve_columns(['dot1qTpFdbPort',
-                                               'dot1qTpFdbStatus'])
+        columns = yield self.retrieve_columns(['dot1qTpFdbPort', 'dot1qTpFdbStatus'])
         columns = self.translate_result(columns)
-        valid = (row for row in columns.values()
-                 if row['dot1qTpFdbStatus'] not in ('self', 'invalid'))
+        valid = (
+            row
+            for row in columns.values()
+            if row['dot1qTpFdbStatus'] not in ('self', 'invalid')
+        )
         result = []
         for row in valid:
             index = row[0]
@@ -105,9 +106,16 @@ class QBridgeMib(mibretriever.MibRetriever):
             result.append((mac, port))
         defer.returnValue(result)
 
+    @defer.inlineCallbacks
     def get_vlan_static_names(self):
-        df = self.retrieve_column('dot1qVlanStaticName')
-        return df.addCallback(reduce_index)
+        names = yield self.retrieve_column('dot1qVlanStaticName').addCallback(
+            reduce_index
+        )
+        # Workaround for faulty SNMP agents: strip null bytes
+        for key, value in names.items():
+            if isinstance(value, str) and "\x00" in value:
+                names[key] = value.replace("\x00", "")
+        defer.returnValue(names)
 
 
 def filter_newest_current_entries(dot1qvlancurrenttable):
@@ -116,21 +124,21 @@ def filter_newest_current_entries(dot1qvlancurrenttable):
     for each VLAN.
 
     """
-    return dict((vlan_index, data)
-                for (time_index, vlan_index), data
-                in sorted(dot1qvlancurrenttable.items()))
+    return dict(
+        (vlan_index, data)
+        for (time_index, vlan_index), data in sorted(dot1qvlancurrenttable.items())
+    )
 
 
 def convert_data_to_portlist(result, juniper_hack):
-    return {key: portlist(data, juniper_hack)
-            for key, data in result.items()}
+    return {key: portlist(data, juniper_hack) for key, data in result.items()}
 
 
 def portlist_spec(data):
     """Return a set of port numbers represented by this PortList."""
     vector = nav.bitvector.BitVector(data)
     # a bitvector is indexed from 0, but ports are indexed from 1
-    return {b+1 for b in vector.get_set_bits()}
+    return {b + 1 for b in vector.get_set_bits()}
 
 
 def portlist_juniper(data):
@@ -140,7 +148,7 @@ def portlist_juniper(data):
     """
     # data would normally be binary, but since Juniper ignores the spec, it's a comma
     # separated ASCII string:
-    if isinstance(data, six.binary_type):
+    if isinstance(data, bytes):
         try:
             data = data.decode('ascii')
         except UnicodeDecodeError:

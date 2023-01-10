@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2014 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -20,10 +21,8 @@ import itertools
 import logging
 from datetime import datetime, timedelta
 
-from django.utils import six
 from django.utils.timesince import timesince
 from django.db.models import Count
-from django.utils.encoding import python_2_unicode_compatible
 
 from nav.asyncdns import reverse_lookup
 from nav.models.manage import IpdevpollJobLog, Netbox, Arp, Cam
@@ -37,7 +36,6 @@ STATUS_NOT_OK = 'not_ok'
 STATUS_UNKNOWN = 'unknown'
 
 
-@python_2_unicode_compatible
 class TestResult(object):
     """Result for test errors"""
 
@@ -46,7 +44,7 @@ class TestResult(object):
         self.obj = obj  # An optional object representing the test
 
     def __str__(self):
-        return six.text_type(self.description)
+        return str(self.description)
 
 
 class Test(object):
@@ -70,8 +68,7 @@ class Test(object):
         self.errors = self._get_errors()
         runtime = datetime.now() - starttime
         _logger.debug('%s used %s', type(self).__name__, runtime)
-        self.status = (STATUS_OK if not self.errors
-                       else STATUS_NOT_OK)
+        self.status = STATUS_OK if not self.errors else STATUS_NOT_OK
 
     def get_status(self):
         """Runs the test and returns status"""
@@ -114,7 +111,8 @@ class TestOverdueJobs(Test):
             if overdue_by.seconds > slack and job.netbox.is_up():
                 time_since = timesince(datetime.now() - overdue_by)
                 descr = "Job {} on {} is overdue by {}".format(
-                    job.job_name, job.netbox.sysname, time_since)
+                    job.job_name, job.netbox.sysname, time_since
+                )
                 errors.append(TestResult(descr, job))
 
         return errors
@@ -152,7 +150,8 @@ class TestFailedJobs(Test):
             ).order_by('end_time')[0:fail_count]
             if all([not job.success for job in last_jobs]):
                 descr = "Job {} on {} has failed the last {} times.".format(
-                    failed.job_name, failed.netbox, fail_count)
+                    failed.job_name, failed.netbox, fail_count
+                )
                 results.append(TestResult(descr, failed))
 
         return results
@@ -165,8 +164,10 @@ class TestDuplicateHostnameForIP(Test):
     """
 
     name = 'Hostname sanity'
-    description = ('Tests whether there are multiple IP addresses that resolve '
-                   'to the same hostname')
+    description = (
+        'Tests whether there are multiple IP addresses that resolve '
+        'to the same hostname'
+    )
 
     def _get_errors(self):
         """Fetches duplicate hostnames"""
@@ -188,7 +189,8 @@ class TestDuplicateHostnameForIP(Test):
         errors = []
         for hostname, iplist in results.items():
             error = 'The hostname {} is used by these IP addresses: {}'.format(
-                hostname, ', '.join(iplist))
+                hostname, ', '.join(iplist)
+            )
             errors.append(TestResult(error))
 
         return errors
@@ -198,8 +200,7 @@ class TestNoRouterInterfaces(Test):
     """Test if any router has no router-interfaces"""
 
     name = 'Router interface count'
-    description = ('Tests if there are routers that do not have any router '
-                   'interfaces')
+    description = 'Tests if there are routers that do not have any router ' 'interfaces'
 
     def _get_errors(self):
         """Fetches routers with no router interfaces"""
@@ -216,8 +217,7 @@ class TestNoSwitchPorts(Test):
     """Test if any switch has no switch ports"""
 
     name = 'Switch port count'
-    description = ('Tests if there are any switches that do not have any '
-                   'switch ports')
+    description = 'Tests if there are any switches that do not have any ' 'switch ports'
 
     def _get_errors(self):
         """Fetches switches with no switch ports"""
@@ -238,8 +238,9 @@ class TestAbnormalInterfaceCount(Test):
     # But what is the case where this test is needed?
     abnormal_amount = 5000
     name = 'Total interface count'
-    description = ('Tests if there are IP Devices with more than {} '
-                   'interfaces').format(abnormal_amount)
+    description = (
+        'Tests if there are IP Devices with more than {} ' 'interfaces'
+    ).format(abnormal_amount)
 
     def _get_errors(self):
         """Fetches netboxes with an abnormal amount of interfaces"""
@@ -258,8 +259,9 @@ class TestNewCamAndArpRecords(Test):
 
     slack = 60 * 60  # 1 hour in seconds
     name = "ARP and CAM"
-    description = (u"Tests whether any ARP or CAM records have been collected "
-                   "the last hour")
+    description = (
+        u"Tests whether any ARP or CAM records have been collected " "the last hour"
+    )
 
     def _get_errors(self):
         """Checks for latest cam and arp"""
@@ -285,8 +287,9 @@ class TestNewCamAndArpRecords(Test):
             else:
                 cam_diff = now - latest_cam.start_time
             if cam_diff > recently:
-                descr = (u'CAM records have not been collected in the last '
-                         '{}').format(timesince(latest_cam.start_time))
+                descr = (
+                    u'CAM records have not been collected in the last ' '{}'
+                ).format(timesince(latest_cam.start_time))
                 return TestResult(descr, latest_cam)
 
     def test_arp(self):
@@ -300,8 +303,9 @@ class TestNewCamAndArpRecords(Test):
             else:
                 arp_diff = now - latest_arp.start_time
             if arp_diff > recently:
-                descr = (u'ARP records have not been collected in the last '
-                         '{}').format(timesince(latest_arp.start_time))
+                descr = (
+                    u'ARP records have not been collected in the last ' '{}'
+                ).format(timesince(latest_arp.start_time))
                 return TestResult(descr, latest_arp)
 
     @staticmethod

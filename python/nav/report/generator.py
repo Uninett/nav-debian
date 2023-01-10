@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2008-2011 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,23 +18,26 @@ from __future__ import unicode_literals
 
 import io
 import re
+from collections import namedtuple
+from operator import attrgetter
+from os.path import basename
 
 from nav.report.dbresult import DatabaseResult
 from nav.report.report import Report
 
+ReportTuple = namedtuple('ReportTuple', 'id title description report_files')
+
 
 class Generator(object):
     """The maker and controller of the generating of a report"""
+
     sql = None
 
-    def make_report(self, report_name, config_file, config_file_local,
-                    query_dict, config, dbresult):
+    def make_report(self, report_name, config_files, query_dict, config, dbresult):
         """Makes a report
 
         :param report_name: the name of the report that will be represented
-        :param config_file: the configuration file where the definition resides
-        :param config_file_local: the local configuration file where changes to
-                                the default definition resides
+        :param config_files: a list of all configuration files, sorted
         :param queryDict: mutable QueryDict
         :param config: the parsed configuration object, if cached
         :param dbresult: the database result, if cached
@@ -47,7 +51,7 @@ class Generator(object):
         advanced = 0
 
         if not config:
-            conf_parser = ConfigParser(config_file, config_file_local)
+            conf_parser = ConfigParser(config_files)
             parse_ok = conf_parser.parse_report(report_name)
             config = conf_parser.configuration
             if not parse_ok:
@@ -93,49 +97,57 @@ class Generator(object):
 
 
 class ReportList(object):
-
-    def __init__(self, config_file):
+    def __init__(self, config_files):
 
         self.reports = []
+        report_dict = {}
 
-        report_pattern = re.compile(r"^\s*(\S+)\s*\{(.*?)\}$",
-                                    re.M | re.S | re.I)
-        contents = io.open(config_file, encoding='utf-8').read()
-        reports = report_pattern.findall(contents)
+        report_pattern = re.compile(r"^\s*(\S+)\s*\{(.*?)\}$", re.M | re.S | re.I)
+        for config_file in config_files:
+            contents = io.open(config_file, encoding='utf-8').read()
+            for report in report_pattern.findall(contents):
+                if report[0] in report_dict:
+                    # overwrite configtext, but add config_file to list
+                    report_dict[report[0]][0] = report[1]
+                    report_dict[report[0]][1].append(basename(config_file))
+                else:
+                    report_dict[report[0]] = [
+                        report[1],
+                        [basename(config_file)],
+                    ]
 
-        parser = ConfigParser(config_file, None)
+        parser = ConfigParser(config_files)
 
-        for rep in reports:
-            configtext = rep[1]
-            rep = rep[0]
-
+        for report_id, [configtext, report_files] in report_dict.items():
             parser.parse_configuration(configtext)
             report = parser.configuration
 
-            self.reports.append((rep, report.title or rep,
-                                 report.description or None))
+            self.reports.append(
+                ReportTuple(
+                    report_id,
+                    report.title or report_id,
+                    report.description or "",
+                    report_files,
+                )
+            )
+
+        self.reports.sort(key=attrgetter("id"))
 
     def get_report_list(self):
         return self.reports
 
 
 class ConfigParser(object):
-    """Loads the configuration files, parses the contents - the local
-    configuration the default, and returns the results as a ReportConfig object
-    instance
+    """Loads the configuration files, parses the contents, and returns the results as a ReportConfig object instance"""
 
-    """
-
-    def __init__(self, config_file, config_file_local):
+    def __init__(self, config_files):
         """Loads the configuration files"""
-        self.config_file = config_file
-        self.config_file_local = config_file_local
-        self.config = None
-        self.config_local = None
+        self.config_files = config_files
+        self.config_list = []
         self.configuration = ReportConfig()
 
     def parse_report(self, report_name):
-        """Parses the configuration file and returns a Report object according
+        """Parses the configuration files and returns a Report object according
         to the report_name.
 
         :param report_name: the name of the report, tells which part of
@@ -147,25 +159,24 @@ class ConfigParser(object):
         the access methods will probably fit here
         """
 
-        if self.config is None:
-            self.config = io.open(self.config_file, encoding='utf-8').read()
-            self.config_local = io.open(self.config_file_local,
-                                        encoding='utf-8').read()
-        report_pattern = re.compile(r"^\s*" + report_name + r"\s*\{(.*?)\}$",
-                                    re.M | re.S | re.I)
-        match = report_pattern.search(self.config)
-        local_match = report_pattern.search(self.config_local)
+        if not self.config_list:
+            self.config_list = [
+                io.open(config_file, encoding="utf-8").read()
+                for config_file in self.config_files
+            ]
+        report_pattern = re.compile(
+            r"^\s*" + report_name + r"\s*\{(.*?)\}$", re.M | re.S | re.I
+        )
+        matches = (report_pattern.search(config) for config in self.config_list)
+        matches = [m for m in matches if m]
 
-        if match:
+        for match in matches:
+            # Later matches will override earlier matches:
             self.parse_configuration(match.group(1))
-        if local_match:
-            # Local report config overloads default report config.
-            self.parse_configuration(local_match.group(1))
 
-        if match or local_match:
+        if matches:
             self.configuration.report_id = report_name
             return True
-
         else:
             return False
 
@@ -203,22 +214,19 @@ class ConfigParser(object):
             elif key == "description":
                 config.description = value
             else:
-                group_pattern = re.compile(
-                    r'^(?P<group>\S+?)_(?P<groupkey>\S+?)$')
+                group_pattern = re.compile(r'^(?P<group>\S+?)_(?P<groupkey>\S+?)$')
                 match = group_pattern.search(key)
 
                 if match:
-                    if (match.group('group') == "navn"
-                        or match.group('group') == "name"):
+                    if match.group('group') == "navn" or match.group('group') == "name":
                         config.name[match.group('groupkey')] = value
-                    elif (match.group('group') == "url"
-                          or match.group('group') == "uri"
-                          ):
+                    elif match.group('group') == "url" or match.group('group') == "uri":
                         config.uri[match.group('groupkey')] = value
-                    elif (match.group('group') == "forklar"
-                          or match.group('group') == "explain"
-                          or match.group('group') == "description"
-                          ):
+                    elif (
+                        match.group('group') == "forklar"
+                        or match.group('group') == "explain"
+                        or match.group('group') == "description"
+                    ):
                         config.explain[match.group('groupkey')] = value
 
                 else:
@@ -227,6 +235,7 @@ class ConfigParser(object):
 
 class ArgumentParser(object):
     """Handler of the uri arguments"""
+
     GROUP_PATTERN = re.compile(r"^(?P<group>\S+?)_(?P<groupkey>\S+?)$")
 
     def __init__(self, configuration):
@@ -304,6 +313,7 @@ class ArgumentParser(object):
         # Set a default operator
         operat = "="
         negate = "not " if field in self.negated else ""
+        multi = False
 
         if value == "null":
             operat, negate = ("is not", "") if negate else ("is", negate)
@@ -325,8 +335,13 @@ class ArgumentParser(object):
             elif fieldoper == "leq":
                 operat, negate = (">", "") if negate else ("<=", negate)
             elif fieldoper == "in":
-                operat = "in"
-                value = tuple(value.split(","))
+                if "*" in value:
+                    operat = "ilike"
+                    value = [elem.replace("*", "%") for elem in value.split(",")]
+                    multi = True
+                else:
+                    operat = "in"
+                    value = tuple(value.split(","))
 
             elif fieldoper == "between":
                 operat = "between %s and"
@@ -336,11 +351,17 @@ class ArgumentParser(object):
                 if len(between) == 2:
                     value = between
                 else:
-                    self.config.error = ("The arguments to 'between' "
-                                         "must be comma- or colon-separated")
+                    self.config.error = (
+                        "The arguments to 'between' "
+                        "must be comma- or colon-separated"
+                    )
                     value = [None, None]
 
-        self.config.where.append(field + " " + negate + operat + " %s")
+        where_string = f"{field} {negate}{operat} %s"
+        if multi:
+            _combinator = " and " if negate else " or "
+            where_string = f"({_combinator.join(where_string for _ in value)})"
+        self.config.where.append(where_string)
         if isinstance(value, list):
             self.config.parameters.extend(value)
         else:
@@ -348,7 +369,6 @@ class ArgumentParser(object):
 
 
 class ReportConfig(object):
-
     def __init__(self):
         self.description = ""
         self.explain = {}
@@ -369,15 +389,20 @@ class ReportConfig(object):
         self.error = None
 
     def __repr__(self):
-        template = ("<ReportConfig sql={0!r}, sql_select={1!r}, where={2!r}, "
-                    "parameters={3!r}, order_by={4!r} >")
-        return template.format(self.sql, self.sql_select, self.where,
-                               self.parameters, self.order_by)
+        template = (
+            "<ReportConfig sql={0!r}, sql_select={1!r}, where={2!r}, "
+            "parameters={3!r}, order_by={4!r} >"
+        )
+        return template.format(
+            self.sql, self.sql_select, self.where, self.parameters, self.order_by
+        )
 
     def make_sql(self):
-        sql = "SELECT * FROM (%s) AS foo %s%s" % (self.escaped_sql,
-                                                  self.wherestring(),
-                                                  self.orderstring())
+        sql = "SELECT * FROM (%s) AS foo %s%s" % (
+            self.escaped_sql,
+            self.wherestring(),
+            self.orderstring(),
+        )
         return sql, self.parameters
 
     def wherestring(self):

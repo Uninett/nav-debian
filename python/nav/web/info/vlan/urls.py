@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2012 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -16,21 +17,21 @@
 """Django URL configuration"""
 
 
-from django.conf.urls import url
+from django.urls import re_path
 from nav.web.info.vlan import views
 
 
 urlpatterns = [
-    url(r'^$',
-        views.index,
-        name='vlan-index'),
-    url(r'^(?P<vlanid>\d+)/$',
-        views.vlan_details,
-        name='vlan-details'),
-    url(r'^graph/prefix/(?P<prefixid>\d+)$',
+    re_path(r'^$', views.index, name='vlan-index'),
+    re_path(r'^(?P<vlanid>\d+)/$', views.vlan_details, name='vlan-details'),
+    re_path(
+        r'^graph/prefix/(?P<prefixid>\d+)$',
         views.create_prefix_graph,
-        name='vlan-graph-prefix'),
-    url(r'^graph/vlan/(?P<vlanid>\d+)/(?P<family>\d)?$',
+        name='vlan-graph-prefix',
+    ),
+    re_path(
+        r'^graph/vlan/(?P<vlanid>\d+)/(?P<family>\d)?$',
         views.create_vlan_graph,
-        name='vlan-graph-prefix'),
+        name='vlan-graph-prefix',
+    ),
 ]

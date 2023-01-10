@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -29,9 +30,10 @@ from nav.metrics.templates import (
     metric_path_for_cpu_utilization,
     metric_path_for_sysuptime,
     metric_path_for_power,
-    metric_prefix_for_memory
+    metric_prefix_for_memory,
 )
 from nav.mibs.cisco_memory_pool_mib import CiscoMemoryPoolMib
+from nav.mibs.cisco_enhanced_memory_pool_mib import CiscoEnhancedMemoryPoolMib
 
 from nav.mibs.esswitch_mib import ESSwitchMib
 from nav.mibs.cisco_c2900_mib import CiscoC2900Mib
@@ -43,9 +45,11 @@ from nav.mibs.snmpv2_mib import Snmpv2Mib
 from nav.mibs.statistics_mib import StatisticsMib
 from nav.mibs.juniper_mib import JuniperMib
 from nav.mibs.power_ethernet_mib import PowerEthernetMib
-from nav.enterprise.ids import (VENDOR_ID_CISCOSYSTEMS,
-                                VENDOR_ID_HEWLETT_PACKARD,
-                                VENDOR_ID_JUNIPER_NETWORKS_INC)
+from nav.enterprise.ids import (
+    VENDOR_ID_CISCOSYSTEMS,
+    VENDOR_ID_HEWLETT_PACKARD,
+    VENDOR_ID_JUNIPER_NETWORKS_INC,
+)
 
 
 BANDWIDTH_MIBS = {
@@ -59,13 +63,15 @@ CPU_MIBS = {
 }
 
 MEMORY_MIBS = {
-    VENDOR_ID_CISCOSYSTEMS: [CiscoMemoryPoolMib],
+    VENDOR_ID_CISCOSYSTEMS: [CiscoMemoryPoolMib, CiscoEnhancedMemoryPoolMib],
     VENDOR_ID_HEWLETT_PACKARD: [NetswitchMib],
+    VENDOR_ID_JUNIPER_NETWORKS_INC: [JuniperMib],
 }
 
 
 class StatSystem(Plugin):
     """Collects system statistics and pushes to Graphite"""
+
     @defer.inlineCallbacks
     def handle(self):
         if self.netbox.master:
@@ -87,8 +93,9 @@ class StatSystem(Plugin):
             try:
                 metrics = yield self._collect_bandwidth_from_mib(mib, netboxes)
             except (TimeoutError, defer.TimeoutError):
-                self._logger.debug("collect_bandwidth: ignoring timeout in %s",
-                                   mib.mib['moduleName'])
+                self._logger.debug(
+                    "collect_bandwidth: ignoring timeout in %s", mib.mib['moduleName']
+                )
             else:
                 if metrics:
                     defer.returnValue(metrics)
@@ -106,17 +113,21 @@ class StatSystem(Plugin):
             percent = True
 
         if bandwidth or bandwidth_peak:
-            self._logger.debug("Found bandwidth values from %s: %s, %s",
-                               mib.mib['moduleName'], bandwidth,
-                               bandwidth_peak)
+            self._logger.debug(
+                "Found bandwidth values from %s: %s, %s",
+                mib.mib['moduleName'],
+                bandwidth,
+                bandwidth_peak,
+            )
             timestamp = time.time()
             metrics = []
             for netbox in netboxes:
                 metrics += [
-                    (metric_path_for_bandwith(netbox, percent),
-                     (timestamp, bandwidth)),
-                    (metric_path_for_bandwith_peak(netbox, percent),
-                     (timestamp, bandwidth_peak)),
+                    (metric_path_for_bandwith(netbox, percent), (timestamp, bandwidth)),
+                    (
+                        metric_path_for_bandwith_peak(netbox, percent),
+                        (timestamp, bandwidth_peak),
+                    ),
                 ]
             defer.returnValue(metrics)
 
@@ -127,8 +138,9 @@ class StatSystem(Plugin):
                 load = yield self._get_cpu_loadavg(mib, netboxes)
                 utilization = yield self._get_cpu_utilization(mib, netboxes)
             except (TimeoutError, defer.TimeoutError):
-                self._logger.debug("collect_cpu: ignoring timeout in %s",
-                                   mib.mib['moduleName'])
+                self._logger.debug(
+                    "collect_cpu: ignoring timeout in %s", mib.mib['moduleName']
+                )
             else:
                 defer.returnValue(load + utilization)
         defer.returnValue([])
@@ -140,13 +152,13 @@ class StatSystem(Plugin):
         metrics = []
 
         if load:
-            self._logger.debug("Found CPU loadavg from %s: %s",
-                               mib.mib['moduleName'], load)
+            self._logger.debug(
+                "Found CPU loadavg from %s: %s", mib.mib['moduleName'], load
+            )
             for cpuname, loadlist in load.items():
                 for interval, value in loadlist:
                     for netbox in netboxes:
-                        path = metric_path_for_cpu_load(netbox, cpuname,
-                                                        interval)
+                        path = metric_path_for_cpu_load(netbox, cpuname, interval)
                         metrics.append((path, (timestamp, value)))
         defer.returnValue(metrics)
 
@@ -157,8 +169,9 @@ class StatSystem(Plugin):
         metrics = []
 
         if utilization:
-            self._logger.debug("Found CPU utilization from %s: %s",
-                               mib.mib['moduleName'], utilization)
+            self._logger.debug(
+                "Found CPU utilization from %s: %s", mib.mib['moduleName'], utilization
+            )
             for cpuname, value in utilization.items():
                 for netbox in netboxes:
                     path = metric_path_for_cpu_utilization(netbox, cpuname)
@@ -166,10 +179,8 @@ class StatSystem(Plugin):
         defer.returnValue(metrics)
 
     def _mibs_for_me(self, mib_class_dict):
-        vendor = (self.netbox.type.get_enterprise_id()
-                  if self.netbox.type else None)
-        mib_classes = (mib_class_dict.get(vendor, None) or
-                       mib_class_dict.get(None, []))
+        vendor = self.netbox.type.get_enterprise_id() if self.netbox.type else None
+        mib_classes = mib_class_dict.get(vendor, None) or mib_class_dict.get(None, [])
         for mib_class in mib_classes:
             yield mib_class(self.agent)
 
@@ -193,9 +204,11 @@ class StatSystem(Plugin):
         mib = PowerEthernetMib(self.agent)
         power = yield mib.get_groups_table()
         self._logger.debug("Got poe data %s", power)
-        power = {key: val['pethMainPseConsumptionPower']
-                 for key, val in power.items()
-                 if val['pethMainPseOperStatus'] == 1}
+        power = {
+            key: val['pethMainPseConsumptionPower']
+            for key, val in power.items()
+            if val['pethMainPseOperStatus'] == 1
+        }
         timestamp = time.time()
 
         if power:
@@ -215,12 +228,14 @@ class StatSystem(Plugin):
             try:
                 mem = yield mib.get_memory_usage()
             except (TimeoutError, defer.TimeoutError):
-                self._logger.debug("collect_memory: ignoring timeout in %s",
-                                   mib.mib['moduleName'])
+                self._logger.debug(
+                    "collect_memory: ignoring timeout in %s", mib.mib['moduleName']
+                )
             else:
                 if mem:
-                    self._logger.debug("Found memory values from %s: %r",
-                                       mib.mib['moduleName'], mem)
+                    self._logger.debug(
+                        "Found memory values from %s: %r", mib.mib['moduleName'], mem
+                    )
                     memory.update(mem)
 
         timestamp = time.time()
@@ -228,8 +243,10 @@ class StatSystem(Plugin):
         for name, (used, free) in memory.items():
             for netbox in netboxes:
                 prefix = metric_prefix_for_memory(netbox, name)
-                result.extend([
-                    (prefix + '.used', (timestamp, used)),
-                    (prefix + '.free', (timestamp, free)),
-                ])
+                result.extend(
+                    [
+                        (prefix + '.used', (timestamp, used)),
+                        (prefix + '.free', (timestamp, free)),
+                    ]
+                )
         defer.returnValue(result)

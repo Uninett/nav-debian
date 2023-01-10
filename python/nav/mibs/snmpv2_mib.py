@@ -27,6 +27,7 @@ from . import mibretriever
 
 class Snmpv2Mib(mibretriever.MibRetriever):
     """A MibRetriever for SNMPv2-MIB"""
+
     mib = get_mib('SNMPv2-MIB')
 
     @defer.inlineCallbacks

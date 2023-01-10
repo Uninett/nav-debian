@@ -1,56 +1,7 @@
-from itertools import cycle
-import subprocess
-import time
-import io
-import os
-
 import pytest
 import pytest_twisted
 
-from nav.ipdevpoll.snmp import snmpprotocol, AgentProxy
-from nav.ipdevpoll.snmp.common import SNMPParameters
 from nav.mibs import comet, pdu2_mib, powernet_mib
-
-
-ports = cycle(snmpprotocol.port() for i in range(50))
-
-
-@pytest.fixture(scope='session')
-def snmpsim():
-    workspace = os.getenv('WORKSPACE', os.getenv('HOME', '/source'))
-    proc = subprocess.Popen([
-        '/usr/local/bin/snmpsimd.py',
-        '--data-dir={}/tests/integration/snmp_fixtures'.format(workspace),
-        '--log-level=error',
-        '--agent-udpv4-endpoint=127.0.0.1:1024'], env={'HOME': workspace})
-
-    while not _lookfor('0100007F:0400', '/proc/net/udp'):
-        print("Still waiting for snmpsimd to listen for queries")
-        proc.poll()
-        time.sleep(0.1)
-
-    yield
-    proc.kill()
-
-
-def _lookfor(string, filename):
-    """Very simple grep-like function"""
-    data = io.open(filename, 'r', encoding='utf-8').read()
-    return string in data
-
-
-@pytest.fixture()
-def snmp_agent_proxy(snmpsim):
-    port = next(ports)
-    agent = AgentProxy(
-        '127.0.0.1', 1024,
-        community='placeholder',
-        snmpVersion='v2c',
-        protocol=port.protocol,
-        snmp_parameters=SNMPParameters(timeout=1, max_repetitions=5,
-                                       throttle_delay=0)
-    )
-    return agent
 
 
 @pytest.mark.twisted
@@ -69,7 +20,7 @@ def test_apc_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.1',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': 'amperes'
+            'unit_of_measurement': 'amperes',
         },
         {
             'description': 'PDU Bank 1 ampere load',
@@ -79,7 +30,7 @@ def test_apc_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.2',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': 'amperes'
+            'unit_of_measurement': 'amperes',
         },
         {
             'description': 'PDU Bank 2 ampere load',
@@ -89,7 +40,7 @@ def test_apc_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.318.1.1.12.2.3.1.1.2.3',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': 'amperes'
+            'unit_of_measurement': 'amperes',
         },
     ]
 
@@ -110,7 +61,7 @@ def test_P8652(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.22626.1.5.2.1.3.0',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': u'celsius'
+            'unit_of_measurement': u'celsius',
         },
         {
             'description': u'Channel 2',
@@ -120,7 +71,7 @@ def test_P8652(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.22626.1.5.2.2.3.0',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': u'%RH'
+            'unit_of_measurement': u'%RH',
         },
         {
             'description': u'Channel 3',
@@ -130,7 +81,7 @@ def test_P8652(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.22626.1.5.2.3.3.0',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': u''
+            'unit_of_measurement': u'',
         },
         {
             'description': u'Channel 4',
@@ -140,7 +91,7 @@ def test_P8652(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.22626.1.5.2.4.3.0',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': u''
+            'unit_of_measurement': u'',
         },
         {
             'description': u'vann-gulv-gang',
@@ -150,7 +101,7 @@ def test_P8652(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.22626.1.5.2.6.3.0',
             'precision': 0,
             'scale': None,
-            'unit_of_measurement': 'boolean'
+            'unit_of_measurement': 'boolean',
         },
         {
             'description': u'vann-gulv-gang alarm',
@@ -173,7 +124,7 @@ def test_P8652(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.22626.1.5.2.7.3.0',
             'precision': 0,
             'scale': None,
-            'unit_of_measurement': 'boolean'
+            'unit_of_measurement': 'boolean',
         },
         {
             'description': u'vann-gulv-A alarm',
@@ -196,7 +147,7 @@ def test_P8652(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.22626.1.5.2.8.3.0',
             'precision': 0,
             'scale': None,
-            'unit_of_measurement': 'boolean'
+            'unit_of_measurement': 'boolean',
         },
         {
             'description': u'vann-lagerrom alarm',
@@ -233,7 +184,7 @@ def test_raritan_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.8',
             'precision': 0,
             'scale': None,
-            'unit_of_measurement': 'watthours'
+            'unit_of_measurement': 'watthours',
         },
         {
             'description': 'pdu 1 inlet I1 activePower',
@@ -245,7 +196,7 @@ def test_raritan_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.5',
             'precision': 0,
             'scale': None,
-            'unit_of_measurement': 'watts'
+            'unit_of_measurement': 'watts',
         },
         {
             'description': 'pdu 1 inlet I1 apparentPower',
@@ -257,7 +208,7 @@ def test_raritan_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.6',
             'precision': 0,
             'scale': None,
-            'unit_of_measurement': 'voltsamperes'
+            'unit_of_measurement': 'voltsamperes',
         },
         {
             'description': 'pdu 1 inlet I1 powerFactor',
@@ -269,7 +220,7 @@ def test_raritan_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.7',
             'precision': 2,
             'scale': None,
-            'unit_of_measurement': 'unknown'
+            'unit_of_measurement': 'unknown',
         },
         {
             'description': 'pdu 1 inlet I1 rmsCurrent',
@@ -281,7 +232,7 @@ def test_raritan_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.1',
             'precision': 1,
             'scale': None,
-            'unit_of_measurement': 'amperes'
+            'unit_of_measurement': 'amperes',
         },
         {
             'description': 'pdu 1 inlet I1 rmsVoltage',
@@ -293,6 +244,6 @@ def test_raritan_pdu(snmp_agent_proxy):
             'oid': '.1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.4',
             'precision': 0,
             'scale': None,
-            'unit_of_measurement': 'voltsAC'
+            'unit_of_measurement': 'voltsAC',
         },
     ]

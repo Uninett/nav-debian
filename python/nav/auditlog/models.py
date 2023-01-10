@@ -1,6 +1,7 @@
 # coding: utf-8
 
 # Copyright (C) 2017 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,10 +18,9 @@
 from __future__ import unicode_literals, absolute_import
 
 import logging
+from nav.compatibility import force_str
 
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
-from django.utils.encoding import force_text
 from django.utils.timezone import now as utcnow
 
 from nav.models.fields import VarcharField, LegacyGenericForeignKey
@@ -30,7 +30,6 @@ from . import find_modelname
 _logger = logging.getLogger(__name__)
 
 
-@python_2_unicode_compatible
 class LogEntry(models.Model):
     """
     Logs mostly user actions in NAV
@@ -44,6 +43,7 @@ class LogEntry(models.Model):
         object=interface,                                      # optional
     )
     """
+
     actor_model = VarcharField()
     actor_pk = VarcharField()
     actor = LegacyGenericForeignKey('actor_model', 'actor_pk')
@@ -68,7 +68,17 @@ class LogEntry(models.Model):
     after = models.TextField(blank=True, null=True)
 
     @classmethod
-    def add_log_entry(cls, actor, verb, template, subsystem=None, object=None, target=None, before=None, after=None):
+    def add_log_entry(
+        cls,
+        actor,
+        verb,
+        template,
+        subsystem=None,
+        object=None,
+        target=None,
+        before=None,
+        after=None,
+    ):
         """LogEntry factory"""
         self = cls()
         dict = {'actor': actor, 'object': object, 'target': target}
@@ -88,8 +98,8 @@ class LogEntry(models.Model):
         self.target_pk = target.pk if target else None
         self.timestamp = utcnow()
         self.subsystem = subsystem if subsystem else None
-        self.before = force_text(before)
-        self.after = force_text(after)
+        self.before = force_str(before)
+        self.after = force_str(after)
         self.save()
         return self
 
@@ -105,7 +115,7 @@ class LogEntry(models.Model):
             u'create-{}'.format(model),
             u'{actor} created {object}',
             after=obj,
-            object=obj
+            object=obj,
         )
 
     @staticmethod
@@ -114,11 +124,7 @@ class LogEntry(models.Model):
         model = obj.__class__.__name__.lower()
         template = template or u'{actor} deleted {object}'
         LogEntry.add_log_entry(
-            actor,
-            u'delete-{}'.format(model),
-            template,
-            before=obj,
-            object=obj
+            actor, u'delete-{}'.format(model), template, before=obj, object=obj
         )
 
     @staticmethod
@@ -127,6 +133,7 @@ class LogEntry(models.Model):
 
         :type attribute: str
         """
+
         def dict_to_string(d):
             """
             {"a": "b", "c": "d"} => "a=b, c=d"
@@ -144,7 +151,8 @@ class LogEntry(models.Model):
             if isinstance(new_value, dict):
                 new_value = dict_to_string(new_value)
             summary = u"{} changed from '{}' to '{}'".format(
-                attribute, old_value, new_value)
+                attribute, old_value, new_value
+            )
         else:
             summary = u"{} changed".format(attribute)
 
@@ -154,7 +162,7 @@ class LogEntry(models.Model):
             u'{}: {}'.format(prefix, summary),
             before=old,
             after=new,
-            object=new
+            object=new,
         )
 
     @staticmethod
@@ -176,8 +184,9 @@ class LogEntry(models.Model):
             new_value = getattr(new, attribute)
             if old_value != new_value:
                 include_values = attribute not in censored_attributes
-                LogEntry.add_edit_entry(actor, old, new, attribute,
-                                        include_values=include_values)
+                LogEntry.add_edit_entry(
+                    actor, old, new, attribute, include_values=include_values
+                )
 
     def __str__(self):
         return self.summary

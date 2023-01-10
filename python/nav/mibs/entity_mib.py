@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009-2011, 2014 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -22,8 +23,6 @@ from datetime import datetime
 import struct
 import sys
 
-from django.utils import six
-from django.utils.six import iteritems
 from twisted.internet import defer
 
 from nav.oids import OID
@@ -36,6 +35,7 @@ _logger = logging.getLogger(__name__)
 
 class EntityMib(mibretriever.MibRetriever):
     """MibRetriever for the ENTITY-MIB"""
+
     mib = get_mib('ENTITY-MIB')
 
     def retrieve_alternate_bridge_mibs(self):
@@ -58,9 +58,11 @@ class EntityMib(mibretriever.MibRetriever):
 
         def _bridge_mib_filter(result):
             def _is_bridge_mib_instance_with_valid_community(row):
-                return (row['entLogicalType']
-                        and OID(row['entLogicalType']) == bridge_mib_oid
-                        and b'\x00' not in row['entLogicalCommunity'])
+                return (
+                    row['entLogicalType']
+                    and OID(row['entLogicalType']) == bridge_mib_oid
+                    and b'\x00' not in row['entLogicalCommunity']
+                )
 
             new_result = [
                 (r["entLogicalDescr"], r["entLogicalCommunity"].decode("utf-8"))
@@ -69,11 +71,9 @@ class EntityMib(mibretriever.MibRetriever):
             ]
             return new_result
 
-        df = self.retrieve_columns([
-                'entLogicalDescr',
-                'entLogicalType',
-                'entLogicalCommunity'
-                ])
+        df = self.retrieve_columns(
+            ['entLogicalDescr', 'entLogicalType', 'entLogicalCommunity']
+        )
         df.addCallback(_bridge_mib_filter)
         return df
 
@@ -101,25 +101,26 @@ class EntityMib(mibretriever.MibRetriever):
     @defer.inlineCallbacks
     def get_useful_physical_table_columns(self):
         """Retrieves the most useful columns of the entPhysicalTable"""
-        columns = yield self.retrieve_columns([
-            'entPhysicalDescr',
-            'entPhysicalContainedIn',
-            'entPhysicalClass',
-            'entPhysicalParentRelPos',
-            'entPhysicalName',
-            'entPhysicalHardwareRev',
-            'entPhysicalFirmwareRev',
-            'entPhysicalSoftwareRev',
-            'entPhysicalSerialNum',
-            'entPhysicalModelName',
-            'entPhysicalIsFRU',
-        ])
+        columns = yield self.retrieve_columns(
+            [
+                'entPhysicalDescr',
+                'entPhysicalContainedIn',
+                'entPhysicalClass',
+                'entPhysicalParentRelPos',
+                'entPhysicalName',
+                'entPhysicalHardwareRev',
+                'entPhysicalFirmwareRev',
+                'entPhysicalSoftwareRev',
+                'entPhysicalSerialNum',
+                'entPhysicalModelName',
+                'entPhysicalIsFRU',
+            ]
+        )
         defer.returnValue(self.translate_result(columns))
 
     @defer.inlineCallbacks
     def get_alias_mapping(self):
-        alias_mapping = yield self.retrieve_column(
-            'entAliasMappingIdentifier')
+        alias_mapping = yield self.retrieve_column('entAliasMappingIdentifier')
         defer.returnValue(self._process_alias_mapping(alias_mapping))
 
     def _process_alias_mapping(self, alias_mapping):
@@ -159,6 +160,7 @@ class EntityMib(mibretriever.MibRetriever):
 
 class EntityTable(dict):
     """Represent the contents of the entPhysicalTable as a dictionary"""
+
     def __init__(self, mibresult):
         # want single integers, not oid tuples as keys/indexes
         super(EntityTable, self).__init__()
@@ -173,11 +175,13 @@ class EntityTable(dict):
 
         self.clean()
 
-    @staticmethod
-    def is_module(entity):
-        return (entity['entPhysicalClass'] == 'module' and
-                entity['entPhysicalIsFRU'] and
-                entity['entPhysicalSerialNum'])
+    def is_module(self, entity):
+        return (
+            entity['entPhysicalClass'] == 'module'
+            and entity['entPhysicalIsFRU']
+            and entity['entPhysicalSerialNum']
+            and not self.is_transceiver(entity)
+        )
 
     @staticmethod
     def is_port(entity):
@@ -195,6 +199,10 @@ class EntityTable(dict):
     def is_fan(entity):
         return entity["entPhysicalClass"] == "fan"
 
+    def is_transceiver(self, entity):
+        transceiver_in_name = "transceiver" in entity['entPhysicalDescr'].lower()
+        return transceiver_in_name and self.get_nearest_port_parent(entity)
+
     def get_modules(self):
         """Return the subset of entities that are modules.
 
@@ -205,8 +213,7 @@ class EntityTable(dict):
 
         """
 
-        modules = [entity for entity in self.values()
-                   if self.is_module(entity)]
+        modules = [entity for entity in self.values() if self.is_module(entity)]
         return modules
 
     def get_ports(self):
@@ -217,8 +224,7 @@ class EntityTable(dict):
         Return value is a list of table rows.
 
         """
-        ports = [entity for entity in self.values()
-                 if self.is_port(entity)]
+        ports = [entity for entity in self.values() if self.is_port(entity)]
         return ports
 
     def get_chassis(self):
@@ -230,8 +236,7 @@ class EntityTable(dict):
         Return value is a list of table rows.
 
         """
-        chassis = [entity for entity in self.values()
-                   if self.is_chassis(entity)]
+        chassis = [entity for entity in self.values() if self.is_chassis(entity)]
         return chassis
 
     def get_nearest_module_parent(self, entity):
@@ -276,8 +281,6 @@ class EntityTable(dict):
     def clean(self):
         """Cleans the table data"""
 
-        if sys.version_info[0] == 2:  # Python 2 only
-            self._clean_unicode()
         self._parse_mfg_date()
         self._strip_whitespace()
         self._fix_broken_chassis_relative_positions()
@@ -330,8 +333,7 @@ class EntityTable(dict):
             ent['_entPhysicalName'] = name
             if chassis:
                 relpos = chassis['entPhysicalParentRelPos']
-                ent['entPhysicalName'] = "{0} [chassis {1}]".format(name,
-                                                                    relpos)
+                ent['entPhysicalName'] = "{0} [chassis {1}]".format(name, relpos)
 
     def _get_non_chassis_duplicates(self):
         """
@@ -344,28 +346,8 @@ class EntityTable(dict):
         for ent in self.values():
             if not self.is_chassis(ent):
                 dupes[ent['entPhysicalName']].append(ent)
-        dupes = dict((key, value) for key, value in iteritems(dupes)
-                     if len(value) > 1)
+        dupes = dict((key, value) for key, value in dupes.items() if len(value) > 1)
         return dupes
-
-    def _clean_unicode(self, encoding="utf-8"):
-        """Decodes every string attribute of every entity as UTF-8.
-
-        Strings that cannot be successfully decoded as UTF-8 will instead be
-        encoded as a Python string repr (and debug logged).
-        """
-        for entity in self.values():
-            for key, value in entity.items():
-                if isinstance(value, six.binary_type):
-                    try:
-                        new_value = value.decode(encoding)
-                    except UnicodeDecodeError:
-                        new_value = six.text_type(repr(value))
-                        _logger.debug(
-                            "cannot decode %s value as %s, using python "
-                            "string repr instead: %s",
-                            key, encoding, new_value)
-                    entity[key] = new_value
 
 
 EIGHT_OCTET_DATEANDTIME = struct.Struct("HBBBBBB")
@@ -385,11 +367,17 @@ def parse_dateandtime_tc(value):
         return
 
     try:
-        (year, month, day, hours, minutes, seconds,
-         deciseconds) = EIGHT_OCTET_DATEANDTIME.unpack(value[:8])
+        (
+            year,
+            month,
+            day,
+            hours,
+            minutes,
+            seconds,
+            deciseconds,
+        ) = EIGHT_OCTET_DATEANDTIME.unpack(value[:8])
     except struct.error as err:
-        _logger.debug("could not parse %r as DateAndTime TC: %s",
-                      value, err)
+        _logger.debug("could not parse %r as DateAndTime TC: %s", value, err)
         return
     except TypeError as err:
         _logger.debug("value %r wrong type: %s", value, err)
@@ -399,8 +387,7 @@ def parse_dateandtime_tc(value):
     try:
         return datetime(year, month, day, hours, minutes, seconds, microseconds)
     except ValueError as err:
-        _logger.debug("invalid value parsed from DateAndTime TC %r: %s",
-                      value, err)
+        _logger.debug("invalid value parsed from DateAndTime TC %r: %s", value, err)
         return
 
 

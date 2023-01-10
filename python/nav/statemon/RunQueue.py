@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2018 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV)
 #
@@ -25,11 +26,11 @@ from __future__ import absolute_import
 
 from collections import deque
 import heapq
+import sys
 import time
 import threading
 import logging
 
-from django.utils import six
 
 from . import config
 
@@ -48,6 +49,7 @@ class Worker(threading.Thread):
     placed in the queue.
 
     """
+
     def __init__(self, rq):
         threading.Thread.__init__(self)
         self._runqueue = rq
@@ -78,14 +80,15 @@ class Worker(threading.Thread):
         self._runcount += 1
         self._time_start_execute = time.time()
         checker.run()
-        if (self._runqueue.get_max_run_count() != 0 and
-                self._runcount > self._runqueue.get_max_run_count()):
+        if (
+            self._runqueue.get_max_run_count() != 0
+            and self._runcount > self._runqueue.get_max_run_count()
+        ):
             self._running = 0
             self._runqueue.unused_thread_name.append(self.getName())
             self._runqueue.workers.remove(self)
             _logger.info("%s is recycling.", self.getName())
-        _logger.debug("%s finished checker number %i", self.getName(),
-                      self._runcount)
+        _logger.debug("%s finished checker number %i", self.getName(), self._runcount)
         self._time_start_execute = 0
 
 
@@ -102,7 +105,7 @@ class _RunQueue(object):
 
     def __init__(self, **kwargs):
         self.conf = config.serviceconf()
-        self._max_threads = int(self.conf.get('maxthreads', six.MAXSIZE))
+        self._max_threads = int(self.conf.get('maxthreads', sys.maxsize))
         _logger.info("Setting maxthreads=%i", self._max_threads)
         self._max_run_count = int(self.conf.get('recycle interval', 50))
         _logger.info("Setting maxRunCount=%i", self._max_run_count)
@@ -141,12 +144,10 @@ class _RunQueue(object):
         # This is quite dirty, but I really need to know how many
         # threads are waiting for checkers.
         waiters = getattr(self.await_work, "_waiters", None)
-        # Next two lines exist only for compat with Python 2 (Python < 3)
-        if waiters is None:
-            waiters = getattr(self.await_work, "_Condition__waiters")
         num_waiters = len(waiters)
-        _logger.debug("Number of workers: %i Waiting workers: %i",
-                      len(self.workers), num_waiters)
+        _logger.debug(
+            "Number of workers: %i Waiting workers: %i", len(self.workers), num_waiters
+        )
         if num_waiters > 0:
             self.await_work.notify()
         elif len(self.workers) < self._max_threads:
@@ -155,7 +156,7 @@ class _RunQueue(object):
             if self.unused_thread_name:
                 new_worker.setName(self.unused_thread_name.pop())
             else:
-                new_worker.setName('worker'+str(len(self.workers)))
+                new_worker.setName('worker' + str(len(self.workers)))
             self.workers.append(new_worker)
             new_worker.start()
 
@@ -180,7 +181,7 @@ class _RunQueue(object):
             if self.timerqueue:
                 scheduled_time = float(self.timerqueue.firstTimestamp())
                 now = time.time()
-                wait = scheduled_time-now
+                wait = scheduled_time - now
                 # If we have priority ready we
                 # return it now.
                 if wait <= 0:
@@ -212,7 +213,6 @@ class _RunQueue(object):
 
 
 class EventQueue(object):
-
     def __init__(self):
         self.heap = []
         self.counter = 0

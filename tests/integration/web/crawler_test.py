@@ -18,6 +18,7 @@ from __future__ import print_function
 from collections import namedtuple
 from lxml.html import fromstring
 import os
+
 try:
     from http.client import BadStatusLine
 except ImportError:
@@ -26,13 +27,21 @@ except ImportError:
 import pytest
 
 from tidylib import tidy_document
-from django.utils import six
-from django.utils.six.moves.urllib.request import (urlopen, build_opener,
-                                                   install_opener,
-                                                   HTTPCookieProcessor, Request)
-from django.utils.six.moves.urllib.error import HTTPError, URLError
-from django.utils.six.moves.urllib.parse import (urlsplit, urlencode,
-                                                 urlunparse, urlparse, quote)
+from urllib.request import (
+    urlopen,
+    build_opener,
+    install_opener,
+    HTTPCookieProcessor,
+    Request,
+)
+from urllib.error import HTTPError, URLError
+from urllib.parse import (
+    urlsplit,
+    urlencode,
+    urlunparse,
+    urlparse,
+    quote,
+)
 from mock import Mock
 
 
@@ -164,8 +173,7 @@ class WebCrawler(object):
     def login(self):
         login_url = '%sindex/login/' % self.base_url
         opener = build_opener(HTTPCookieProcessor())
-        data = urlencode({'username': self.username,
-                          'password': self.password})
+        data = urlencode({'username': self.username, 'password': self.password})
         opener.open(login_url, data.encode('utf-8'), TIMEOUT)
         install_opener(opener)
 
@@ -195,9 +203,16 @@ def _quote_url(url):
         path = quote(parsed.path.encode('utf-8'))
     else:
         path = parsed.path
-    quoted = (parsed.scheme, parsed.netloc, path, parsed.params,
-              parsed.query, parsed.fragment)
+    quoted = (
+        parsed.scheme,
+        parsed.netloc,
+        path,
+        parsed.params,
+        parsed.query,
+        parsed.fragment,
+    )
     return urlunparse(quoted)
+
 
 #
 # test functions
@@ -217,26 +232,30 @@ def page_id(page):
     return normalize_path(page.url)
 
 
-@pytest.mark.skipif(not HOST_URL,
-                    reason="Missing environment variable TARGETURL "
-                           "(ADMINUSERNAME, ADMINPASSWORD) , skipping crawler "
-                           "tests!")
+@pytest.mark.skipif(
+    not HOST_URL,
+    reason="Missing environment variable TARGETURL "
+    "(ADMINUSERNAME, ADMINPASSWORD) , skipping crawler "
+    "tests!",
+)
 @pytest.mark.parametrize("page", crawler.crawl(), ids=page_id)
 def test_link_should_be_reachable(page):
     assert page.response == 200, _content_as_string(page.content)
 
 
 def _content_as_string(content):
-    if isinstance(content, six.string_types) or content is None:
+    if isinstance(content, str) or content is None:
         return content
     else:
         return content.decode('utf-8')
 
 
-@pytest.mark.skipif(not HOST_URL,
-                    reason="Missing environment variable TARGETURL "
-                           "(ADMINUSERNAME, ADMINPASSWORD) , skipping crawler "
-                           "tests!")
+@pytest.mark.skipif(
+    not HOST_URL,
+    reason="Missing environment variable TARGETURL "
+    "(ADMINUSERNAME, ADMINPASSWORD) , skipping crawler "
+    "tests!",
+)
 @pytest.mark.parametrize("page", crawler.crawl(), ids=page_id)
 def test_page_should_be_valid_html(page):
     if page.response != 200:
@@ -264,8 +283,7 @@ def should_validate(url):
 
 def filter_errors(errors):
     if errors:
-        return u"\n".join(msg for msg in errors.split(u'\n')
-                          if not _should_ignore(msg))
+        return u"\n".join(msg for msg in errors.split(u'\n') if not _should_ignore(msg))
 
 
 def _should_ignore(msg):

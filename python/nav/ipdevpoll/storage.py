@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2009-2012 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -17,7 +18,6 @@
 
 import django.db.models
 from django.db import transaction
-from django.utils import six
 
 from nav import toposort
 from nav import ipdevpoll
@@ -65,6 +65,7 @@ class DefaultManager(object):
     Mostly uses helper methods in shadow classes to perform its work.
 
     """
+
     _logger = ipdevpoll.ContextLogger()
 
     def __init__(self, cls, containers):
@@ -98,13 +99,14 @@ class DefaultManager(object):
             return []
 
     def __repr__(self):
-        return "%s(%r, %r(...))" % (self.__class__.__name__,
-                                    self.cls,
-                                    self.containers.__class__.__name__)
+        return "%s(%r, %r(...))" % (
+            self.__class__.__name__,
+            self.cls,
+            self.containers.__class__.__name__,
+        )
 
 
-@six.add_metaclass(MetaShadow)
-class Shadow(object):
+class Shadow(object, metaclass=MetaShadow):
     """Base class to shadow Django model classes.
 
     To create a "dumb" container of values, whose attribute list will
@@ -124,6 +126,7 @@ class Shadow(object):
     >>>
 
     """
+
     __lookups__ = []
     manager = DefaultManager
 
@@ -147,8 +150,10 @@ class Shadow(object):
                 for field in self._fields:
                     setattr(self, field, getattr(obj, field))
             else:
-                raise ValueError("First argument is not a %s instance" %
-                                 self.__class__.__shadowclass__.__name__)
+                raise ValueError(
+                    "First argument is not a %s instance"
+                    % self.__class__.__shadowclass__.__name__
+                )
         else:
             for key, val in kwargs.items():
                 if not hasattr(self.__class__, key):
@@ -166,8 +171,11 @@ class Shadow(object):
         if not self.__shadowclass__ == other.__shadowclass__:
             return False
 
-        if self.get_primary_key() and other.get_primary_key() and \
-                self.get_primary_key() == other.get_primary_key():
+        if (
+            self.get_primary_key()
+            and other.get_primary_key()
+            and self.get_primary_key() == other.get_primary_key()
+        ):
             return True
 
         for lookup in self.__lookups__:
@@ -196,11 +204,12 @@ class Shadow(object):
         return not (self == other)
 
     def __repr__(self):
-        attrs = [field for field in self._fields
-                 if getattr(self, field) is not None or
-                 field in self._touched]
-        varbinds = ["%s=%r" % (field, getattr(self, field))
-                    for field in attrs]
+        attrs = [
+            field
+            for field in self._fields
+            if getattr(self, field) is not None or field in self._touched
+        ]
+        varbinds = ["%s=%r" % (field, getattr(self, field)) for field in attrs]
         return "%s(%s)" % (self.__class__.__name__, ", ".join(varbinds))
 
     def __setattr__(self, attr, value):
@@ -220,8 +229,8 @@ class Shadow(object):
             else:
                 if isinstance(value, django.db.models.Model):
                     self._logger.warning(
-                        "Live model object being added to %r attribute: %r",
-                        value, attr)
+                        "Live model object being added to %r attribute: %r", value, attr
+                    )
         return super(Shadow, self).__setattr__(attr, value)
 
     @classmethod
@@ -238,8 +247,9 @@ class Shadow(object):
             for field in other.get_touched():
                 setattr(self, field, getattr(other, field))
         else:
-            raise ValueError("First argument is not a %s instance" %
-                             self.__class__.__name__)
+            raise ValueError(
+                "First argument is not a %s instance" % self.__class__.__name__
+            )
 
     @classmethod
     def get_dependencies(cls):
@@ -253,15 +263,15 @@ class Shadow(object):
         """
         dependencies = []
         for field in cls._meta.fields:
-            if issubclass(field.__class__,
-                          django.db.models.fields.related.ForeignKey):
+            if issubclass(field.__class__, django.db.models.fields.related.ForeignKey):
                 try:
                     django_dependency = field.remote_field.model
                 except AttributeError:  # Django <= 1.8
                     django_dependency = field.rel.to
 
                 shadow_dependency = MetaShadow.shadowed_classes.get(
-                    django_dependency, None)
+                    django_dependency, None
+                )
                 if shadow_dependency:
                     dependencies.append(shadow_dependency)
         return dependencies
@@ -289,8 +299,7 @@ class Shadow(object):
         key is a dictionary with shadow instances keyed by their index created
         upon container creation.
         """
-        if hasattr(self, '_cached_converted_model') and \
-                self._cached_converted_model:
+        if hasattr(self, '_cached_converted_model') and self._cached_converted_model:
             return self._cached_converted_model
 
         if containers is None:
@@ -337,8 +346,7 @@ class Shadow(object):
         matching object cannot be found in the database, None is returned.
 
         """
-        if hasattr(self, '_cached_existing_model') and \
-                self._cached_existing_model:
+        if hasattr(self, '_cached_existing_model') and self._cached_existing_model:
             return self._cached_existing_model
         if containers is None:
             containers = {}
@@ -374,8 +382,7 @@ class Shadow(object):
         for lookup in lookups:
             kwargs = None
             if isinstance(lookup, tuple):
-                kwargs = dict(zip(lookup,
-                                  [getattr(self, l) for l in lookup]))
+                kwargs = dict(zip(lookup, [getattr(self, l) for l in lookup]))
             else:
                 value = getattr(self, lookup)
                 if value is not None:
@@ -390,12 +397,15 @@ class Shadow(object):
                 except self.__shadowclass__.DoesNotExist:
                     pass
                 except self.__shadowclass__.MultipleObjectsReturned:
-                    self._logger.error("Multiple %s objects returned while "
-                                       "looking up myself."
-                                       "Lookup args used: %r "
-                                       "Myself: %r",
-                                       self.__shadowclass__.__name__,
-                                       kwargs, self)
+                    self._logger.error(
+                        "Multiple %s objects returned while "
+                        "looking up myself."
+                        "Lookup args used: %r "
+                        "Myself: %r",
+                        self.__shadowclass__.__name__,
+                        kwargs,
+                        self,
+                    )
                     raise
 
                 else:
@@ -411,8 +421,10 @@ class Shadow(object):
 
         """
         if not isinstance(django_object, self.__shadowclass__):
-            raise TypeError('Expected a %s object: %r' % (
-                    self.__shadowclass__.__name__, django_object))
+            raise TypeError(
+                'Expected a %s object: %r'
+                % (self.__shadowclass__.__name__, django_object)
+            )
         pkey = self.get_primary_key_attribute()
         setattr(self, pkey.name, getattr(django_object, pkey.name))
         self._cached_existing_model = django_object
@@ -443,11 +455,20 @@ class Shadow(object):
         """This method is run in a separate thread after containers have been
         saved, once for each type of container class.
 
+        This will invoke the cleanup method of each container object of the cls
+        type.
+
         Overriding this will enable a Shadow class to do things like database
         maintenance after changes have taken place.
 
+        The containers argument is the complete repository of containers
+        created during the job run, and can be sneakily modified by this method
+        if you are so inclined.
+
         """
-        pass
+        if cls in containers:
+            for container in containers[cls].values():
+                container.cleanup(containers)
 
     def prepare(self, containers):
         """Run by prepare_for_save before conversion of this object into a
@@ -500,8 +521,7 @@ class Shadow(object):
         diff = self.get_diff_attrs(existing)
         if diff:
             obj = self.convert_to_model(containers)
-            update = dict((attr, getattr(obj, attr))
-                          for attr in diff)
+            update = dict((attr, getattr(obj, attr)) for attr in diff)
             pkey = self.get_primary_key_attribute().name
             filtr = {pkey: getattr(obj, pkey)}
             myself = self.__shadowclass__.objects.filter(**filtr)
@@ -513,6 +533,7 @@ class Shadow(object):
         values are are different from the corresponding attributes on other.
 
         """
+
         def _is_different(attr):
             myvalue = getattr(self, attr)
             if isinstance(myvalue, Shadow):
@@ -520,8 +541,17 @@ class Shadow(object):
                 myvalue = myvalue.id
             return hasattr(other, attr) and myvalue != getattr(other, attr)
 
-        return [a for a in self.get_touched()
-                if _is_different(a)]
+        return [a for a in self.get_touched() if _is_different(a)]
+
+    def cleanup(self, containers):
+        """This method is run in a separate thread after containers have been
+        saved, once for each container instance.
+
+        By default this method does nothing, but can be overridden for custom
+        logic.
+
+        """
+        pass
 
 
 def shadowify(model):
@@ -563,6 +593,7 @@ class ContainerRepository(dict):
     do_maintenance and prepare_for_save methods.
 
     """
+
     def factory(self, key, container_class, *args, **kwargs):
         """Instantiates a container_class object and stores it in the
         repository using the given key.
@@ -593,8 +624,7 @@ class ContainerRepository(dict):
 
         """
         if not issubclass(container_class, Shadow):
-            raise ValueError("%s is not a shadow container class" %
-                             container_class)
+            raise ValueError("%s is not a shadow container class" % container_class)
 
         if container_class not in self:
             self[container_class] = {}
@@ -619,12 +649,14 @@ class ContainerRepository(dict):
 
         """
         order = get_shadow_sort_order()
-        return ([cls for cls in order if cls in self] +
-                [cls for cls in self if cls not in order])
+        return [cls for cls in order if cls in self] + [
+            cls for cls in self if cls not in order
+        ]
 
 
 def get_shadow_sort_order():
     """Return a topologically sorted list of shadow classes."""
+
     def _get_dependencies(shadow_class):
         return shadow_class.get_dependencies()
 

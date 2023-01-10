@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2013 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -13,10 +14,9 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-from django.utils.six import itervalues, iteritems
 from twisted.internet import defer
 
-from django.utils.encoding import smart_text
+from nav.compatibility import smart_str
 
 from nav.smidumps import get_mib
 from nav.mibs import mibretriever
@@ -33,21 +33,23 @@ class CiscoProcessMib(mibretriever.MibRetriever):
 
     @defer.inlineCallbacks
     def get_cpu_loadavg(self):
-        load = yield self.retrieve_columns([
-            PHYSICAL_INDEX,
-            TOTAL_5_MIN_REV,
-            TOTAL_1_MIN_REV,
-        ])
+        load = yield self.retrieve_columns(
+            [
+                PHYSICAL_INDEX,
+                TOTAL_5_MIN_REV,
+                TOTAL_1_MIN_REV,
+            ]
+        )
         self._logger.debug("cpu load results: %r", load)
-        physindexes = [row[PHYSICAL_INDEX] for row in itervalues(load)
-                       if row[PHYSICAL_INDEX]]
+        physindexes = [
+            row[PHYSICAL_INDEX] for row in load.values() if row[PHYSICAL_INDEX]
+        ]
         names = yield self._get_cpu_names(physindexes)
 
         result = {}
-        for index, row in iteritems(load):
+        for index, row in load.items():
             name = names.get(row[PHYSICAL_INDEX], str(index[-1]))
-            result[name] = [(5, row[TOTAL_5_MIN_REV]),
-                            (1, row[TOTAL_1_MIN_REV])]
+            result[name] = [(5, row[TOTAL_5_MIN_REV]), (1, row[TOTAL_1_MIN_REV])]
         defer.returnValue(result)
 
     @defer.inlineCallbacks
@@ -60,9 +62,7 @@ class CiscoProcessMib(mibretriever.MibRetriever):
         names = yield self.agent_proxy.get(oids)
         self._logger.debug("cpu name result: %r", names)
         names = {
-            OID(oid)[-1]: smart_text(value)
-            for oid, value in names.items()
-            if value
+            OID(oid)[-1]: smart_str(value) for oid, value in names.items() if value
         }
         defer.returnValue(names)
 

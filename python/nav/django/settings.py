@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2007-2015 Uninett AS
+# Copyright (C) 2022 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -19,11 +20,12 @@
 import os
 import sys
 import copy
+import warnings
 
 import django
 from django.utils.log import DEFAULT_LOGGING
 
-from nav.config import (NAV_CONFIG, getconfig, find_config_dir)
+from nav.config import NAV_CONFIG, getconfig, find_config_dir
 from nav.db import get_connection_parameters
 import nav.buildconf
 
@@ -45,9 +47,7 @@ _mail_admin_handler = _handlers.get('mail_admins', {})
 _mail_admin_handler['include_html'] = True
 
 # Admins
-ADMINS = (
-    ('NAV Administrator', NAV_CONFIG.get('ADMIN_MAIL', 'root@localhost')),
-)
+ADMINS = (('NAV Administrator', NAV_CONFIG.get('ADMIN_MAIL', 'root@localhost')),)
 MANAGERS = ADMINS
 
 # Database / ORM configuration
@@ -65,12 +65,11 @@ try:
             'CONN_MAX_AGE': 300,  # 5 minutes
             'OPTIONS': {
                 'application_name': _appname or 'NAV',
-            }
-
+            },
         }
     }
-except (IOError, OSError):
-    pass
+except (IOError, OSError) as e:
+    warnings.warn(f"Could not get connection parameters from db.conf: {e}")
 
 # URLs configuration
 ROOT_URLCONF = 'nav.django.urls'
@@ -84,8 +83,8 @@ STATICFILES_FINDERS = (
 )
 # This is a custom NAV setting for upload directory location:
 UPLOAD_DIR = NAV_CONFIG.get(
-    'UPLOAD_DIR',
-    os.path.join(nav.buildconf.localstatedir, 'uploads'))
+    'UPLOAD_DIR', os.path.join(nav.buildconf.localstatedir, 'uploads')
+)
 
 STATICFILES_DIRS = [
     ('uploads', UPLOAD_DIR),
@@ -98,8 +97,7 @@ if os.path.isdir(_doc_dir):
 
 
 # Templates
-_global_template_dir = [
-    os.path.join(_config_dir, 'templates')] if _config_dir else []
+_global_template_dir = [os.path.join(_config_dir, 'templates')] if _config_dir else []
 
 TEMPLATES = [
     {
@@ -138,9 +136,7 @@ if django.VERSION[:2] == (1, 8):  # Django <= 1.8
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.PickleSerializer'
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = int(
-    _webfront_config.get('sessions', {}).get('timeout', 3600)
-)
+SESSION_COOKIE_AGE = int(_webfront_config.get('sessions', {}).get('timeout', 3600))
 SESSION_COOKIE_NAME = 'nav_sessionid'
 SESSION_SAVE_EVERY_REQUEST = False
 
@@ -174,7 +170,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION': '/tmp/nav_cache',
-        'TIMEOUT': '60'
+        'TIMEOUT': '60',
     }
 }
 
@@ -211,7 +207,7 @@ NAVLETS = (
     'nav.web.navlets.env_rack.EnvironmentRackWidget',
 )
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = ('foundation-5')
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'foundation-5'
 CRISPY_TEMPLATE_PACK = 'foundation-5'
 
 INSTALLED_APPS = (
@@ -232,6 +228,8 @@ INSTALLED_APPS = (
     'nav.web.portadmin',
     'django.contrib.postgres',
 )
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
