@@ -1,0 +1,62 @@
+---
+name: Install published packages
+on:
+  schedule:
+    - cron: '42 */4 * * *'
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: "Install NAV package on ${{ matrix.distro }}"
+    runs-on: ubuntu-latest
+
+    strategy:
+      max-parallel: 4
+      matrix:
+        distro: ['buster', 'bullseye']
+
+    env:
+      DISTRO: ${{ matrix.distro }}
+      IMAGE_TAG: navpkg:${{ matrix.distro }}
+      PKGS: cron apt-transport-https locales curl ca-certificates dirmngr software-properties-common
+      ARCHIVE: nav
+
+    steps:
+      - name: Install using Docker image debian:${{ matrix.distro }}
+        run: |
+          docker build --pull -t "${IMAGE_TAG}" - <<EOF
+          FROM debian:${DISTRO}
+          ENV DEBIAN_FRONTEND=noninteractive
+          RUN apt-get update && apt-get install -y ${PKGS}
+
+          RUN mkdir -p --mode=0755 /usr/local/share/keyrings
+          RUN curl -fsSL https://nav.uninett.no/debian/gpg | gpg --dearmor | tee /usr/local/share/keyrings/nav.gpg >/dev/null
+          RUN echo 'deb [signed-by=/usr/local/share/keyrings/nav.gpg] https://nav.uninett.no/debian ${DISTRO} ${ARCHIVE}' | tee /etc/apt/sources.list.d/nav.list
+
+          RUN echo "nav nav/apache2_restart boolean true"  | debconf-set-selections
+          RUN echo "nav nav/db_purge        boolean true"  | debconf-set-selections
+          RUN echo "nav nav/db_auto_update  boolean true"  | debconf-set-selections
+          RUN echo "nav nav/db_generation   boolean true"  | debconf-set-selections
+          RUN echo "exit 0" > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d
+
+          RUN echo 'en_US.UTF-8 UTF-8' > /etc/locale.gen \
+              && locale-gen en_US.UTF-8 \
+              && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF8
+          EOF
+
+          docker run --rm -i \
+                 -e LC_ALL=en_US.UTF-8 \
+                 -e LANG=en_US.UTF-8 \
+                 "${IMAGE_TAG}" /bin/bash -e <<EOF
+          locale > /etc/default/locale
+
+          apt-get update -y
+
+          apt-get install \
+              -y --no-install-recommends \
+              -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" \
+              nav && nav status
+
+          EOF

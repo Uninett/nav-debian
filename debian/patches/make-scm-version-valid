@@ -1,0 +1,15 @@
+diff --git a/setup.py b/setup.py
+index 48d30bfde..ee9132771 100644
+--- a/setup.py
++++ b/setup.py
+@@ -30,7 +30,9 @@ build.sub_commands = [('build_sass', None)] + build.sub_commands
+ setup(
+     setup_requires=['libsass', 'setuptools_scm'],
+     python_requires=">=3.7",
+-    use_scm_version=True,
++    use_scm_version={
++        "git_describe_command": "git describe --dirty --tags --long --match [0-9]*",
++    },
+     name="nav",
+     author="Uninett AS",
+     author_email="nav-support@uninett.no",
