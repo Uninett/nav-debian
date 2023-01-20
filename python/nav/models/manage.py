@@ -155,12 +155,23 @@ class ManagementProfile(models.Model):
 
     @property
     def snmp_version(self):
+        """Returns the configured SNMP version as an integer"""
         if self.is_snmp:
-            return self.configuration['version']
+            value = self.configuration['version']
+            if value == "2c":
+                return 2
+            return int(value)
 
         raise ValueError(
-            "Getting snmp protocol version for non-snmp " "management profile"
+            "Getting snmp protocol version for non-snmp management profile"
         )
+
+    @property
+    def snmp_community(self):
+        if self.is_snmp:
+            return self.configuration['community']
+
+        raise ValueError("Getting snmp community for non-snmp management profile")
 
 
 class NetboxProfile(models.Model):
@@ -321,6 +332,26 @@ class Netbox(models.Model):
         )
         if profiles:
             return profiles[0].configuration.get(variable)
+
+    def get_preferred_snmp_management_profile(self, writeable=None):
+        """
+        Returns the snmp management profile with the highest available
+        SNMP version.
+        """
+        query = Q(protocol=ManagementProfile.PROTOCOL_SNMP)
+        if writeable:
+            query = query & Q(configuration__write=True)
+        elif writeable is not None:
+            query = query & (
+                Q(configuration__write=False) | ~Q(configuration__has_key='write')
+            )
+        profiles = sorted(
+            self.profiles.filter(query),
+            key=lambda p: str(p.configuration.get('version') or 0),
+            reverse=True,
+        )
+        if profiles:
+            return profiles[0]
 
     def is_up(self):
         """Returns True if the Netbox isn't known to be down or in shadow"""
@@ -512,7 +543,7 @@ class Netbox(models.Model):
                   otherwise None
         """
         try:
-            lastdown = self.alerthistory_set.filter(
+            lastdown = self.alert_history_set.filter(
                 event_type__id='boxState', end_time__isnull=False
             ).order_by("-end_time")[0]
         except IndexError:
@@ -522,7 +553,7 @@ class Netbox(models.Model):
 
     def get_unresolved_alerts(self, kind=None):
         """Returns a queryset of unresolved alert states"""
-        return self.alerthistory_set.unresolved(kind)
+        return self.alert_history_set.unresolved(kind)
 
     def get_powersupplies(self):
         return self.powersupplyorfan_set.filter(physical_class='powerSupply').order_by(
@@ -2498,6 +2529,9 @@ class PowerSupplyOrFan(models.Model):
         (STATE_WARNING, "Warning"),
     )
 
+    PHYSICAL_CLASS_FAN = "fan"
+    PHYSICAL_CLASS_PSU = "powerSupply"
+
     id = models.AutoField(db_column='powersupplyid', primary_key=True)
     netbox = models.ForeignKey(Netbox, on_delete=models.CASCADE, db_column='netboxid')
     device = models.ForeignKey(Device, on_delete=models.CASCADE, db_column='deviceid')
@@ -2531,6 +2565,12 @@ class PowerSupplyOrFan(models.Model):
         """Returns a canonical URL to view fan/psu status"""
         base = self.netbox.get_absolute_url()
         return base + "#!sensors"
+
+    def is_psu(self):
+        return self.physical_class == self.PHYSICAL_CLASS_PSU
+
+    def is_fan(self):
+        return self.physical_class == self.PHYSICAL_CLASS_FAN
 
 
 class UnrecognizedNeighbor(models.Model):
