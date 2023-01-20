@@ -336,6 +336,10 @@ EOF
             mv_report_config_files
 	fi
 
+	if dpkg --compare-versions "$OLDVERSION" lt "5.6.0-1"; then
+            rm_conffile nav /etc/nav/sortedStats.conf
+	fi
+
 	if [ -n "$OLDVERSION" ]; then
 	    rm -rf /tmp/nav_cache  # remove old cache data on upgrade
 	fi

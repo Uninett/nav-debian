@@ -123,7 +123,7 @@ def filter_netboxes(room):
 def roominfo(request, roomid):
     """Controller for displaying roominfo"""
     room = get_object_or_404(Room, id=roomid)
-    images = room.image_set.all()
+    images = room.images.all()
     navpath = get_path() + [(room.id,)]
     room.sorted_data = sorted(room.data.items())
     room.meta_data = get_room_meta(room)
@@ -320,7 +320,7 @@ def render_racks(request, roomid):
 
     context = {
         'room': room,
-        'racks': room.rack_set.all().order_by('ordering'),
+        'racks': room.racks.all().order_by('ordering'),
         'color_classes': background_color_classes,
     }
     return render(request, 'info/room/roominfo_racks.html', context)
