@@ -28,6 +28,7 @@ opt/venvs/nav/bin/radiusparser.py usr/bin/radiusparser.py
 opt/venvs/nav/bin/servicemon.py usr/bin/servicemon.py
 opt/venvs/nav/bin/smsd.py usr/bin/smsd.py
 opt/venvs/nav/bin/snmptrapd.py usr/sbin/snmptrapd.py
+opt/venvs/nav/bin/sortedstats_cacher.py usr/bin/sortedstats_cacher.py
 opt/venvs/nav/bin/start_arnold.py usr/bin/start_arnold.py
 opt/venvs/nav/bin/t1000.py usr/bin/t1000.py
 opt/venvs/nav/bin/thresholdmon usr/bin/thresholdmon

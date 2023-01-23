@@ -1,3 +1,9 @@
+nav (5.6.0-2) buster; urgency=medium
+
+  * Ensure sortedstats_cacher.py command is properly installed.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 23 Jan 2023 14:07:48 +0000
+
 nav (5.6.0-1) buster; urgency=medium
 
   * New upstream release.
