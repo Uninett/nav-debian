@@ -51,7 +51,13 @@ Depends:
   libldap-2.4-2 (>= 2.4.7),
   libpq5,
   zlib1g
-Recommends: apache2, libapache2-mod-wsgi-py3, graphite-carbon, graphite-web
+Recommends:
+  apache2,
+  libapache2-mod-wsgi-py3,
+  graphite-carbon,
+  graphite-web,
+  smbclient,
+  dhcping
 Conflicts: graphite-web-django14
 Description: Network Administration Visualized
  This package contains Network Administration Visualized, an advanced
