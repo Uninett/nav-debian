@@ -156,8 +156,8 @@ def find_vlans_in_org(org):
     :returns: list of FantasyVlans
     :rtype: list
     """
-    vlans = list(org.vlan_set.all())
-    for child_org in org.organization_set.all():
+    vlans = list(org.vlans.all())
+    for child_org in org.child_organizations.all():
         vlans.extend(find_vlans_in_org(child_org))
     return [FantasyVlan(x.vlan, x.net_ident) for x in list(set(vlans)) if x.vlan]
 

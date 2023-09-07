@@ -24,7 +24,7 @@
 # TODO Filter/filter_groups have owners, check that the account that performs
 # the operation is the owner
 
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, QueryDict
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.shortcuts import render
@@ -82,7 +82,7 @@ def overview(request):
     account = get_account(request)
 
     # Get information about user
-    groups = account.accountgroup_set.all()
+    groups = account.groups.all()
     try:
         active_profile = account.get_active_profile()
     except ObjectDoesNotExist:
@@ -131,7 +131,7 @@ def show_profile(request):
         order_by = 'name'
 
     try:
-        active_profile = account.alertpreference.active_profile
+        active_profile = account.alert_preference.active_profile
     except Exception:
         active_profile = None
 
@@ -1475,7 +1475,9 @@ def filter_remove(request):
                     }
                 )
 
-            filter_groups = FilterGroup.objects.filter(filtergroupcontent__filter=filtr)
+            filter_groups = FilterGroup.objects.filter(
+                filter_group_contents__filter=filtr
+            )
             for fgroup in filter_groups:
                 warnings.append(
                     {
@@ -1513,7 +1515,7 @@ def filter_remove(request):
 
 @requires_post('alertprofiles-filters', ('id', 'matchfield'))
 def filter_addexpression(request):
-    """Shows the form to add en expression to a filter"""
+    """Shows the form to add an expression to a filter"""
     try:
         filtr = Filter.objects.get(pk=request.POST.get('id'))
     except Filter.DoesNotExist:
@@ -1563,40 +1565,37 @@ def filter_addexpression(request):
 @requires_post('alertprofiles-filters')
 def filter_saveexpression(request):
     """Saves an expression to a filter"""
-    # Get the MatchField, Filter and Operator objects associated with the
-    # input POST-data
-    filtr = Filter.objects.get(pk=request.POST.get('filter'))
-    type_ = request.POST.get('operator')
-    match_field = MatchField.objects.get(pk=request.POST.get('match_field'))
-    operator = Operator.objects.get(type=type_, match_field=match_field.pk)
+    if request.POST.get('id'):
+        existing_expression = Expression.objects.get(pk=request.POST.get('id'))
+        form = ExpressionForm(request.POST, instance=existing_expression)
+    else:
+        form = ExpressionForm(request.POST)
+
+    if not form.is_valid():
+        dictionary = {
+            'id': str(form.cleaned_data["filter"].pk),
+            'matchfield': str(form.cleaned_data["match_field"].pk),
+        }
+        qdict = QueryDict("", mutable=True)
+        qdict.update(dictionary)
+        request.POST = qdict
+        new_message(
+            request,
+            form.errors,
+            Messages.ERROR,
+        )
+
+        return filter_addexpression(request=request)
+
+    filtr = form.cleaned_data['filter']
 
     if not account_owns_filters(get_account(request), filtr):
         return alertprofiles_response_forbidden(
             request, _('You do not own this filter.')
         )
 
-    # Get the value
-    if operator.type == Operator.IN:
-        # If input was a multiple choice list we have to join each option
-        # in one string, where each option is separated by a | (pipe).
-        # If input was a IP adress we should replace space with | (pipe).
-        # FIXME We might want some data checks here
-        if match_field.data_type == MatchField.IP:
-            # FIXME We might want to check that it is a valid IP adress.
-            # If we do so, we need to remember both IPv4 and IPv6
-            value = request.POST.get('value').replace(' ', '|')
-        else:
-            value = "|".join([value for value in request.POST.getlist('value')])
-    else:
-        value = request.POST.get('value')
+    form.save()
 
-    expression = Expression(
-        filter=filtr,
-        match_field=match_field,
-        operator=operator.type,
-        value=value,
-    )
-    expression.save()
     new_message(
         request,
         _('Added expression to filter %(name)s') % {'name': filtr.name},
@@ -1783,7 +1782,7 @@ def filter_group_show_form(request, filter_group_id=None, filter_group_form=None
         page_name = filter_group.name
 
         profiles = AlertProfile.objects.filter(
-            timeperiod__alertsubscription__filter_group=filter_group
+            time_periods__alert_subscriptions__filter_group=filter_group
         ).distinct()
         if profiles:
             names = ', '.join([p.name for p in profiles])
@@ -1928,7 +1927,7 @@ def filter_group_remove(request):
         for fgroup in filter_groups:
             subscriptions = AlertSubscription.objects.filter(filter_group=fgroup)
             time_periods = TimePeriod.objects.filter(
-                alertsubscription__in=subscriptions
+                alert_subscriptions__in=subscriptions
             )
             profiles = AlertProfile.objects.filter(timeperiod__in=time_periods)
             warnings = []
@@ -2308,13 +2307,13 @@ def matchfield_show_form(request, matchfield_id=None, matchfield_form=None):
         if not matchfield_form:
             matchfield_form = MatchFieldForm(instance=matchfield)
         matchfield_operators_id = [
-            m_operator.type for m_operator in matchfield.operator_set.all()
+            m_operator.type for m_operator in matchfield.operators.all()
         ]
 
         page_name = matchfield.name
 
         expressions = Expression.objects.filter(match_field=matchfield)
-        filters = Filter.objects.filter(expression__in=expressions)
+        filters = Filter.objects.filter(expressions__in=expressions)
 
         if filters:
             names = ', '.join([f.name for f in filters])
@@ -2398,8 +2397,8 @@ def matchfield_save(request):
     operators = []
     for oper in request.POST.getlist('operator'):
         operators.append(Operator(type=int(oper), match_field=matchfield))
-    matchfield.operator_set.all().delete()
-    matchfield.operator_set.add(*operators)
+    matchfield.operators.all().delete()
+    matchfield.operators.add(*operators)
 
     new_message(
         request,
@@ -2431,7 +2430,7 @@ def matchfield_remove(request):
         )
         return HttpResponseRedirect(reverse('alertprofiles-matchfields'))
     else:
-        matchfields = MatchField.objects.prefetch_related('expression_set').filter(
+        matchfields = MatchField.objects.prefetch_related('expressions').filter(
             pk__in=request.POST.getlist('matchfield')
         )
 
@@ -2441,7 +2440,7 @@ def matchfield_remove(request):
 
         elements = []
         for match_field in matchfields:
-            expressions = match_field.expression_set.all()
+            expressions = match_field.expressions.all()
             warnings = []
             for expr in expressions:
                 warnings.append(
@@ -2512,7 +2511,7 @@ def permission_list(request, group_id=None):
                 request, _('Requested account group does not exist.')
             )
 
-        permissions = AccountGroup.objects.get(pk=group_id).filtergroup_set.all()
+        permissions = AccountGroup.objects.get(pk=group_id).filter_groups.all()
 
     active = {'permissions': True}
     info_dict = {
@@ -2551,7 +2550,7 @@ def permissions_save(request):
         pk__in=request.POST.getlist('filter_group')
     )
 
-    group.filtergroup_set.set(filter_groups)
+    group.filter_groups.set(filter_groups)
 
     new_message(
         request,
