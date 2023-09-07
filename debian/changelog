@@ -1,3 +1,9 @@
+nav (5.7.0-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 07 Sep 2023 12:10:07 +0000
+
 nav (5.6.1-2) buster; urgency=medium
 
   * Add dhcping and smbclient to recommends.
