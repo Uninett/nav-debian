@@ -13,7 +13,7 @@ export SETUPTOOLS_SCM_PRETEND_VERSION = $(VERSION_UPSTREAM)
 .PHONY: override_dh_auto_install override_dh_auto_test
 
 override_dh_virtualenv:
-	dh_virtualenv --python python3 --preinstall 'pip>=18' --preinstall 'setuptools>=40' --setuptools
+	dh_virtualenv --python python3 --preinstall 'pip>=18' --preinstall 'setuptools>=40' --extra-pip-arg "-rdoc/requirements.txt" --setuptools
 
 	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python setup.py build_sphinx
 	dh_installdocs build/sphinx/html
