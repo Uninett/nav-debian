@@ -341,7 +341,7 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
         except GraphiteUnreachableError:
             graphite_error = True
 
-        for sensor in netbox.sensor_set.all():
+        for sensor in netbox.sensors.all():
             metric_id = sensor.get_metric_name()
             metric = {
                 'id': metric_id,
@@ -364,7 +364,7 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
         if netbox in task.get_event_subjects():
             relevant_future_tasks.append(task)
 
-    interfaces = netbox.interface_set.order_by('ifindex') if netbox else []
+    interfaces = netbox.interfaces.order_by('ifindex') if netbox else []
     for interface in interfaces:
         interface.combined_data_urls = create_combined_urls(interface, COUNTER_TYPES)
 
@@ -447,7 +447,7 @@ def get_port_view(request, netbox_sysname, perspective):
         port_view['activity_complete_data'] = False
 
     # Add the modules
-    for module in netbox.module_set.select_related():
+    for module in netbox.modules.select_related():
         port_view['modules'].append(
             utils.get_module_view(module, perspective, activity_interval)
         )
@@ -621,7 +621,7 @@ def port_details(request, netbox_sysname, port_type=None, port_id=None, port_nam
         graphite_error = True
 
     sensor_metrics = []
-    for sensor in port.sensor_set.all():
+    for sensor in port.sensors.all():
         metric_id = sensor.get_metric_name()
         metric = {
             'id': metric_id,

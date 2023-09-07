@@ -32,6 +32,7 @@ from nav.event2 import EventFactory
 from nav.ipdevpoll.storage import MetaShadow, Shadow, shadowify
 from nav.ipdevpoll import descrparsers
 from nav.ipdevpoll import utils
+from nav.oids import get_enterprise_id
 
 from .netbox import Netbox
 from .interface import Interface, InterfaceStack, InterfaceAggregate
@@ -73,11 +74,10 @@ class NetboxType(Shadow):
                   otherwise.
 
         """
-        prefix = u"1.3.6.1.4.1."
-        if self.sysobjectid.startswith(prefix):
-            specific = self.sysobjectid[len(prefix) :]
-            enterprise = specific.split('.')[0]
-            return int(enterprise)
+        try:
+            return get_enterprise_id(self.sysobjectid)
+        except ValueError:
+            return None
 
 
 class NetboxInfo(Shadow):
@@ -567,7 +567,7 @@ class Vlan(Shadow):
 
         """
         address_filter = Q(
-            interface__gwportprefix__prefix__net_address=str(net_address)
+            interfaces__gwport_prefixes__prefix__net_address=str(net_address)
         )
         if include_netboxid:
             address_filter = address_filter | Q(id=include_netboxid)
@@ -867,7 +867,7 @@ class POEGroup(Shadow):
                 netbox=self.netbox.id, index=self.phy_index
             ).first()
             if entity and entity.device:
-                self.module = entity.device.module_set.first()
+                self.module = entity.device.modules.first()
         vendor = self.netbox.type.vendor.id if self.netbox.type else ''
         if vendor == 'hp' and not self.module:
             module = manage.Module.objects.filter(

@@ -27,7 +27,7 @@ from django.core.exceptions import FieldDoesNotExist
 import iso8601
 
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
-from django_filters.filters import ModelMultipleChoiceFilter
+from django_filters.filters import ModelMultipleChoiceFilter, CharFilter
 from rest_framework import status, filters, viewsets, exceptions
 from rest_framework.decorators import api_view, renderer_classes, action
 from rest_framework.reverse import reverse_lazy
@@ -40,12 +40,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 from rest_framework.generics import ListAPIView, get_object_or_404
+from rest_framework.serializers import ValidationError
+
 from oidc_auth.authentication import JSONWebTokenAuthentication
 
 from nav.models import manage, event, cabling, rack, profiles
 from nav.models.fields import INFINITY, UNRESOLVED
 from nav.web.servicecheckers import load_checker_classes
-from nav.util import auth_token
+from nav.util import auth_token, is_valid_cidr
 
 from nav.buildconf import VERSION
 from nav.web.api.v1 import serializers, alert_serializers
@@ -402,7 +404,6 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     queryset = manage.Netbox.objects.all().prefetch_related("info_set")
     serializer_class = serializers.NetboxSerializer
     filterset_fields = (
-        'ip',
         'sysname',
         'room',
         'organization',
@@ -440,6 +441,15 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
                 qs = qs.filter(type__name__istartswith=value[1:])
             else:
                 qs = qs.filter(type__name=value)
+        ip = params.get('ip', None)
+        if ip:
+            try:
+                addr = IP(ip)
+            except ValueError:
+                raise IPParseError
+            oper = '=' if addr.len() == 1 else '<<'
+            expr = "netbox.ip {} '{}'".format(oper, addr)
+            qs = qs.extra(where=[expr])
 
         return qs
 
@@ -597,7 +607,7 @@ class CablingViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         queryset = cabling.Cabling.objects.all()
         not_patched = self.request.query_params.get('available', None)
         if not_patched:
-            queryset = queryset.filter(patch=None)
+            queryset = queryset.filter(patches=None)
 
         return queryset
 
@@ -773,6 +783,38 @@ class VlanViewSet(NAVAPIMixin, viewsets.ModelViewSet):
     search_fields = ['net_ident', 'description']
 
 
+class PrefixFilterClass(FilterSet):
+    contains_address = CharFilter(method="contains_address_filter")
+    net_address = CharFilter(method="is_net_address")
+
+    def contains_address_filter(self, queryset, field_name, value):
+        if not value:
+            return queryset
+        if not is_valid_cidr(value):
+            raise ValidationError(
+                {"contains_address": ["Value must be a valid CIDR address"]}
+            )
+        where_string = "inet '{}' <<= netaddr".format(value)
+        return queryset.extra(where=[where_string], order_by=['net_address'])
+
+    def is_net_address(self, queryset, field_name, value):
+        if not value:
+            return queryset
+        if not is_valid_cidr(value):
+            raise ValidationError(
+                {"net_address": ["Value must be a valid CIDR address"]}
+            )
+        return queryset.filter(net_address=value)
+
+    class Meta(object):
+        model = manage.Prefix
+        fields = (
+            'vlan',
+            'net_address',
+            'vlan__vlan',
+        )
+
+
 class PrefixViewSet(NAVAPIMixin, viewsets.ModelViewSet):
     """Lists all prefixes.
 
@@ -781,12 +823,13 @@ class PrefixViewSet(NAVAPIMixin, viewsets.ModelViewSet):
     - net_address
     - vlan
     - vlan__vlan: *Filters on the vlan number of the vlan*
+    - contains_address
 
     """
 
     queryset = manage.Prefix.objects.all()
     serializer_class = serializers.PrefixSerializer
-    filterset_fields = ('vlan', 'net_address', 'vlan__vlan')
+    filterset_class = PrefixFilterClass
 
     @action(detail=False)
     def search(self, request):
@@ -816,7 +859,7 @@ class RoutedPrefixList(NAVAPIMixin, ListAPIView):
 
     def get_queryset(self):
         prefixes = manage.Prefix.objects.filter(
-            gwportprefix__interface__netbox__category__in=self._router_categories
+            gwport_prefixes__interface__netbox__category__in=self._router_categories
         )
         if self.request.GET.get('family'):
             prefixes = prefixes.extra(

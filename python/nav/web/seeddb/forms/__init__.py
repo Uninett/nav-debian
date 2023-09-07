@@ -36,6 +36,7 @@ from nav.models.manage import (
     Netbox,
 )
 from nav.models.cabling import Cabling
+from nav.oids import OID
 
 _logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ BOX_CHARS = {
     'UP_AND_RIGHT': '&#9492;',  # └
     'VERTICAL_AND_RIGHT': '&#9500;',  # ├
 }
+SEPARATOR = "."
 
 
 def create_hierarchy(klass):
@@ -313,6 +315,17 @@ class NetboxTypeForm(forms.ModelForm):
         model = NetboxType
         fields = '__all__'
 
+    def clean_sysobjectid(self):
+        sysobjectid = self.cleaned_data.get('sysobjectid')
+        try:
+            sysobjectid_oid = OID(sysobjectid)
+        except ValueError:
+            raise forms.ValidationError(
+                "Sysobjectid can only contain digits and periods."
+            )
+        else:
+            return str(sysobjectid_oid).strip(SEPARATOR)
+
 
 class CablingForm(forms.ModelForm):
     """Form for editing a cabling instance"""
@@ -340,7 +353,7 @@ class DeviceGroupForm(forms.ModelForm):
         # netboxes field with netboxes from the many to many relationship
         if 'instance' in kwargs and kwargs['instance'] is not None:
             initial = kwargs.setdefault('initial', {})
-            initial['netboxes'] = [n.pk for n in kwargs['instance'].netbox_set.all()]
+            initial['netboxes'] = [n.pk for n in kwargs['instance'].netboxes.all()]
         forms.ModelForm.__init__(self, *args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = False
@@ -362,7 +375,7 @@ def to_choice_format(objects, key, value):
 
 def get_netboxes_in_group(group):
     if group:
-        return group.netbox_set.all()
+        return group.netboxes.all()
     else:
         return Netbox.objects.none()
 
@@ -370,7 +383,7 @@ def get_netboxes_in_group(group):
 def get_netboxes_not_in_group(group):
     if group:
         return Netbox.objects.exclude(
-            pk__in=group.netbox_set.all().values_list('id', flat=True)
+            pk__in=group.netboxes.all().values_list('id', flat=True)
         )
     else:
         return Netbox.objects.all()

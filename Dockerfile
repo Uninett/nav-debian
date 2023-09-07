@@ -1,4 +1,6 @@
-# NAV development container
+# NAV development container. This is NOT SUITABLE for production use of NAV.
+# For more production-oriented containerization, have a look at the separate
+# project https://github.com/Uninett/nav-container
 #
 # This container aims at providing all the build- and runtime dependencies of
 # NAV itself in a single container, and allowing for running them all directly
@@ -70,8 +72,8 @@ RUN apt-get update \
 
 RUN adduser --system --group --no-create-home --home=/source --shell=/bin/bash nav
 
-RUN pip3 install --upgrade 'setuptools<60' wheel && \
-    pip3 install --upgrade 'pip<22' pip-tools
+RUN pip3 install --upgrade 'setuptools>=61' wheel && \
+    pip3 install --upgrade 'pip<=23.1.0' pip-tools build
 
 #################################################################################
 ### COPYing the requirements file to pip-install Python requirements may bust ###
@@ -84,8 +86,9 @@ COPY tools/docker/supervisord.conf /etc/supervisor/conf.d/nav.conf
 COPY requirements/ /requirements
 COPY requirements.txt /
 COPY tests/requirements.txt /test-requirements.txt
+COPY doc/requirements.txt /doc-requirements.txt
 # Since we used pip3 to install pip globally, pip should now be for Python 3
-RUN pip-compile --resolver=backtracking --output-file /requirements.txt.lock /requirements.txt /test-requirements.txt
+RUN pip-compile --resolver=backtracking --output-file /requirements.txt.lock /requirements.txt /test-requirements.txt /doc-requirements.txt
 RUN pip install -r /requirements.txt.lock
 
 ARG CUSTOM_PIP=ipython
@@ -93,6 +96,8 @@ RUN pip install ${CUSTOM_PIP}
 
 COPY tools/docker/full-nav-restore.sh /usr/local/sbin/full-nav-restore.sh
 
+# Set up for mounting live source code from git repo at /source
+RUN    git config --global --add safe.directory /source
 VOLUME ["/source"]
 ENV    DJANGO_SETTINGS_MODULE nav.django.settings
 EXPOSE 80
