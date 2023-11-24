@@ -1,3 +1,9 @@
+nav (5.8.0-1) buster; urgency=medium
+
+  * New upstream version.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 24 Nov 2023 14:22:25 +0000
+
 nav (5.7.1-1) buster; urgency=medium
 
   * New upstream release.
