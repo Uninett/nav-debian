@@ -1,8 +1,14 @@
-nav (5.7.1-2bullseye) bullseye; urgency=medium
+nav (5.8.0-2bullseye) UNRELEASED; urgency=medium
 
   * Package ported to Debian 11 (Bullseye)
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Sep 2023 12:09:51 +0000
+
+nav (5.8.0-1) buster; urgency=medium
+
+  * New upstream version.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 24 Nov 2023 14:22:25 +0000
 
 nav (5.7.1-1) buster; urgency=medium
 
