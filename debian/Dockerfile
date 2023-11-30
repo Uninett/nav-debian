@@ -1,4 +1,6 @@
-FROM debian:bullseye
+FROM debian:bookworm
+
+ENV DEBIAN_FRONTEND noninteractive
 
 RUN  apt-get -y update && \
      apt-get install -y \
@@ -16,7 +18,6 @@ RUN  apt-get -y update && \
        libldap2-dev \
        libsasl2-dev \
        python3-dev \
-       python-all \
        python3-all \
        libsnmp40 \
      && \
@@ -28,9 +29,7 @@ RUN  apt-get -y update && \
          dh-python \
          python3-setuptools
 
-# Backports game to make python-gammu build and install properly
-RUN  echo 'deb https://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
-     apt-get -y update && \
+RUN  apt-get -y update && \
      apt-get install -y libgammu-dev
 
 ENV  HOME /home
