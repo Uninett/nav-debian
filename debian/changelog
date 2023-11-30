@@ -1,6 +1,7 @@
 nav (5.8.1-3bookworm) UNRELEASED; urgency=medium
 
   * Package ported to Debian 12 (Bookworm)
+    - Patch for upgraded Python dependencies that won't compile on 3.11.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 30 Nov 2023 08:55:53 +0000
 

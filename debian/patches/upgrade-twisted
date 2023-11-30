@@ -1,0 +1,11 @@
+--- nav-debian.orig/requirements/base.txt
++++ nav-debian/requirements/base.txt
+@@ -6,7 +6,7 @@ psycopg2==2.9.9  # requires libpq to bui
+ IPy==1.01
+ pyaml
+ 
+-twisted>=20.0.0,<21
++twisted>=20.0.0
+ 
+ 
+ networkx==2.6.3
