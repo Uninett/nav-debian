@@ -42,6 +42,7 @@ Depends:
   rsync,
   wwwconfig-common (>= 0.0.37),
   samba-common-bin,
+  libgsmsd8,
 # The following are mostly requirements of the embedded Python libraries of this package:
   ca-certificates,
   libjpeg62,
