@@ -1,8 +1,16 @@
-nav (5.8.4-2bullseye) bullseye; urgency=medium
+nav (5.9.0-2bullseye) UNRELEASED; urgency=medium
 
   * Package ported to Debian 11 (Bullseye)
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 14 Dec 2023 09:31:06 +0000
+
+nav (5.9.0-1) buster; urgency=medium
+
+  * New upstream release.
+    - Updated symlinks to NAV commands, which no longer have .py extensions.
+    - Refrehsed all patches due to code that has moved around.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 08 Mar 2024 15:28:42 +0000
 
 nav (5.8.4-1) buster; urgency=medium
 
