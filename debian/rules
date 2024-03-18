@@ -33,7 +33,7 @@ override_dh_virtualenv:
 	# the virtualenv that way, however, since dh-virtualenv/pip will
 	# consider many of the baser requirements to already be satisfied by
 	# the build system.
-	rm -f $(DEBIAN_ROOT)/opt/venvs/nav/lib/python*/no-global-site-packages.txt
+	sed -ie 's/^include-system-site-packages.*/include-system-site-packages = true/' $(DEBIAN_ROOT)/opt/venvs/nav/pyvenv.cfg
 
 override_dh_strip:
 	dh_strip --exclude=/site-packages/
