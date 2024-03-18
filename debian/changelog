@@ -1,3 +1,11 @@
+nav (5.9.1-3bullseye) buster; urgency=medium
+
+  * Re-enable inclusion of system site packages in NAV virtual environment
+    - Fixes outdated virtualenv manipulation that only works for Pythons
+      earlier than 3.9
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Mar 2024 12:10:27 +0000
+
 nav (5.9.1-2bullseye) buster; urgency=medium
 
   * Package ported to Debian 11 (Bullseye)
