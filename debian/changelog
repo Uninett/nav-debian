@@ -1,3 +1,9 @@
+nav (5.9.1-4bullseye) bullseye; urgency=medium
+
+  * Ported package to Debian 11
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 20 Mar 2024 11:20:26 +0000
+
 nav (5.9.1-3bullseye) buster; urgency=medium
 
   * Re-enable inclusion of system site packages in NAV virtual environment
