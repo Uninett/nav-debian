@@ -3,3 +3,4 @@ config-debian-dirs
 add-python-gammu-dependency
 install-service-identity-module
 bundle-pyopenssl
+fix-double-run-binaries

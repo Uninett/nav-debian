@@ -6,11 +6,11 @@ nav (5.9.1-3bullseye) buster; urgency=medium
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Mar 2024 12:10:27 +0000
 
-nav (5.9.1-2bullseye) buster; urgency=medium
+nav (5.9.1-2) buster; urgency=medium
 
-  * Package ported to Debian 11 (Bullseye)
+  * Patch for double-run on binary invocation problem: https://github.com/Uninett/nav/issues/2877
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 15 Mar 2024 11:50:11 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 20 Mar 2024 11:17:00 +0000
 
 nav (5.9.1-1) buster; urgency=medium
 
