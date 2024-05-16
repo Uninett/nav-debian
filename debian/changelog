@@ -1,4 +1,4 @@
-nav (5.9.1-4bullseye) bullseye; urgency=medium
+nav (5.10.1-2bullseye) UNRELEASED; urgency=medium
 
   * Ported package to Debian 11
 
@@ -11,6 +11,13 @@ nav (5.9.1-3bullseye) buster; urgency=medium
       earlier than 3.9
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Mar 2024 12:10:27 +0000
+
+nav (5.10.0-1) buster; urgency=medium
+
+  * New upstream release.
+  * 5.10 is the last NAV series that will be packaged for Debian Buster.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 16 May 2024 13:22:45 +0000
 
 nav (5.9.1-2) buster; urgency=medium
 
@@ -203,7 +210,7 @@ nav (5.1.0-2) buster; urgency=medium
 
   * Add python3-distutils dependency
     - It appears it is required now to get virtualenvs working on Debian
-      Buster 
+      Buster
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Nov 2020 15:18:59 +0000
 
