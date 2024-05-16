@@ -1,3 +1,10 @@
+nav (5.10.0-1) buster; urgency=medium
+
+  * New upstream release.
+  * 5.10 is the last NAV series that will be packaged for Debian Buster.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 16 May 2024 13:22:45 +0000
+
 nav (5.9.1-2) buster; urgency=medium
 
   * Patch for double-run on binary invocation problem: https://github.com/Uninett/nav/issues/2877
