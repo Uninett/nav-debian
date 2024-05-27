@@ -4,13 +4,11 @@ nav (5.10.0-2bullseye) bullseye; urgency=medium
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 16 May 2024 13:28:32 +0000
 
-nav (5.9.1-3bullseye) buster; urgency=medium
+nav (5.10.1-1) buster; urgency=medium
 
-  * Re-enable inclusion of system site packages in NAV virtual environment
-    - Fixes outdated virtualenv manipulation that only works for Pythons
-      earlier than 3.9
+  * New upstream release.
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Mar 2024 12:10:27 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 27 May 2024 11:35:04 +0000
 
 nav (5.10.0-1) buster; urgency=medium
 
@@ -18,6 +16,14 @@ nav (5.10.0-1) buster; urgency=medium
   * 5.10 is the last NAV series that will be packaged for Debian Buster.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 16 May 2024 13:22:45 +0000
+
+nav (5.9.1-3bullseye) buster; urgency=medium
+
+  * Re-enable inclusion of system site packages in NAV virtual environment
+    - Fixes outdated virtualenv manipulation that only works for Pythons
+      earlier than 3.9
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Mar 2024 12:10:27 +0000
 
 nav (5.9.1-2) buster; urgency=medium
 
