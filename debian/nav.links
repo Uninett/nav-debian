@@ -27,7 +27,7 @@ opt/venvs/nav/bin/pping usr/sbin/pping
 opt/venvs/nav/bin/radiusparser usr/bin/radiusparser
 opt/venvs/nav/bin/servicemon usr/bin/servicemon
 opt/venvs/nav/bin/smsd usr/bin/smsd
-opt/venvs/nav/bin/snmptrapd usr/sbin/snmptrapd
+opt/venvs/nav/bin/navtrapd usr/sbin/navtrapd
 opt/venvs/nav/bin/sortedstats_cacher usr/bin/sortedstats_cacher
 opt/venvs/nav/bin/start_arnold usr/bin/start_arnold
 opt/venvs/nav/bin/t1000 usr/bin/t1000
