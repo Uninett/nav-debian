@@ -2,6 +2,11 @@
 from mock import patch, MagicMock, Mock
 from django.test import RequestFactory
 
+try:
+    import ldap
+except ImportError:
+    ldap = None
+
 import pytest
 
 import nav.web.auth.ldap
@@ -65,7 +70,7 @@ class TestRemoteUserAuthenticate(object):
         r = RequestFactory()
         request = r.get('/')
         with patch("nav.web.auth.remote_user._config.getboolean", return_value=True):
-            assert remote_user.authenticate(request) == None
+            assert remote_user.authenticate(request) is None
 
     def test_authenticate_remote_user_should_return_false_if_account_locked(self):
         r = RequestFactory()
@@ -77,7 +82,7 @@ class TestRemoteUserAuthenticate(object):
             ):
                 with patch("nav.web.auth.LogEntry.add_log_entry"):
                     with patch("nav.web.auth.Account.locked", return_value=True):
-                        assert remote_user.authenticate(request) == False
+                        assert remote_user.authenticate(request) is False
 
 
 class TestGetStandardUrls(object):
@@ -170,6 +175,7 @@ class TestLoginRemoteUser(object):
                 )
 
 
+@pytest.mark.skipif(not ldap, reason="ldap module is not available")
 class TestLdapUser(object):
     @patch.dict(
         "nav.web.auth.ldap._config._sections",
@@ -269,6 +275,7 @@ class TestLdapUser(object):
         },
     },
 )
+@pytest.mark.skipif(not ldap, reason="ldap module is not available")
 class TestLdapEntitlements(object):
     def test_required_entitlement_should_be_verified(self, user_zaphod):
         u = nav.web.auth.ldap.LDAPUser("zaphod", user_zaphod)

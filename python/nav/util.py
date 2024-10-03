@@ -15,25 +15,18 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """General utility functions for Network Administration Visualized"""
-from __future__ import absolute_import
 import os
 import re
 import stat
 import socket
 import datetime
-import uuid
-import hashlib
 from functools import wraps
+from importlib.resources import as_file, files as resource_files
 from itertools import chain, tee, groupby, islice
 from operator import itemgetter
 from secrets import token_hex
 
 import IPy
-
-try:
-    from importlib.resources import as_file, files as resource_files
-except ImportError:  # Python 3.7!
-    from importlib_resources import as_file, files as resource_files
 
 
 def gradient(start, stop, steps):

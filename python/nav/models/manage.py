@@ -22,16 +22,16 @@
 import base64
 import datetime as dt
 import pickle
-import warnings
 from functools import partial
 from itertools import count, groupby
 import logging
 import math
 import re
-from typing import Set, Optional
+from typing import Optional
 
 import IPy
 from django.conf import settings
+from django.contrib.postgres.fields import HStoreField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import JSONField, Q
@@ -39,7 +39,6 @@ from django.db.models.expressions import RawSQL
 from django.urls import reverse
 
 from nav import util
-from nav.adapters import HStoreField
 from nav.bitvector import BitVector
 from nav.metrics.data import get_netboxes_availability
 from nav.metrics.graphs import get_simple_graph_url, Graph
@@ -509,12 +508,9 @@ class Netbox(models.Model):
         """Returns sysname without the domain suffix if specified in the
         DOMAIN_SUFFIX setting in nav.conf"""
 
-        if settings.DOMAIN_SUFFIX is not None and self.sysname.endswith(
-            settings.DOMAIN_SUFFIX
-        ):
-            return self.sysname[: -len(settings.DOMAIN_SUFFIX)]
-        else:
-            return self.sysname or self.ip
+        if settings.DOMAIN_SUFFIX is not None:
+            return self.sysname.removesuffix(settings.DOMAIN_SUFFIX)
+        return self.sysname or self.ip
 
     def is_on_maintenance(self):
         """Returns True if this netbox is currently on maintenance"""
@@ -595,7 +591,7 @@ class Netbox(models.Model):
         )
 
     @property
-    def mac_addresses(self) -> Set[str]:
+    def mac_addresses(self) -> set[str]:
         """Returns a set of collected chassis MAC addresses for this Netbox"""
         macinfo_match = (Q(key="bridge_info") & Q(variable="base_address")) | (
             Q(key="lldp") & Q(variable="chassis_mac")

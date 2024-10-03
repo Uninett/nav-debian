@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import importlib.util
 import io
@@ -8,13 +7,11 @@ from itertools import cycle
 from shutil import which
 import subprocess
 import time
-from typing import Dict
 
 import toml
 import pytest
 from django.test import Client
 
-gunicorn = None
 
 ########################################################################
 #                                                                      #
@@ -34,49 +31,6 @@ SCRIPT_CREATE_DB = os.path.join(SCRIPT_PATH, 'create-db.sh')
 
 def pytest_configure(config):
     subprocess.check_call([SCRIPT_CREATE_DB])
-    os.environ['TARGETURL'] = "http://localhost:8000/"
-    start_gunicorn()
-
-    # Bootstrap Django config
-    from nav.bootstrap import bootstrap_django
-
-    bootstrap_django('pytest')
-
-    # Install custom reactor for Twisted tests
-    from nav.ipdevpoll.epollreactor2 import install
-
-    install()
-
-    # Setup test environment for Django
-    from django.test.utils import setup_test_environment
-
-    setup_test_environment()
-
-
-def pytest_unconfigure(config):
-    stop_gunicorn()
-
-
-def start_gunicorn():
-    global gunicorn
-    workspace = os.path.join(os.environ.get('WORKSPACE', ''), 'reports')
-    errorlog = os.path.join(workspace, 'gunicorn-error.log')
-    accesslog = os.path.join(workspace, 'gunicorn-access.log')
-    gunicorn = subprocess.Popen(
-        [
-            'gunicorn',
-            '--error-logfile',
-            errorlog,
-            '--access-logfile',
-            accesslog,
-            'navtest_wsgi:application',
-        ]
-    )
-
-
-def stop_gunicorn():
-    if gunicorn:
-        gunicorn.terminate()
 
 
 ########################################################################
@@ -120,12 +74,12 @@ def _nav_script_tests():
                 yield [script] + args[1:]
 
 
-def _nav_scripts_map() -> Dict[str, str]:
+def _nav_scripts_map() -> dict[str, str]:
     """Returns a map of installable script names to NAV module names from
     pyproject.toml.
     """
     data = toml.load('pyproject.toml')
-    scripts: Dict[str, str] = data.get('project', {}).get('scripts', {})
+    scripts: dict[str, str] = data.get('project', {}).get('scripts', {})
     return {
         script: module.split(':', maxsplit=1)[0]
         for script, module in scripts.items()
@@ -313,7 +267,7 @@ def snmpsim():
     by the test that declares a dependency to this fixture. Data fixtures are loaded
     from the snmp_fixtures subdirectory.
     """
-    snmpsimd = which('snmpsimd.py')
+    snmpsimd = which('snmpsim-command-responder')
     assert snmpsimd, "Could not find snmpsimd.py"
     workspace = os.getenv('WORKSPACE', os.getenv('HOME', '/source'))
     proc = subprocess.Popen(
@@ -381,13 +335,3 @@ def admin_account(db):
     from nav.models.profiles import Account
 
     yield Account.objects.get(id=Account.ADMIN_ACCOUNT)
-
-
-@pytest.fixture(scope='session')
-def admin_username():
-    return os.environ.get('ADMINUSERNAME', 'admin')
-
-
-@pytest.fixture(scope='session')
-def admin_password():
-    return os.environ.get('ADMINPASSWORD', 'admin')

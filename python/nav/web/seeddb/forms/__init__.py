@@ -22,7 +22,7 @@ from django import forms
 from django.utils.safestring import mark_safe
 
 from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import Layout, Field, Fieldset, Row, Column
+from crispy_forms_foundation.layout import Layout, Fieldset, Row, Column
 
 from nav.django.forms import HStoreField
 from nav.web.crispyforms import LabelSubmit
@@ -123,6 +123,31 @@ def cut_branch(field, klass, pk):
     return [c for c in field.choices if c[0] not in descendant_ids]
 
 
+# non-crispy helpers
+
+
+def set_filter_form_attributes(
+    legend,
+    submit_value='Filter',
+    form_action='',
+    form_method='get',
+    form_class='custom',
+):
+    class Obj:
+        pass
+
+    obj = Obj()
+    obj.legend = legend
+    obj.submit_value = submit_value
+    obj.action = form_action
+    obj.method = form_method
+    obj.form_class = form_class
+    return obj
+
+
+# crispy helpers
+
+
 def get_formhelper():
     """Get the default formhelper for seeddb forms"""
     helper = FormHelper()
@@ -157,17 +182,17 @@ def get_submit_button(value='Filter'):
     return LabelSubmit('submit', value, css_class='postfix')
 
 
+# forms
+
+
 class RoomFilterForm(forms.Form):
     """Form for filtering rooms"""
 
     location = forms.ModelChoiceField(
-        Location.objects.order_by('id').all(), required=False
+        Location.objects.order_by('id').all(), required=False, label_suffix=''
     )
-
-    def __init__(self, *args, **kwargs):
-        super(RoomFilterForm, self).__init__(*args, **kwargs)
-        self.helper = get_formhelper()
-        self.helper.layout = get_single_layout('Filter rooms', 'location')
+    location.widget.attrs.update({"class": "select"})
+    no_crispy = set_filter_form_attributes('Filter rooms')
 
 
 class RoomForm(forms.ModelForm):
@@ -235,24 +260,6 @@ class LocationForm(forms.ModelForm):
             return None
 
 
-class OrganizationFilterForm(forms.Form):
-    """Form for filtering organizations by parent"""
-
-    parent = forms.ModelChoiceField(
-        Organization.objects.filter(
-            pk__in=Organization.objects.filter(parent__isnull=False).values_list(
-                'parent', flat=True
-            )
-        ).order_by('id'),
-        required=False,
-    )
-
-    def __init__(self, *args, **kwargs):
-        super(OrganizationFilterForm, self).__init__(*args, **kwargs)
-        self.helper = get_formhelper()
-        self.helper.layout = get_single_layout('Filter organizations', 'parent')
-
-
 class OrganizationForm(forms.ModelForm):
     """Form for editing an organization"""
 
@@ -300,12 +307,10 @@ class OrganizationMoveForm(forms.Form):
 class NetboxTypeFilterForm(forms.Form):
     """Form for filtering a netbox type by vendor"""
 
-    vendor = forms.ModelChoiceField(Vendor.objects.order_by('id').all(), required=False)
-
-    def __init__(self, *args, **kwargs):
-        super(NetboxTypeFilterForm, self).__init__(*args, **kwargs)
-        self.helper = get_formhelper()
-        self.helper.layout = get_single_layout('Filter types', 'vendor')
+    vendor = forms.ModelChoiceField(
+        Vendor.objects.order_by('id').all(), required=False, label_suffix=''
+    )
+    no_crispy = set_filter_form_attributes('Filter types')
 
 
 class NetboxTypeForm(forms.ModelForm):
@@ -347,6 +352,8 @@ class DeviceGroupForm(forms.ModelForm):
     netboxes = forms.ModelMultipleChoiceField(
         queryset=Netbox.objects.all(), required=False
     )
+    netboxes.widget.attrs.update({"class": "select2"})
+    no_crispy = True
 
     def __init__(self, *args, **kwargs):
         # If the form is based on an existing model instance, populate the
@@ -355,13 +362,6 @@ class DeviceGroupForm(forms.ModelForm):
             initial = kwargs.setdefault('initial', {})
             initial['netboxes'] = [n.pk for n in kwargs['instance'].netboxes.all()]
         forms.ModelForm.__init__(self, *args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'id',
-            'description',
-            Field('netboxes', css_class='select2'),
-        )
 
     class Meta(object):
         model = NetboxGroup

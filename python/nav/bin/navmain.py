@@ -16,7 +16,6 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Command line program to control NAV processes"""
-from __future__ import print_function
 import sys
 import os
 import os.path
@@ -48,7 +47,7 @@ except (OSError, CrontabError) as _error:
 
 def main(args=None):
     """Main execution point"""
-    if args == None:
+    if args is None:
         parser = make_argparser()
         args = parser.parse_args()
     try:
@@ -214,7 +213,7 @@ def c_info(args):
 
         kind = service.__class__.__name__
         if kind.endswith("Service"):
-            kind = kind[:-7].lower()
+            kind = kind.removesuffix("Service").lower()
         kind = "({})".format(kind)
         kind = "{:>8}".format(kind)
         colors.print_color(kind, colors.COLOR_YELLOW, newline=False)

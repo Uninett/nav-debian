@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 from django.utils.encoding import force_str
 
 from datetime import datetime, timedelta
@@ -171,7 +170,7 @@ def test_delete_netbox(db, api_client, token):
     print(json_get['deleted_at'])
 
     assert response_delete.status_code == 204
-    assert json_get['deleted_at'] != None
+    assert json_get['deleted_at'] is not None
 
 
 # Room specific tests
@@ -386,7 +385,7 @@ def serializer_models(localhost, admin_account):
     - unrecognized_neighbor
     - auditlog
     """
-    from nav.models import cabling, event, manage, profiles, rack
+    from nav.models import cabling, event, manage, rack
     from nav.auditlog import models as auditlog
 
     netbox = localhost

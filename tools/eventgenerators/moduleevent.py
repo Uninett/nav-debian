@@ -16,7 +16,6 @@
 #
 "Script to simulate up/down module events from moduleMon"
 
-from __future__ import print_function
 
 import sys
 from nav import db
@@ -24,7 +23,7 @@ from nav import db
 
 def handler(cursor, boxlist, state):
 
-    for (deviceid, netboxid, subid) in boxlist:
+    for deviceid, netboxid, subid in boxlist:
         sql = """INSERT INTO eventq
                    (source, target, deviceid, netboxid, subid, eventtypeid,
                     state,severity)
@@ -39,7 +38,7 @@ def handler(cursor, boxlist, state):
                 subid,
                 'moduleState',
                 state,
-                100,
+                1,
             ),
         )
 
@@ -65,8 +64,8 @@ def main():
 
         box, module = spec.split(":")
         cursor.execute(sql, (box, module))
-        for (deviceid, netboxid, moduleid, sysname, modulename) in cursor.fetchall():
-            if not deviceid in device_dupes:
+        for deviceid, netboxid, moduleid, sysname, modulename in cursor.fetchall():
+            if deviceid not in device_dupes:
                 netboxes.append((deviceid, netboxid, moduleid))
                 sysnames.append((sysname, modulename))
             device_dupes.add(deviceid)

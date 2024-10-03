@@ -21,7 +21,6 @@
 Pings multiple hosts in parallel
 """
 
-from __future__ import print_function
 
 import os
 import sys
@@ -30,7 +29,6 @@ import argparse
 import logging
 
 import nav.daemon
-from nav import buildconf
 from nav.config import NAV_CONFIG
 from nav.daemon import safesleep as sleep
 from nav.logs import init_generic_logging
@@ -140,7 +138,7 @@ class Pinger(object):
 
         down_now = []
         # Find out which netboxes to consider down
-        for (netboxid, replies) in self.replies.items():
+        for netboxid, replies in self.replies.items():
             if replies[: self._nrping] == [-1] * self._nrping:
                 down_now.append(netboxid)
 

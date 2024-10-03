@@ -16,9 +16,9 @@
 #
 """Functions for reverse-mapping metric names to NAV objects"""
 
+from functools import lru_cache
 import re
 
-from nav.compatibility import lru_cache
 from nav.models.manage import Netbox, Interface, Prefix, Sensor
 
 
@@ -26,7 +26,8 @@ __all__ = ['reverses', 'lookup']
 _reverse_handlers = []
 
 
-def _lookup(metric):
+@lru_cache(maxsize=200)
+def lookup(metric):
     """
     Looks up a NAV object from a metric path.
 
@@ -40,10 +41,6 @@ def _lookup(metric):
         match = pattern.search(metric)
         if match:
             return func(**match.groupdict())
-
-
-# pylint: disable=C0103
-lookup = lru_cache(maxsize=200)(_lookup)
 
 
 def reverses(pattern):

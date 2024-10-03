@@ -20,7 +20,8 @@ This interface only supports pynetsnmp, but is designed to allow
 multiple implementations
 
 """
-from __future__ import absolute_import
+import os
+import sys
 
 BACKEND = None
 
@@ -35,6 +36,12 @@ else:
 # These wildcard imports are informed, not just accidents.
 # pylint: disable=W0401
 if BACKEND == 'pynetsnmp':
+    if sys.platform == "darwin" and not os.getenv("DYLD_LIBRARY_PATH"):
+        # horrible workaround for MacOS problems, described at length at
+        # https://hynek.me/articles/macos-dyld-env/
+        os.environ["DYLD_LIBRARY_PATH"] = os.getenv(
+            "LD_LIBRARY_PATH", "/usr/local/opt/openssl/lib"
+        )
     from .pynetsnmp import *
 else:
     raise ImportError("No supported SNMP backend was found")

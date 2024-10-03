@@ -15,7 +15,6 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """NAV Service start/stop library."""
-from __future__ import absolute_import, print_function
 
 import errno
 import os
@@ -43,7 +42,7 @@ def get_info_from_content(content):
         if not line.startswith('#'):
             break
         elif line.startswith(INFOHEAD):
-            return line[len(INFOHEAD) :].strip()
+            return line.removeprefix(INFOHEAD).strip()
 
 
 class Service(object):

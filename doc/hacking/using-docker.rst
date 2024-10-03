@@ -8,7 +8,7 @@ Docker is a lightweight "virtualization" framework for creating isolated
 environments, useful both in development and production.
 For more information on Docker visit their homepage_ or read the documentation_.
 
-Installing Docker and docker-compose
+Installing Docker and docker compose
 ------------------------------------
 
 Docker provides up-to-date documentation on how to install it for most popular
@@ -40,6 +40,10 @@ the first time is by running these commands::
 .. Tip:: The first time you run this would be the perfect time to grab some
          coffee (and maybe redecorate your living room), as the initial build
          may take a while.
+
+.. warning:: Running ``docker compose up`` will take over the local ports 80
+             (for the website) and 8000 (for graphite). You can override this
+             with a ``docker-compose.override.yml`` file.
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
@@ -135,7 +139,7 @@ A complete rebuild of the NAV code can be initiated by::
 Rebuilding the containers
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Running :kdb:`docker compose up` will normally build the container images,
+Running :kbd:`docker compose up` will normally build the container images,
 before starting them, if they don't exist already.  However, if the image
 definitions have changed (e.g. when you are switching between development
 branches or changed the :file:`Dockerfile` definitions, or any of the files
@@ -202,7 +206,7 @@ The ``nav`` and ``web`` containers share a common configuration volume named
 ``nav_config``. This volume should persist even between rebuilds of the
 containers themselves. If you want NAV to install a completely new set of
 config files from scratch, you may need to manually trash this volume using the
-``-v`` option to the :kbd:`docker-compose down` command.
+``-v`` option to the :kbd:`docker compose down` command.
 
 
 Overriding the compose services

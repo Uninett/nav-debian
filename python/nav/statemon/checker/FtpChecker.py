@@ -15,8 +15,6 @@
 #
 """FTP Service Checker"""
 import contextlib
-import socket
-import sys
 from ftplib import FTP
 
 from nav.statemon.abstractchecker import AbstractChecker
@@ -51,7 +49,7 @@ class FtpChecker(AbstractChecker):
             version = ''
             for line in welcome.split('\n'):
                 if line.startswith('220 '):
-                    version = line[4:].strip()
+                    version = line.removeprefix('220 ').strip()
             self.version = version
 
             username = self.args.get('username', '')

@@ -16,7 +16,7 @@
 #
 """Cisco specific PortAdmin SNMP handling"""
 import logging
-from typing import Sequence, Dict, Optional, Tuple
+from typing import Optional, Sequence
 
 from nav.Snmp.errors import SnmpError
 from nav.bitvector import BitVector
@@ -345,7 +345,7 @@ class Cisco(SNMPHandler):
 
     def _get_poe_indexes_for_interface(
         self, interface: manage.Interface
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         """Returns the unit number and interface number for the given interface"""
         try:
             poeport = manage.POEPort.objects.get(interface=interface)
@@ -359,7 +359,7 @@ class Cisco(SNMPHandler):
 
     def get_poe_states(
         self, interfaces: Optional[Sequence[manage.Interface]] = None
-    ) -> Dict[str, Optional[PoeState]]:
+    ) -> dict[str, Optional[PoeState]]:
         """Retrieves current PoE state for interfaces on this device.
 
         :param interfaces: Optional sequence of interfaces to filter for, as fetching
@@ -391,7 +391,7 @@ class Cisco(SNMPHandler):
         unit_number, interface_number = self._get_poe_indexes_for_interface(interface)
         oid_with_unit_number = self.POEENABLE + OID((unit_number,))
         state_value = self._query_netbox(oid_with_unit_number, interface_number)
-        if state_value == None:
+        if state_value is None:
             raise POENotSupportedError("This interface does not support PoE")
         for state in self.get_poe_state_options():
             if state.state == state_value:

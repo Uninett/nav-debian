@@ -26,12 +26,12 @@ from datetime import datetime
 import re
 import json
 
-from django.views.decorators.debug import sensitive_variables
+from django.contrib.postgres.fields import HStoreField
 from django.db import models, transaction
-from django.urls import reverse
 from django.forms.models import model_to_dict
+from django.urls import reverse
+from django.views.decorators.debug import sensitive_variables
 
-from nav.adapters import HStoreField
 import nav.buildconf
 import nav.pwhash
 from nav.config import getconfig as get_alertengine_config
@@ -282,9 +282,9 @@ class Account(models.Model):
 
     @locked.setter
     def locked(self, value):
-        if not value and self.password.startswith('!'):
-            self.password = self.password[1:]
-        elif value and not self.password.startswith('!'):
+        if not value:
+            self.password = self.password.removeprefix("!")
+        elif not self.password.startswith('!'):
             self.password = '!' + self.password
 
     @property
@@ -1032,7 +1032,10 @@ class Filter(models.Model):
                 filtr[lookup] = list(
                     set(
                         itertools.chain(
-                            *[l.get_descendants(include_self=True) for l in locations]
+                            *[
+                                location.get_descendants(include_self=True)
+                                for location in locations
+                            ]
                         )
                     )
                 )

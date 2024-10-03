@@ -16,7 +16,6 @@
 #
 """High level synchronouse NAV API for NetSNMP"""
 
-from __future__ import absolute_import, unicode_literals
 
 from collections import namedtuple
 from ctypes import (
@@ -31,7 +30,7 @@ from ctypes import (
     c_ulong,
     c_uint64,
 )
-from typing import Union, Optional
+from typing import Optional, Union
 
 from IPy import IP
 from pynetsnmp import netsnmp

@@ -29,7 +29,6 @@ server.  It has been written to not require any NAV libraries.
 It will require psycopg, a PostgreSQL driver for Python.
 """
 
-from __future__ import print_function
 
 import psycopg2
 import sys
@@ -59,7 +58,7 @@ def main(args=None):
     else:
         print("Running instance of script not found. Starting...")
 
-    if args == None:
+    if args is None:
         args = sys.argv[1:]
 
     try:

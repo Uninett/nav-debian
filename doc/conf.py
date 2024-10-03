@@ -58,7 +58,7 @@ copyright = u'2012-2021 Uninett AS, 2022-2024 Sikt'
 # built documents.
 #
 # The short X.Y version.
-version = '5.10'
+version = '5.11'
 # version = '.'.join(buildconf.VERSION.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = buildconf.VERSION
@@ -235,8 +235,8 @@ latex_documents = [
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'django': (
-        'https://docs.djangoproject.com/en/3.2',
-        'https://docs.djangoproject.com/en/3.2/_objects',
+        'https://docs.djangoproject.com/en/3.2/',
+        'https://docs.djangoproject.com/en/3.2/_objects/',
     ),
 }
 

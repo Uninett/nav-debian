@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 from random import randint
 
 from mock import MagicMock, patch
@@ -1028,6 +1027,23 @@ class TestsFilterGroups:
         assert "Confirm deletion" in smart_str(response.content)
         assert dummy_filter_group.name in smart_str(response.content)
         assert FilterGroup.objects.filter(pk=dummy_filter_group.pk).count() == 1
+
+    def test_alertprofiles_move_filter_within_group_should_not_crash(
+        self, db, client, dummy_filter_group
+    ):
+        """Regression test for #2979: Ensuring that pre-processing of request data
+        doesn't crash unexpectedly.
+        """
+        url = reverse('alertprofiles-filter_groups-removefilter')
+        response = client.post(
+            url,
+            follow=True,
+            data={
+                "moveup=23": "Move+up",
+                "id": dummy_filter_group.id,
+            },
+        )
+        assert response.status_code in (200, 404)
 
 
 #

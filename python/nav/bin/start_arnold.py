@@ -32,7 +32,6 @@ Always uses the last interface the ip was seen on whether the ip is active
 there or not.
 
 """
-from __future__ import print_function
 
 import getpass
 import logging
@@ -66,7 +65,7 @@ _logger = logging.getLogger('nav.start_arnold')
 def main(args=None):
     """Main controller"""
 
-    if args == None:
+    if args is None:
         args = parse_command_options()
 
     init_generic_logging(logfile=LOG_FILE, stderr=False, read_config=True)

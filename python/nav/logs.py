@@ -17,7 +17,6 @@
 #
 """NAV related logging functionality."""
 
-from __future__ import unicode_literals
 import sys
 import os
 import logging
@@ -125,7 +124,6 @@ def _get_logging_conf():
     """
     filename = os.environ.get(LOGGING_CONF_VAR, LOGGING_CONF_FILE_DEFAULT)
     config = configparser.ConfigParser()
-    # Warning about `bytes` on py 3.5, fixed in py 3.7. Do not change
     read = config.read(filename)
     if filename not in read and LOGGING_CONF_VAR in os.environ:
         _logger.error(

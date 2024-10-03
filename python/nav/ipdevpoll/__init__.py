@@ -24,9 +24,10 @@ from nav.models import manage
 from nav.ipdevpoll.config import IpdevpollConfig
 from .log import ContextLogger, ContextFormatter
 
+__all__ = ["ContextFormatter", "IpdevpollConfig", "Plugin"]
+
 
 class Plugin(object):
-
     """Abstract class providing common functionality for all polling plugins.
 
     Do *NOT* create instances of the base class.
