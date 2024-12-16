@@ -23,9 +23,6 @@ from typing import Any
 from django import forms
 from django.db.models import Q
 
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import Layout, Row, Column, Field, Submit, HTML
-
 from nav.alertengine.dispatchers.email_dispatcher import Email
 from nav.alertengine.dispatchers.slack_dispatcher import Slack
 from nav.alertengine.dispatchers.sms_dispatcher import Sms
@@ -38,6 +35,7 @@ from nav.web.crispyforms import (
     FormRow,
     FormColumn,
     HelpFormField,
+    SubmitField,
 )
 
 _ = lambda a: a  # gettext variable (for future implementations)
@@ -63,19 +61,29 @@ class AlertProfileForm(forms.ModelForm):
 
         self.fields['daily_dispatch_time'].widget = forms.TimeInput(format='%H:%M')
         self.fields['weekly_dispatch_time'].widget = forms.TimeInput(format='%H:%M')
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'id',
-            'name',
-            Row(
-                Column('daily_dispatch_time', css_class='medium-4'),
-                Column('weekly_dispatch_time', css_class='medium-4'),
-                Column(
-                    Field('weekly_dispatch_day', css_class='select2'),
-                    css_class='medium-4',
+        self.fields['weekly_dispatch_day'].widget.attrs.update({'class': 'select2'})
+
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                self["id"],
+                self["name"],
+                FormRow(
+                    fields=[
+                        FormColumn(
+                            fields=[self["daily_dispatch_time"]],
+                            css_classes="medium-4",
+                        ),
+                        FormColumn(
+                            fields=[self["weekly_dispatch_time"]],
+                            css_classes="medium-4",
+                        ),
+                        FormColumn(
+                            fields=[self["weekly_dispatch_day"]],
+                            css_classes="medium-4",
+                        ),
+                    ]
                 ),
-            ),
+            ]
         )
 
     class Meta(object):
@@ -97,15 +105,27 @@ class AlertAddressForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(AlertAddressForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'id',
-            Row(
-                Column(Field('type', css_class='select2'), css_class='medium-4'),
-                Column('address', css_class='medium-4'),
-                Column(HTML(''), css_class='medium-4'),
-            ),
+        self.fields['type'].widget.attrs.update({"class": "select2"})
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                self['id'],
+                FormRow(
+                    fields=[
+                        FormColumn(
+                            fields=[self['type']],
+                            css_classes='medium-4',
+                        ),
+                        FormColumn(
+                            fields=[self['address']],
+                            css_classes='medium-4',
+                        ),
+                        FormColumn(
+                            fields=[],
+                            css_classes='medium-4',
+                        ),
+                    ]
+                ),
+            ]
         )
 
     class Meta(object):
@@ -152,24 +172,31 @@ class TimePeriodForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(TimePeriodForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
         submit_text = 'Add'
 
         if self.instance and self.instance.id:
             self.fields['valid_during'].widget.attrs['disabled'] = 'disabled'
             submit_text = 'Save'
 
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'id',
-            'profile',
-            Row(
-                Column('start', css_class='medium-6'),
-                Column(
-                    Field('valid_during', css_class='select2'), css_class='medium-6'
+        self.fields['valid_during'].widget.attrs.update({"class": "select2"})
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                self['id'],
+                self['profile'],
+                FormRow(
+                    fields=[
+                        FormColumn(
+                            fields=[self['start']],
+                            css_classes='medium-6',
+                        ),
+                        FormColumn(
+                            fields=[self['valid_during']],
+                            css_classes='medium-6',
+                        ),
+                    ]
                 ),
-            ),
-            Submit('submit', submit_text, css_class='small'),
+                SubmitField(value=submit_text, css_classes='small'),
+            ]
         )
 
     class Meta(object):
@@ -403,15 +430,26 @@ class FilterGroupForm(forms.Form):
             for field in self.fields.values():
                 field.widget.attrs['disabled'] = 'disabled'
 
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'id',
-            Row(
-                Column('name', css_class='medium-4'),
-                Column('description', css_class='medium-4'),
-                Column('owner', css_class='medium-4'),
-            ),
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                self['id'],
+                FormRow(
+                    fields=[
+                        FormColumn(
+                            fields=[self['name']],
+                            css_classes='medium-4',
+                        ),
+                        FormColumn(
+                            fields=[self['description']],
+                            css_classes='medium-4',
+                        ),
+                        FormColumn(
+                            fields=[self['owner']],
+                            css_classes='medium-4',
+                        ),
+                    ]
+                ),
+            ]
         )
 
 
@@ -439,14 +477,22 @@ class FilterForm(forms.Form):
             for field in self.fields.values():
                 field.widget.attrs['disabled'] = 'disabled'
 
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'id',
-            Row(
-                Column('name', css_class='medium-6'),
-                Column('owner', css_class='medium-6'),
-            ),
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                self['id'],
+                FormRow(
+                    fields=[
+                        FormColumn(
+                            fields=[self['name']],
+                            css_classes='medium-6',
+                        ),
+                        FormColumn(
+                            fields=[self['owner']],
+                            css_classes='medium-6',
+                        ),
+                    ]
+                ),
+            ]
         )
 
 
@@ -688,6 +734,7 @@ class ExpressionForm(forms.ModelForm):
 
                 # At last we acctually add the multiple choice field.
                 self.fields['value'] = forms.MultipleChoiceField(choices=choices)
+                self.fields['value'].widget.attrs['class'] = 'select2'
             else:
                 self.fields['value'] = forms.CharField(required=True)
 

@@ -21,17 +21,13 @@ from datetime import date, timedelta
 from django import forms
 from django.utils.encoding import force_str
 
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import (
-    Layout,
-    Fieldset,
-    Submit,
-    Row,
-    Column,
-    Field,
-    HTML,
+from nav.web.crispyforms import (
+    set_flat_form_attributes,
+    FlatFieldset,
+    FormColumn,
+    FormRow,
+    SubmitField,
 )
-from nav.web.crispyforms import set_flat_form_attributes, SubmitField
 
 from nav.models.profiles import Account, AccountGroup, PrivilegeType
 from nav.models.manage import Organization
@@ -48,16 +44,22 @@ class AccountGroupForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(AccountGroupForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_method = 'post'
-        self.helper.layout = Layout(
-            Fieldset(
-                'Group info',
-                'name',
-                'description',
-                Submit('submit_group', 'Save changes', css_class='small'),
-            )
+
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                FlatFieldset(
+                    legend="Group info",
+                    fields=[
+                        self["name"],
+                        self["description"],
+                        SubmitField(
+                            name="submit_group",
+                            value="Save changes",
+                            css_classes="small",
+                        ),
+                    ],
+                )
+            ]
         )
 
     class Meta(object):
@@ -85,44 +87,34 @@ class AccountForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(AccountForm, self).__init__(*args, **kwargs)
         account = kwargs.get('instance', False)
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_method = 'POST'
-
-        fieldset_name = 'Account'
-        fieldset_args = [fieldset_name]
-        default_args = ['login', 'name', 'password1', 'password2']
 
         if account:
             self.fields['password1'].required = False
-            submit_value = 'Save changes'
 
-            # This should really be two different forms because of this
-            if kwargs['instance'].ext_sync:
-                # We don't want to enable local password editing for accounts that are
-                # managed externally.
-                authenticator = (
-                    "<p class='alert-box'>External authenticator: %s</p>"
-                    % kwargs["instance"].ext_sync
-                )
-                del self.fields['password1']
-                del self.fields['password2']
-                self.fields['login'].widget.attrs['readonly'] = True
-                fieldset_args.extend(['login', 'name', HTML(authenticator)])
-            else:
-                fieldset_args.extend(default_args)
             if kwargs["instance"].id == Account.DEFAULT_ACCOUNT:
                 # We don't want to enable significant changes to the anonymous account
-                for field in ("password1", "password2", "login"):
-                    self.fields[field].widget.attrs["readonly"] = True
-        else:
-            submit_value = 'Create account'
-            fieldset_args.extend(default_args)
+                self.fields["password1"].widget.attrs["readonly"] = True
+                self.fields["password2"].widget.attrs["readonly"] = True
+                self.fields["login"].widget.attrs["readonly"] = True
 
-        submit = Submit('submit_account', submit_value, css_class='small')
-        fieldset_args.extend([submit])
-        fieldset = Fieldset(*fieldset_args)
-        self.helper.layout = Layout(fieldset)
+        submit_value = "Save changes" if account else "Create account"
+
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                FlatFieldset(
+                    legend="Account",
+                    fields=[
+                        self["login"],
+                        self["name"],
+                        self["password1"],
+                        self["password2"],
+                        SubmitField(
+                            "submit_account", submit_value, css_classes="small"
+                        ),
+                    ],
+                )
+            ],
+        )
 
     def clean_password1(self):
         """Validate password"""
@@ -148,6 +140,35 @@ class AccountForm(forms.ModelForm):
         exclude = ('password', 'ext_sync', 'organizations', 'preferences')
 
 
+class ExternalAccountForm(AccountForm):
+    """Form for editing an externally managed account"""
+
+    def __init__(self, *args, **kwargs):
+        super(AccountForm, self).__init__(*args, **kwargs)
+
+        # We don't want to enable local password editing for accounts that are
+        # managed externally.
+        del self.fields['password1']
+        del self.fields['password2']
+        self.fields['login'].widget.attrs['readonly'] = True
+
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                FlatFieldset(
+                    legend="Account",
+                    fields=[
+                        self["login"],
+                        self["name"],
+                        SubmitField(
+                            "submit_account", "Save changes", css_classes="small"
+                        ),
+                    ],
+                    template="useradmin/frag-external-account-fieldset.html",
+                )
+            ],
+        )
+
+
 class PrivilegeForm(forms.Form):
     """Form for adding a privilege to a group from the group page"""
 
@@ -158,18 +179,24 @@ class PrivilegeForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(PrivilegeForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = ""
-        self.helper.form_method = "POST"
-        self.helper.layout = Layout(
-            Row(
-                Column(Field('type', css_class='select2'), css_class='medium-3'),
-                Column('target', css_class='medium-6'),
-                Column(
-                    Submit('submit_privilege', 'Grant', css_class='postfix'),
-                    css_class='medium-3',
-                ),
-            )
+        self.fields['type'].widget.attrs.update({"class": "select2"})
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self["type"]], css_classes="medium-3"),
+                        FormColumn(fields=[self["target"]], css_classes="medium-6"),
+                        FormColumn(
+                            fields=[
+                                SubmitField(
+                                    "submit_privilege", "Grant", css_classes="postfix"
+                                )
+                            ],
+                            css_classes="medium-3",
+                        ),
+                    ]
+                )
+            ]
         )
 
 
@@ -186,11 +213,12 @@ class OrganizationAddForm(forms.Form):
         self.fields['organization'] = forms.models.ModelChoiceField(
             queryset=query, required=True, label=''
         )
-
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Field('organization', css_class='select2'),
-            Submit('submit_org', 'Add organization', css_class='postfix'),
+        self.fields['organization'].widget.attrs.update({"class": "select2"})
+        self.attrs = set_flat_form_attributes(
+            form_fields=[self["organization"]],
+            submit_field=SubmitField(
+                "submit_org", "Add organization", css_classes="postfix"
+            ),
         )
 
 
@@ -207,16 +235,25 @@ class GroupAddForm(forms.Form):
         self.fields['group'] = forms.models.ModelChoiceField(
             queryset=query, required=True, label=''
         )
-
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Row(
-                Column(Field('group', css_class='select2'), css_class='medium-8'),
-                Column(
-                    Submit('submit_group', 'Add membership', css_class='postfix'),
-                    css_class='medium-4',
-                ),
-            )
+        self.fields['group'].widget.attrs.update({'class': 'select2'})
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self['group']], css_classes='medium-8'),
+                        FormColumn(
+                            fields=[
+                                SubmitField(
+                                    'submit_group',
+                                    'Add membership',
+                                    css_classes='postfix',
+                                )
+                            ],
+                            css_classes='medium-4',
+                        ),
+                    ]
+                )
+            ]
         )
 
 
@@ -282,23 +319,42 @@ class TokenForm(forms.ModelForm):
         if self.instance and self.instance.endpoints:
             self.initial['endpoints'] = list(self.instance.endpoints.keys())
 
-        # Create the formhelper and define the layout of the form. The form
-        # element itself aswell as the submit button is defined in the template
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row(
-                Column(
-                    Fieldset(
-                        'Token details', 'token', 'permission', 'expires', 'comment'
-                    ),
-                    css_class='large-4 small-12',
-                ),
-                Column(
-                    Fieldset('Token endpoints', 'endpoints'),
-                    css_class='large-8 small-12',
-                ),
-            )
+        if self.instance.id:
+            submit_message = "Save token"
+        else:
+            submit_message = "Save new token"
+
+        self.attrs = set_flat_form_attributes(
+            form_id="edit-token-form",
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(
+                            fields=[
+                                FlatFieldset(
+                                    legend="Token details",
+                                    fields=[
+                                        self["token"],
+                                        self["permission"],
+                                        self["expires"],
+                                        self["comment"],
+                                    ],
+                                )
+                            ],
+                            css_classes="large-4 small-12",
+                        ),
+                        FormColumn(
+                            fields=[
+                                FlatFieldset(
+                                    legend="Token endpoints", fields=[self["endpoints"]]
+                                )
+                            ],
+                            css_classes="large-8 small-12",
+                        ),
+                    ]
+                )
+            ],
+            submit_field=SubmitField("submit", submit_message, css_classes="small"),
         )
 
     def clean_endpoints(self):

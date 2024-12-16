@@ -131,10 +131,12 @@ class ManagementProfile(models.Model):
     PROTOCOL_SNMP = 1
     PROTOCOL_NAPALM = 2
     PROTOCOL_SNMPV3 = 3
+    PROTOCOL_HTTP_API = 4
     PROTOCOL_CHOICES = [
         (PROTOCOL_SNMP, "SNMP"),
         (PROTOCOL_NAPALM, "NAPALM"),
         (PROTOCOL_SNMPV3, "SNMPv3"),
+        (PROTOCOL_HTTP_API, "HTTP API"),
     ]
     if settings.DEBUG:
         PROTOCOL_CHOICES.insert(0, (PROTOCOL_DEBUG, 'debug'))
@@ -282,8 +284,8 @@ class Netbox(models.Model):
 
     class Meta(object):
         db_table = 'netbox'
-        verbose_name = 'ip device'
-        verbose_name_plural = 'ip devices'
+        verbose_name = 'IP Device'
+        verbose_name_plural = 'IP Devices'
         ordering = ('sysname',)
 
     def __str__(self):
@@ -1154,6 +1156,9 @@ class Location(models.Model, TreeMixin):
         sublocations"""
         locations = self.get_descendants(True)
         return Room.objects.filter(location__in=locations)
+
+    def get_absolute_url(self):
+        return reverse('location-info', kwargs={'locationid': self.pk})
 
 
 class Organization(models.Model, TreeMixin):

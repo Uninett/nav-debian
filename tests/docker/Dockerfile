@@ -59,7 +59,7 @@ RUN cd /tmp && \
 
 # Install chromedriver to properly run Selenium tests in Chrome, if need be
 # Ref: https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json
-ENV CHROMEDRIVERVERSION=128.0.6613.137
+ENV CHROMEDRIVERVERSION=131.0.6778.69
 RUN cd /tmp && \
     apt-get update && \
     apt-get -y --no-install-recommends install unzip && \
@@ -68,7 +68,7 @@ RUN cd /tmp && \
     mv chromedriver-linux64/chromedriver /usr/local/bin/
 
 # Install our primary test runner
-RUN python3.9 -m pip install 'tox<4' virtualenv
+RUN python3.9 -m pip install tox virtualenv
 
 # Add a build user
 ENV USER build

@@ -13,44 +13,23 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-"""A collection of forms using the django crispy forms framework"""
+"""A collection of forms inspired by the django crispy forms framework"""
 from types import SimpleNamespace
 from typing import Optional
 
 from django import forms
-from crispy_forms.layout import BaseInput
-from crispy_forms_foundation.layout import Field, Submit, Button
 
 
-class NavSubmit(BaseInput):
-    """Displays proper Foundation submit button"""
+class CheckBox:
+    """Checkbox suited for the NAV layout
 
-    input_type = 'submit'
-    field_classes = 'button small'
+    :param field: A field to render as a checkbox field.
+    """
 
-
-class NavButton(Button):
-    """A normal nav size button"""
-
-    field_classes = 'button small'
-
-
-class LabelSubmit(Submit):
-    """Submitbutton with a label above it to align within a row"""
-
-    template = 'custom_crispy_templates/submit.html'
-
-
-class CheckBox(Field):
-    """Checkbox suited for the NAV layout"""
-
-    template = 'custom_crispy_templates/horizontal_checkbox.html'
-
-
-class HelpField(Field):
-    """Field that displays an icon with tooltip as helptext"""
-
-    template = 'custom_crispy_templates/field_helptext_as_icon.html'
+    def __init__(self, field, css_classes: Optional[str] = None):
+        self.field = field
+        self.css_classes = css_classes
+        self.template = 'custom_crispy_templates/form_checkbox.html'
 
 
 class HelpFormField:
@@ -77,31 +56,32 @@ class NumberField(forms.IntegerField):
     widget = NumberInput
 
 
-# For uncrispyfied forms:
-
-
 class FlatFieldset:
     """A class representing a fieldset for forms.
     Only flat layout of children fields is supported out of the box.
     Any nesting of fields inside this fieldset might require custom
     class definitions akin to this one.
 
-    :cvar template: The path to the template used for rendering the fieldset. Path is relative to the app's templates directory.
-    :type template: str
     :param legend: The legend text for the fieldset.
     :type legend: str
     :param fields: A list of fields to include in the fieldset.
     :param css_class: Additional CSS classes to apply to the fieldset.
+    :param template: The path to the template used for rendering the fieldset.
+    Path is relative to the app's templates directory.
     """
 
-    template = 'custom_crispy_templates/flat_fieldset.html'
-
-    def __init__(self, legend, fields: list, css_class=''):
+    def __init__(
+        self,
+        legend,
+        fields: list,
+        css_class='',
+        template: str = 'custom_crispy_templates/flat_fieldset.html',
+    ):
         """Constructor method"""
         self.legend = legend
         self.fields = fields
         self.css_class = css_class
-        self.template = FlatFieldset.template
+        self.template = template
 
 
 class FormRow:
@@ -112,7 +92,7 @@ class FormRow:
     :param css_classes: Additional CSS classes to apply to the row. Defaults to an empty string.
     """
 
-    def __init__(self, fields: list, css_classes: str = ''):
+    def __init__(self, fields: list, css_classes: Optional[str] = None):
         """Constructor method"""
         self.fields = fields
         self.css_classes = css_classes
@@ -205,3 +185,18 @@ def set_flat_form_attributes(
         form_id=form_id,
         form_class=form_class,
     )
+
+
+class FormDiv:
+    """A class representing a div in a form layout.
+
+    :param fields: A list of fields to include in the div.
+    :param css_classes: Additional CSS classes to apply to the div.
+    """
+
+    def __init__(
+        self, fields: Optional[list] = None, css_classes: Optional[str] = None
+    ):
+        self.fields = fields
+        self.css_classes = css_classes
+        self.template = 'custom_crispy_templates/form_div.html'

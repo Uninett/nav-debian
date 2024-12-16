@@ -22,8 +22,6 @@ from django.http import HttpResponseRedirect
 from django.db import transaction
 from django.urls import reverse
 
-from crispy_forms.helper import FormHelper
-
 from nav.models.service import Service, ServiceProperty
 from nav.models.manage import Netbox
 from nav.web.servicecheckers import get_description, load_checker_classes
@@ -32,7 +30,7 @@ from nav.web.seeddb.page.service import ServiceInfo
 
 
 class ServiceChoiceForm(forms.Form):
-    """For for editing services"""
+    """Form for editing services"""
 
     def __init__(self, *args, **kwargs):
         super(ServiceChoiceForm, self).__init__(*args, **kwargs)
@@ -45,9 +43,6 @@ class ServiceChoiceForm(forms.Form):
             choices=sorted(self._build_checker_choices()),
             widget=forms.Select(attrs={'class': 'select2'}),
         )
-
-        self.helper = FormHelper(self)
-        self.helper.form_tag = False
 
     @staticmethod
     def _build_checker_choices():
@@ -77,11 +72,6 @@ class ServiceForm(forms.Form):
     handler = forms.CharField(widget=forms.HiddenInput)
     netbox = forms.IntegerField(widget=forms.HiddenInput)
 
-    def __init__(self, *args, **kwargs):
-        super(ServiceForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.form_tag = False
-
 
 class ServicePropertyForm(forms.Form):
     """Form for editing service properties"""
@@ -98,9 +88,6 @@ class ServicePropertyForm(forms.Form):
         if opt_args:
             for arg, descr in opt_args:
                 self.fields[arg] = forms.CharField(required=False, help_text=descr)
-
-        self.helper = FormHelper(self)
-        self.helper.form_tag = False
 
 
 def service_edit(request, service_id=None):

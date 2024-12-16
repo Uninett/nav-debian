@@ -16,10 +16,14 @@
 #
 
 from django import forms
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import Layout, Row, Column, Field, Submit
+
 from nav.models.manage import Sensor
-from nav.web.crispyforms import LabelSubmit
+from nav.web.crispyforms import (
+    FormColumn,
+    FormRow,
+    SubmitField,
+    set_flat_form_attributes,
+)
 
 
 class SearchForm(forms.Form):
@@ -29,21 +33,24 @@ class SearchForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(SearchForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = 'ipdevinfo-search'
-        self.helper.form_method = 'GET'
-        self.helper.layout = Layout(
-            Row(
-                Column(
-                    Field('query', placeholder='IP or hostname'), css_class='medium-9'
-                ),
-                Column(
-                    Submit('submit', 'Search', css_class='postfix'),
-                    css_class='medium-3',
-                ),
-                css_class='collapse',
-            )
+
+        self.attrs = set_flat_form_attributes(
+            form_action="ipdevinfo-search",
+            form_method="get",
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self["query"]], css_classes="medium-9"),
+                        FormColumn(
+                            fields=[SubmitField(value="Search", css_classes="postfix")],
+                            css_classes="medium-3",
+                        ),
+                    ],
+                    css_classes="collapse",
+                )
+            ],
         )
+        self.fields['query'].widget.attrs.update({"placeholder": "IP or hostname"})
 
 
 class ActivityIntervalForm(forms.Form):
@@ -53,17 +60,26 @@ class ActivityIntervalForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(ActivityIntervalForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row(
-                Column('interval', css_class='small-4'),
-                Column(
-                    LabelSubmit('submit', 'Recheck activity', css_class='postfix'),
-                    css_class='small-8',
-                ),
-                css_class='collapse',
-            )
+
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self["interval"]], css_classes="small-4"),
+                        FormColumn(
+                            fields=[
+                                SubmitField(
+                                    value="Recheck activity",
+                                    css_classes="postfix",
+                                    has_empty_label=True,
+                                )
+                            ],
+                            css_classes="small-8",
+                        ),
+                    ],
+                    css_classes="collapse",
+                )
+            ]
         )
 
 
@@ -90,13 +106,3 @@ class BooleanSensorForm(forms.Form):
     alert_type = forms.ChoiceField(
         label='What to display in "on" state', choices=Sensor.ALERT_TYPE_CHOICES
     )
-
-    def __init__(self, *args, **kwargs):
-        """Init"""
-        super(BooleanSensorForm, self).__init__(*args, **kwargs)
-
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'on_message', 'off_message', 'on_state', 'alert_type'
-        )

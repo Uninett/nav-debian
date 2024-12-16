@@ -21,11 +21,7 @@ import logging
 from django import forms
 from django.utils.safestring import mark_safe
 
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import Layout, Fieldset, Row, Column
-
 from nav.django.forms import HStoreField
-from nav.web.crispyforms import LabelSubmit
 from nav.models.manage import (
     Location,
     Room,
@@ -37,6 +33,13 @@ from nav.models.manage import (
 )
 from nav.models.cabling import Cabling
 from nav.oids import OID
+from nav.web.crispyforms import (
+    FlatFieldset,
+    FormColumn,
+    FormRow,
+    SubmitField,
+    set_flat_form_attributes,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -123,63 +126,37 @@ def cut_branch(field, klass, pk):
     return [c for c in field.choices if c[0] not in descendant_ids]
 
 
-# non-crispy helpers
+# helpers
 
 
-def set_filter_form_attributes(
-    legend,
-    submit_value='Filter',
-    form_action='',
-    form_method='get',
-    form_class='custom',
-):
-    class Obj:
-        pass
-
-    obj = Obj()
-    obj.legend = legend
-    obj.submit_value = submit_value
-    obj.action = form_action
-    obj.method = form_method
-    obj.form_class = form_class
-    return obj
-
-
-# crispy helpers
-
-
-def get_formhelper():
-    """Get the default formhelper for seeddb forms"""
-    helper = FormHelper()
-    helper.form_action = ''
-    helper.form_method = 'GET'
-    helper.form_class = 'custom'
-    return helper
-
-
-def get_layout(heading, rows):
-    """Get the default layout for filterforms
-
-    :type heading: basestring
-    :type rows: list
-    """
-    return Layout(Fieldset(heading, Row(*rows)))
-
-
-def get_single_layout(heading, row):
+def get_single_layout(heading, filter_field):
     """Get default layout for a single filter"""
-    return get_layout(
-        heading,
-        [
-            Column(row, css_class='medium-8'),
-            Column(get_submit_button(), css_class='medium-4'),
+    return set_flat_form_attributes(
+        form_class="custom",
+        form_method="get",
+        form_fields=[
+            FlatFieldset(
+                legend=heading,
+                fields=[
+                    FormRow(
+                        fields=[
+                            FormColumn(fields=[filter_field], css_classes="medium-8"),
+                            FormColumn(
+                                fields=[
+                                    SubmitField(
+                                        value="Filter",
+                                        css_classes="postfix",
+                                        has_empty_label=True,
+                                    )
+                                ],
+                                css_classes="medium-4",
+                            ),
+                        ]
+                    )
+                ],
+            )
         ],
     )
-
-
-def get_submit_button(value='Filter'):
-    """Get default submit button for seeddb filter forms"""
-    return LabelSubmit('submit', value, css_class='postfix')
 
 
 # forms
@@ -189,10 +166,15 @@ class RoomFilterForm(forms.Form):
     """Form for filtering rooms"""
 
     location = forms.ModelChoiceField(
-        Location.objects.order_by('id').all(), required=False, label_suffix=''
+        Location.objects.order_by('id').all(), required=False
     )
     location.widget.attrs.update({"class": "select"})
-    no_crispy = set_filter_form_attributes('Filter rooms')
+
+    def __init__(self, *args, **kwargs):
+        super(RoomFilterForm, self).__init__(*args, **kwargs)
+        self.attrs = get_single_layout(
+            heading="Filter rooms", filter_field=self["location"]
+        )
 
 
 class RoomForm(forms.ModelForm):
@@ -307,10 +289,13 @@ class OrganizationMoveForm(forms.Form):
 class NetboxTypeFilterForm(forms.Form):
     """Form for filtering a netbox type by vendor"""
 
-    vendor = forms.ModelChoiceField(
-        Vendor.objects.order_by('id').all(), required=False, label_suffix=''
-    )
-    no_crispy = set_filter_form_attributes('Filter types')
+    vendor = forms.ModelChoiceField(Vendor.objects.order_by('id').all(), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(NetboxTypeFilterForm, self).__init__(*args, **kwargs)
+        self.attrs = get_single_layout(
+            heading="Filter types", filter_field=self["vendor"]
+        )
 
 
 class NetboxTypeForm(forms.ModelForm):
@@ -353,7 +338,6 @@ class DeviceGroupForm(forms.ModelForm):
         queryset=Netbox.objects.all(), required=False
     )
     netboxes.widget.attrs.update({"class": "select2"})
-    no_crispy = True
 
     def __init__(self, *args, **kwargs):
         # If the form is based on an existing model instance, populate the

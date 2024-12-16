@@ -1,5 +1,4 @@
 {% extends "base.html" %} {# Don't need a deeper hierarchy for one template #}
-{% load crispy_forms_tags %}
 {% load tools %}
 
 {% block base_header_additional_head %}
@@ -23,7 +22,7 @@
     </div>
   {% endif %}
 
-  {% crispy form %}
+  {% include 'custom_crispy_templates/flat_form.html' %}
 
   {# Display view if exists #}
   {% if result %}

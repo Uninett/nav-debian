@@ -2,14 +2,14 @@
 
 set -ex
 
-if [[ ! -f "/source/setup.py" ]]; then
+if [[ ! -f "/source/pyproject.toml" ]]; then
   echo NAV source code does not appear to be mounted at /source
   exit 1
 fi
 
 cd /source
 pip install -vv -e .
-python setup.py build_sass
+make sassbuild
 
 if [[ ! -f "/etc/nav/nav.conf" ]]; then
     echo "Copying initial NAV config files into this container"

@@ -8,6 +8,65 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+Unreleased
+==========
+
+Dependency changes
+------------------
+
+These Python modules are no longer required:
+
+* :mod:`django-crispy-forms`
+* :mod:`crispy-forms-foundation`
+* :mod:`libsass`
+
+If you want to build NAV from source, you will now need `webpack
+<https://webpack.js.org/>` as a replacement for the now defunct :mod:`libsass`.
+Webpack is used to build many of the static resources (mostly CSS stylesheets
+from SASS source files) that are to be served by the NAV web GUI.
+
+Deprecation warnings
+--------------------
+.. warning:: The ``[paloaltoarp]`` section of :file:`ipdevpoll.conf`, used for
+             configuring HTTP-based ARP fetching from Palo Alto firewalls, is
+             deprecated and will be ignored in NAV 5.12 and future versions.
+             HTTP-based ARP fetching from Palo Alto
+             firewalls *must* now be configured using management profiles,
+             analogous to configuration of SNMP-based fetching.  :ref:`See below
+             for more details<5.12-new-http-rest-api-management-profile-type>`.
+
+Change ``ip2mac`` plugin order in :file:`ipdevpoll.conf`
+--------------------------------------------------------
+
+The Palo Alto ARP plugin in ipdevpoll had a problem which caused the ARP
+records it collected from Palo Palo firewalls to be unduly closed by the
+regular SNMP-based ARP plugin.  This release of NAV fixes this by making the
+SNMP-based ARP plugin a "fallback" mechanism that doesn't touch ARP collection
+if another plugin has already collected ARP data.
+
+In order for this fix to work, **you must change the order of the plugins** in the
+``[job_ip2mac]`` section of your :file:`ipdevpoll.conf` file, to ensure that
+the ``paloaltoarp`` plugin is listed *before* the ``arp`` plugin.
+
+
+.. _5.12-new-http-rest-api-management-profile-type:
+New way to configure fetching of Palo Alto firewall ARP cache data
+------------------------------------------------------------------
+.. NOTE:: See
+          :ref:`management profile reference documentation<http-rest-api-management-profile>`
+          for instructions on how to reconfigure your Palo Alto firewall
+          devices in NAV 5.12 to enable support for fetching of their
+          ARP information.
+
+Starting with NAV 5.12, a new ``HTTP API`` management profile type has been
+added to NAV for configuring HTTP API specific parameters used in fetching of
+ARP information from Palo Alto firewalls running PAN-OS. Currently, this
+management profile type is only used to configure Palo Alto firewall devices. If
+support for other devices that similarly can be managed using a HTTP API is
+added to NAV in future releases, you can expect to be able to configure API
+parameters for these devices by using management profiles as well.
+
+
 NAV 5.11
 ========
 

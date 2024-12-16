@@ -1,4 +1,3 @@
-{% load crispy_forms_tags %}
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
 <html>
@@ -48,7 +47,7 @@
         </div>
       {% endif %}
 
-      {% crispy form %}
+      {% include 'custom_crispy_templates/flat_form.html' %}
 
       <small>
         <a href="#" data-reveal-id="auditlog-information">About audit logging in NAV</a>

@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - master
-      - '[1-9][0-9]*.[0-9]+.x'
+      - '[1-9][0-9]?.[0-9]+.x'
   pull_request:
   schedule: # Run daily at 08:00 CEST (06:00 UST)
     - cron: '0 6 * * *'
@@ -20,22 +20,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: kenchan0130/actions-system-info@c74331947b5734764feeb375de4038960f2576bd
+        id: system-info
 
       - name: "Cache pip packages"
         uses: actions/cache@v4
         id: pip-cache
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements/*.txt') }}
+          key: ${{ runner.os }}-${{ steps.system-info.outputs.release }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-${{ steps.system-info.outputs.release }}-pip-
 
       - name: "Cache tox environments"
         uses: actions/cache@v4
         id: tox-cache
         with:
           path: .tox
-          key: ${{ runner.os }}-tox-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt', '**/requirements/*.txt', 'tox.ini') }}
+          key: ${{ runner.os }}-${{ steps.system-info.outputs.release }}-tox-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt', '**/requirements/*.txt', 'tox.ini') }}
 
       - name: "Set up Python ${{ matrix.python-version }}"
         uses: actions/setup-python@v5
@@ -56,7 +58,7 @@ jobs:
       - name: "Install test runner dependencies"
         run: |
           set -xe
-          python3 -m pip install --upgrade 'pip==23.1.0' setuptools wheel 'tox<4' tox-gh-actions coverage virtualenv
+          python3 -m pip install --upgrade pip setuptools wheel tox tox-gh-actions coverage virtualenv
           sudo apt-get install -y nbtscan
 
       # virtualenv seems to currently be embedding a broken version of
@@ -136,7 +138,7 @@ jobs:
       - run: chrome --version
       - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 18
 
       - name: npm install
         run: |
@@ -144,7 +146,7 @@ jobs:
           npm ci
 
       - name: npm test
-        run: xvfb-run -a npm test
+        run: OPENSSL_CONF=/dev/null xvfb-run -a npm test
         working-directory: ./python/nav/web/static/js
 
       - name: Upload JavaScript test reports

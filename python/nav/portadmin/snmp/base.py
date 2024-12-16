@@ -88,8 +88,6 @@ class InvalidManagementProfileError(ManagementError):
 class SNMPHandler(ManagementHandler):
     """Implements PortAdmin management functions for SNMP-enabled switches"""
 
-    VENDOR = None
-
     QBRIDGENODES = get_mib('Q-BRIDGE-MIB')['nodes']
 
     SYSOBJECTID = '.1.3.6.1.2.1.1.2.0'
@@ -234,7 +232,7 @@ class SNMPHandler(ManagementHandler):
         try:
             handle.get(self.SYSOBJECTID)
             return True
-        except SnmpError as error:
+        except SnmpError:
             return False
 
     def test_write(self):

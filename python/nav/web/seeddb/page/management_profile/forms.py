@@ -16,7 +16,7 @@
 from django import forms
 
 from nav.models.manage import ManagementProfile
-from nav.web.seeddb.forms import get_formhelper, get_single_layout
+from nav.web.seeddb.forms import get_single_layout
 
 PROTOCOL_CHOICES = dict(ManagementProfile.PROTOCOL_CHOICES)
 
@@ -30,8 +30,10 @@ class ManagementProfileFilterForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(ManagementProfileFilterForm, self).__init__(*args, **kwargs)
-        self.helper = get_formhelper()
-        self.helper.layout = get_single_layout('Filter connection profiles', 'protocol')
+
+        self.attrs = get_single_layout(
+            heading="Filter connection profiles", filter_field=self["protocol"]
+        )
 
 
 class ProtocolSpecificMixIn(object):
@@ -58,6 +60,28 @@ class ProtocolSpecificMixIn(object):
         for field in self.Meta.configuration_fields:
             if field in self.cleaned_data:
                 cfg[field] = self.cleaned_data.get(field)
+
+
+class HttpApiForm(ProtocolSpecificMixIn, forms.ModelForm):
+    PROTOCOL = ManagementProfile.PROTOCOL_HTTP_API
+    PROTOCOL_NAME = PROTOCOL_CHOICES.get(PROTOCOL)
+
+    class Meta(object):
+        model = ManagementProfile
+        configuration_fields = ['api_key', 'service']
+        fields = []
+
+    api_key = forms.CharField(
+        label="API key",
+        help_text="Key/token to authenticate to the service",
+        required=True,
+    )
+
+    service = forms.ChoiceField(
+        choices=(("Palo Alto ARP", "Palo Alto ARP"),),
+        help_text="",
+        required=True,
+    )
 
 
 class DebugForm(ProtocolSpecificMixIn, forms.ModelForm):

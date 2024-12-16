@@ -1,5 +1,4 @@
 {% extends "alertprofiles/base.html" %}
-{% load crispy_forms_tags %}
 
 {% block tabcontent %}
   {% block backnavigation %}{% endblock %}
@@ -15,11 +14,7 @@
   </h4>
 
   <form action="{% block url_edit %}{% endblock %}" method="post" >
-    {% if form.attrs %}
-      {% include 'custom_crispy_templates/_form_content.html' %}
-    {% else %}
-      {% crispy form %}
-    {% endif %}
+    {% include 'custom_crispy_templates/_form_content.html' %}
 
     {% block form_additional_fields %}
     {% endblock %}
