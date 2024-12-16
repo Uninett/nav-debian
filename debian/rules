@@ -13,6 +13,9 @@ export SETUPTOOLS_SCM_PRETEND_VERSION = $(VERSION_UPSTREAM)
 .PHONY: override_dh_auto_install override_dh_auto_test
 
 override_dh_virtualenv:
+	npm install
+	npm run build:sass
+
 	dh_virtualenv --extra-pip-arg "-rdoc/requirements.txt" --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0"
 
 	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python $(DEBIAN_ROOT)/opt/venvs/nav/bin/sphinx-build doc/ doc/_build
