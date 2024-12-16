@@ -1,3 +1,9 @@
+nav (5.12.0-2) bullseye; urgency=medium
+
+  * Correctly specify package PostgreSQL version requirement.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 16 Dec 2024 14:36:37 +0000
+
 nav (5.12.0-1) bullseye; urgency=medium
 
   * New upstream release.
