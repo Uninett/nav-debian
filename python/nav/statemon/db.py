@@ -21,18 +21,13 @@ by the service monitor.
 It implements the singleton pattern, ensuring only one instance
 is used at a time.
 """
-from __future__ import absolute_import
 
-import threading
-
-try:
-    import queue
-except ImportError:
-    import Queue as queue
-import time
 import atexit
 from collections import defaultdict
 import logging
+import queue
+import time
+import threading
 
 import psycopg2
 from psycopg2.errorcodes import IN_FAILED_SQL_TRANSACTION
@@ -73,7 +68,7 @@ class _DB(threading.Thread):
 
     def __init__(self):
         threading.Thread.__init__(self)
-        self.setDaemon(1)
+        self.daemon = True
         self.queue = queue.Queue()
         self._hosts_to_ping = []
         self._checkers = []
@@ -134,7 +129,7 @@ class _DB(threading.Thread):
                         err.pgcode,
                     )
                     raise
-        except Exception as err:
+        except Exception:
             if self.db is not None:
                 _logger.critical(
                     "Could not get cursor. Trying to reconnect...", exc_info=True

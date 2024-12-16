@@ -8,9 +8,12 @@ DEBIAN_ROOT := $(CURDIR)/debian/$(package)
 .PHONY: override_dh_auto_install override_dh_auto_test
 
 override_dh_virtualenv:
-	dh_virtualenv
+	npm install
+	npm run build:sass
 
-	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python setup.py build_sphinx
+	dh_virtualenv --extra-pip-arg "-rdoc/requirements.txt" --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0"
+
+	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python $(DEBIAN_ROOT)/opt/venvs/nav/bin/sphinx-build doc/ doc/_build
 	dh_installdocs build/sphinx/html
 	dh_installdocs NOTES.rst
 	dh_installchangelogs CHANGELOG.md HISTORY
@@ -28,7 +31,7 @@ override_dh_virtualenv:
 	# the virtualenv that way, however, since dh-virtualenv/pip will
 	# consider many of the baser requirements to already be satisfied by
 	# the build system.
-	rm -f $(DEBIAN_ROOT)/opt/venvs/nav/lib/python*/no-global-site-packages.txt
+	sed -ie 's/^include-system-site-packages.*/include-system-site-packages = true/' $(DEBIAN_ROOT)/opt/venvs/nav/pyvenv.cfg
 
 override_dh_strip:
 	dh_strip --exclude=/site-packages/

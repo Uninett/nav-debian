@@ -1,0 +1,11 @@
+{% load forms %}
+
+{% if field.template %}
+  {% include field.template %}
+{% elif field.input_type == 'submit' or field.input_type == 'button' %}
+  {% include 'custom_crispy_templates/submit_field.html' with input=field %}
+{% elif field.input_type == 'helpfield' %}
+  {% include 'custom_crispy_templates/field_helptext_as_icon.html' with field=field.field %}
+{% else %}
+  {% show_field field %}
+{% endif %}

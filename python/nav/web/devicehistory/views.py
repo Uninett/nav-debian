@@ -22,6 +22,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
 
+from nav.event2 import EventFactory
 from nav.models.fields import INFINITY
 from nav.models.manage import Netbox, Module
 from nav.models.event import AlertHistory
@@ -36,6 +37,8 @@ from nav.web.devicehistory.utils.history import (
 )
 from nav.web.devicehistory.utils.error import register_error_events
 from nav.web.devicehistory.forms import DeviceHistoryViewFilter
+
+device_event = EventFactory('ipdevpoll', 'eventEngine', 'deviceState')
 
 DEVICEQUICKSELECT_VIEW_HISTORY_KWARGS = {
     'button': 'View %s history',
@@ -176,8 +179,8 @@ def confirm_error_form(request):
         'module': request.POST.getlist('module'),
     }
 
-    netbox = Netbox.objects.select_related('netbox').filter(id__in=selection['netbox'])
-    module = Module.objects.filter(id__in=selection['module'])
+    netbox = Netbox.objects.filter(id__in=selection['netbox'])
+    module = Module.objects.select_related('netbox').filter(id__in=selection['module'])
 
     return render(
         request,
@@ -289,12 +292,18 @@ def do_delete_module(request):
     # AlertHistory entries will be closed by a database trigger.
     cursor.execute("DELETE FROM module WHERE moduleid IN %s", (module_ids,))
 
-    # Delete the entities representing these modules
     for hist in history:
+        # Delete the entity representing the module
         cursor.execute(
             "DELETE FROM netboxentity WHERE netboxid = %s and deviceid = %s",
             [hist.module.netbox.id, hist.module.device.id],
         )
+        # Create event for deleted module
+        device_event.notify(
+            device=hist.module.device,
+            netbox=hist.module.netbox,
+            alert_type="deviceDeletedModule",
+        ).save()
 
     return HttpResponseRedirect(reverse('devicehistory-module'))
 

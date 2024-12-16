@@ -17,12 +17,17 @@
 
 from IPy import IP
 from django import forms
-from crispy_forms.helper import FormHelper
-
-from crispy_forms_foundation.layout import Layout, Fieldset, Div, Row, Submit, Column
 
 from nav.util import is_valid_ip, is_valid_mac
-from nav.web.crispyforms import CheckBox
+from nav.web.crispyforms import (
+    CheckBox,
+    FlatFieldset,
+    FormColumn,
+    FormDiv,
+    FormRow,
+    SubmitField,
+    set_flat_form_attributes,
+)
 from nav.models.arnold import (
     DETENTION_TYPE_CHOICES,
     STATUSES,
@@ -50,12 +55,15 @@ class JustificationForm(forms.Form):
             submit_value = 'Save changes'
             fieldset_legend = 'Edit detention reason'
 
-        # Create helper for crispy layout
-        self.helper = FormHelper()
-        self.helper.form_action = 'arnold-justificatons'
-        self.helper.layout = Layout(
-            Fieldset(fieldset_legend, 'name', 'description', 'justificationid'),
-            Submit('submit', submit_value, css_class='small'),
+        self.attrs = set_flat_form_attributes(
+            form_action='arnold-justifications',
+            form_fields=[
+                FlatFieldset(
+                    fieldset_legend,
+                    fields=[self['name'], self['description'], self['justificationid']],
+                )
+            ],
+            submit_field=SubmitField(value=submit_value, css_classes='small'),
         )
 
 
@@ -76,12 +84,15 @@ class QuarantineVlanForm(forms.Form):
             submit_value = 'Save changes'
             fieldset_legend = 'Edit vlan'
 
-        # Create helper for crispy layout
-        self.helper = FormHelper()
-        self.helper.form_action = 'arnold-quarantinevlans'
-        self.helper.layout = Layout(
-            Fieldset(fieldset_legend, 'vlan', 'description', 'qid'),
-            Submit('submit', submit_value, css_class='small'),
+        self.attrs = set_flat_form_attributes(
+            form_action='arnold-quarantinevlans',
+            form_fields=[
+                FlatFieldset(
+                    fieldset_legend,
+                    fields=[self['vlan'], self['description'], self['qid']],
+                )
+            ],
+            submit_field=SubmitField(value=submit_value, css_classes='small'),
         )
 
 
@@ -109,19 +120,29 @@ class SearchForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(SearchForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_class = 'custom'
-        self.helper.layout = Layout(
-            Row(
-                Column('searchtype', css_class='medium-3'),
-                Column('searchvalue', css_class='medium-9'),
-                css_class='collapse',
+
+        self.attrs = set_flat_form_attributes(
+            form_class='custom',
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self['searchtype']], css_classes='medium-3'),
+                        FormColumn(
+                            fields=[self['searchvalue']], css_classes='medium-9'
+                        ),
+                    ],
+                    css_classes='collapse',
+                ),
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self['status']], css_classes='medium-6'),
+                        FormColumn(fields=[self['days']], css_classes='medium-6'),
+                    ],
+                ),
+            ],
+            submit_field=SubmitField(
+                name='search', value='Search', css_classes='small'
             ),
-            Row(
-                Column('status', css_class='medium-6'),
-                Column('days', css_class='medium-6'),
-            ),
-            Submit('search', 'Search', css_class='small'),
         )
 
     def clean_searchvalue(self):
@@ -189,39 +210,53 @@ class DetentionProfileForm(forms.Form):
         did = self.data.get('detention_id') or self.initial.get('detention_id')
         self.fields['justification'].choices = get_justifications(did)
 
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_class = 'profileDetentionForm custom'
-        self.helper.layout = Layout(
-            'detention_id',
-            'title',
-            'description',
-            Fieldset(
-                'Obligatory',
-                Row(
-                    Column('detention_type', css_class='medium-4'),
-                    Column('justification', css_class='medium-4'),
-                    Column('duration', css_class='medium-4'),
+        self.attrs = set_flat_form_attributes(
+            form_class='profileDetentionForm custom',
+            form_fields=[
+                self['detention_id'],
+                self['title'],
+                self['description'],
+                FlatFieldset(
+                    'Obligatory',
+                    fields=[
+                        FormRow(
+                            fields=[
+                                FormColumn(
+                                    [self['detention_type']], css_classes='medium-4'
+                                ),
+                                FormColumn(
+                                    [self['justification']], css_classes='medium-4'
+                                ),
+                                FormColumn([self['duration']], css_classes='medium-4'),
+                            ]
+                        ),
+                        FormDiv(fields=[self['qvlan']], css_classes='qvlanrow'),
+                    ],
+                    css_class='secondary',
                 ),
-                Div('qvlan', css_class='qvlanrow'),
-                css_class='secondary',
-            ),
-            Fieldset(
-                'Extra options',
-                Row(
-                    Column('keep_closed', css_class='medium-4'),
-                    Column(
-                        CheckBox('exponential', css_class='input-align'),
-                        css_class='medium-4',
-                    ),
-                    Div(css_class='medium-4 columns'),
+                FlatFieldset(
+                    'Extra options',
+                    fields=[
+                        FormRow(
+                            fields=[
+                                FormColumn(
+                                    fields=[self['keep_closed']], css_classes='medium-4'
+                                ),
+                                FormColumn(
+                                    fields=[CheckBox(self['exponential'])],
+                                    css_classes='medium-4',
+                                ),
+                                FormDiv(css_classes='medium-4 columns'),
+                            ]
+                        ),
+                        self['mail'],
+                        self['active_on_vlans'],
+                    ],
+                    css_class='secondary',
                 ),
-                'mail',
-                'active_on_vlans',
-                css_class='secondary',
-            ),
-            CheckBox('active', css_class='input-align'),
-            Submit('submit', 'Save'),
+                CheckBox(self['active']),
+            ],
+            submit_field=SubmitField(value='Save'),
         )
 
 
@@ -232,10 +267,10 @@ class ManualDetentionTargetForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(ManualDetentionTargetForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = 'arnold-manual-detention'
-        self.helper.layout = Layout(
-            'target', Submit('submit', 'Find', css_class='small')
+        self.attrs = set_flat_form_attributes(
+            form_action='arnold-manual-detention',
+            form_fields=[self['target']],
+            submit_field=SubmitField(value='Find', css_classes='small'),
         )
 
     def clean_target(self):
@@ -279,21 +314,24 @@ class ManualDetentionForm(forms.Form):
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            'target',
-            'method',
-            Div('qvlan', css_class='qvlanrow'),
-            'justification',
-            'comment',
-            'days',
-            Submit('submit', 'Detain'),
-        )
-
         super(ManualDetentionForm, self).__init__(*args, **kwargs)
         self.fields['justification'].choices = get_justifications()
         self.fields['qvlan'].choices = get_quarantine_vlans()
+
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                self['target'],
+                self['method'],
+                FormDiv(
+                    fields=[self['qvlan']],
+                    css_classes='qvlanrow',
+                ),
+                self['justification'],
+                self['comment'],
+                self['days'],
+            ],
+            submit_field=SubmitField(value='Detain'),
+        )
 
 
 def get_justifications(profileid=None):

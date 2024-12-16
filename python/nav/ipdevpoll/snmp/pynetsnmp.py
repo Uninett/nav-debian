@@ -17,7 +17,6 @@
 """pynetsnmp compatibility"""
 # pylint: disable=C0103,C0111,W0703,R0903,W0611
 
-from __future__ import absolute_import
 import inspect
 import os
 
@@ -33,6 +32,8 @@ from pynetsnmp import twistedsnmp, netsnmp
 from pynetsnmp.twistedsnmp import snmpprotocol
 
 from . import common
+
+__all__ = ["snmpprotocol", "pynetsnmp_limits_results", "AgentProxy"]
 
 
 def pynetsnmp_limits_results():

@@ -20,7 +20,6 @@ contains ad-hoc serializer methods (self.fields) for API purposes.
 
 """
 
-from __future__ import unicode_literals, absolute_import
 import bisect
 import json
 import functools
@@ -468,10 +467,10 @@ def make_tree(prefixes, family=None, root_ip=None, show_all=None, sort_by="ip"):
     init = []
 
     if root_ip is not None and root_ip:
-        scope = Prefix.objects.get(net_address=root_ip)
-        if scope is not None:
+        try:
+            scope = Prefix.objects.get(net_address=root_ip)
             node = PrefixNode(scope)
-        else:
+        except Prefix.DoesNotExist:
             node = FauxNode(root_ip, "scope", "scope")
         init.append(node)
 

@@ -21,6 +21,8 @@ This section contains reference material for end-users.
    ipdevpoll
    external_authentication
    mailin
+   models-event
+   models-manage
    navstats
    portadmin
    radius
@@ -28,3 +30,4 @@ This section contains reference material for end-users.
    smsd
    snmptrapd
    backend-processes
+   jwt

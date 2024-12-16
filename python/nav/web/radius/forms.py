@@ -20,8 +20,12 @@ from django import forms
 from django.core.validators import validate_ipv4_address
 from django.core.validators import validate_integer as django_validate_integer
 
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import Layout, Row, Column, Submit
+from nav.web.crispyforms import (
+    set_flat_form_attributes,
+    FormColumn,
+    FormRow,
+    SubmitField,
+)
 
 from nav.util import is_valid_cidr
 
@@ -146,17 +150,21 @@ class ErrorLogSearchForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super(ErrorLogSearchForm, self).__init__(*args, **kwargs)
         css_class = 'medium-4'
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_method = 'GET'
-        self.helper.form_class = 'custom'
-        self.helper.layout = Layout(
-            Row(
-                Column('query', css_class=css_class),
-                Column('log_entry_type', css_class=css_class),
-                Column('time', css_class=css_class),
-            ),
-            Submit('send', 'Search', css_class='small'),
+        self.attrs = set_flat_form_attributes(
+            form_method='get',
+            form_class='custom',
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self['query']], css_classes=css_class),
+                        FormColumn(
+                            fields=[self['log_entry_type']], css_classes=css_class
+                        ),
+                        FormColumn(fields=[self['time']], css_classes=css_class),
+                    ]
+                ),
+                SubmitField(name='send', value='Search', css_classes='small'),
+            ],
         )
 
 
@@ -208,18 +216,24 @@ class AccountLogSearchForm(forms.Form):
         super(AccountLogSearchForm, self).__init__(*args, **kwargs)
         css_class_large = 'large-4 medium-6'
         css_class_small = 'large-2 medium-6'
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_method = 'GET'
-        self.helper.form_class = 'custom'
-        self.helper.layout = Layout(
-            Row(
-                Column('query', css_class=css_class_large),
-                Column('time', css_class=css_class_large),
-                Column('port_type', css_class=css_class_small),
-                Column('dns_lookup', css_class=css_class_small),
-            ),
-            Submit('send', 'Search', css_class='small'),
+        self.attrs = set_flat_form_attributes(
+            form_method='get',
+            form_class='custom',
+            form_fields=[
+                FormRow(
+                    fields=[
+                        FormColumn(fields=[self['query']], css_classes=css_class_large),
+                        FormColumn(fields=[self['time']], css_classes=css_class_large),
+                        FormColumn(
+                            fields=[self['port_type']], css_classes=css_class_small
+                        ),
+                        FormColumn(
+                            fields=[self['dns_lookup']], css_classes=css_class_small
+                        ),
+                    ]
+                ),
+                SubmitField(name='send', value='Search', css_classes='small'),
+            ],
         )
 
 
@@ -239,9 +253,8 @@ class AccountChartsForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(AccountChartsForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_method = 'GET'
-        self.helper.layout = Layout(
-            'days', 'charts', Submit('send', 'Show me', css_class='small')
+        self.attrs = set_flat_form_attributes(
+            form_method='get',
+            form_fields=[self['days'], self['charts']],
+            submit_field=SubmitField('send', 'Show me', css_classes='small'),
         )

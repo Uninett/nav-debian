@@ -31,7 +31,7 @@ from nav.models.profiles import Account, AccountGroup, Privilege
 from nav.models.manage import Organization
 from nav.models.api import APIToken
 
-from nav.web.auth import sudo
+from nav.web.auth.sudo import sudo
 from nav.web.useradmin import forms
 
 
@@ -59,13 +59,18 @@ def account_detail(request, account_id=None):
         account = None
 
     old_account = copy.deepcopy(account)
-    account_form = forms.AccountForm(instance=account)
+    external_authentication = getattr(account, "ext_sync", False)
+    if external_authentication:
+        account_form_class = forms.ExternalAccountForm
+    else:
+        account_form_class = forms.AccountForm
+    account_form = account_form_class(instance=account)
     org_form = forms.OrganizationAddForm(account)
     group_form = forms.GroupAddForm(account)
 
     if request.method == 'POST':
         if 'submit_account' in request.POST:
-            account_form = forms.AccountForm(request.POST, instance=account)
+            account_form = account_form_class(request.POST, instance=account)
             if account_form.is_valid():
                 return save_account(request, account_form, old_account)
 
@@ -198,12 +203,12 @@ def save_account_group(request, account, group_form):
         messages.error(request, 'Default user may not be added to "%s" group.' % group)
     else:
         try:
-            account.accountgroup_set.get(id=group.id)
+            account.groups.get(id=group.id)
             messages.warning(
                 request, 'Group was not added as it has already ' 'been added.'
             )
         except AccountGroup.DoesNotExist:
-            account.accountgroup_set.add(group)
+            account.groups.add(group)
             messages.success(request, 'Added "%s" to group "%s"' % (account, group))
             log_add_account_to_group(request, group, account)
 
@@ -328,7 +333,7 @@ def account_group_remove(request, account_id, group_id, caller='account'):
         return list_redirect
 
     try:
-        group = account.accountgroup_set.get(id=group_id)
+        group = account.groups.get(id=group_id)
     except AccountGroup.DoesNotExist:
         messages.warning(
             request,
@@ -350,7 +355,7 @@ def account_group_remove(request, account_id, group_id, caller='account'):
         return detail_redirect
 
     if request.method == 'POST':
-        account.accountgroup_set.remove(group)
+        account.groups.remove(group)
         messages.success(request, '%s has been removed from %s.' % (account, group))
 
         LogEntry.add_log_entry(
@@ -396,7 +401,6 @@ def group_detail(request, group_id=None):
     privilege_form = forms.PrivilegeForm()
 
     if request.method == 'POST':
-
         if 'submit_group' in request.POST:
             group_form = forms.AccountGroupForm(request.POST, instance=group)
 
@@ -416,12 +420,12 @@ def group_detail(request, group_id=None):
                 target = privilege_form.cleaned_data['target']
 
                 try:
-                    group.privilege_set.get(type=message_type, target=target)
+                    group.privileges.get(type=message_type, target=target)
                     messages.warning(
                         request, 'Privilege was not added as it ' 'already exists.'
                     )
                 except Privilege.DoesNotExist:
-                    group.privilege_set.create(type=message_type, target=target)
+                    group.privileges.create(type=message_type, target=target)
                     messages.success(request, 'Privilege has been added.')
 
                 return HttpResponseRedirect(
@@ -504,7 +508,7 @@ def group_privilege_remove(request, group_id, privilege_id):
         return HttpResponseRedirect(reverse('useradmin-group_list'))
 
     try:
-        privilege = group.privilege_set.get(id=privilege_id)
+        privilege = group.privileges.get(id=privilege_id)
     except Privilege.DoesNotExist:
         messages.warning(
             request,

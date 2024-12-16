@@ -1,5 +1,6 @@
 #
 # Copyright (C) 2011 Uninett AS
+# Copyright (C) 2024 Sikt
 #
 # This file is part of Network Administration Visualized (NAV).
 #
@@ -15,32 +16,39 @@
 #
 
 import logging
-
 import time
-from datetime import datetime, date
+from datetime import datetime
 
-from django.db import transaction, connection
+from django.db import connection, transaction
 from django.db.models import Count, Q
-from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+import nav.maintengine
 from nav.django.utils import get_account
 from nav.models.manage import Netbox
-from nav.models.msgmaint import MaintenanceTask, MaintenanceComponent
-from nav.web.message import new_message, Messages
+from nav.models.msgmaint import MaintenanceComponent, MaintenanceTask
+from nav.web.maintenance.forms import (
+    MaintenanceAddSingleNetbox,
+    MaintenanceCalendarForm,
+    MaintenanceTaskForm,
+)
+from nav.web.maintenance.utils import (
+    NAVPATH,
+    COMPONENTS_WITH_INTEGER_PK,
+    TITLE,
+    MaintenanceCalendar,
+    component_to_trail,
+    get_component_keys,
+    get_components,
+    get_components_from_keydict,
+    infodict_by_state,
+    task_form_initial,
+)
+from nav.web.message import Messages, new_message
 from nav.web.quickselect import QuickSelect
-
-from nav.web.maintenance.utils import components_for_keys
-from nav.web.maintenance.utils import task_component_trails
-from nav.web.maintenance.utils import get_component_keys, PRIMARY_KEY_INTEGER
-from nav.web.maintenance.utils import structure_component_data
-from nav.web.maintenance.utils import task_form_initial, infodict_by_state
-from nav.web.maintenance.utils import MaintenanceCalendar, NAVPATH, TITLE
-from nav.web.maintenance.forms import MaintenanceTaskForm, MaintenanceCalendarForm
-from nav.web.maintenance.forms import MaintenanceAddSingleNetbox
-import nav.maintengine
 
 INFINITY = datetime.max
 
@@ -104,7 +112,7 @@ def active(request):
             state__in=(MaintenanceTask.STATE_SCHEDULED, MaintenanceTask.STATE_ACTIVE),
         )
         .order_by('-start_time', '-end_time')
-        .annotate(component_count=Count('maintenancecomponent'))
+        .annotate(component_count=Count('maintenance_components'))
     )
     for task in tasks:
         # Tasks that have only one component should show a link
@@ -147,7 +155,7 @@ def planned(request):
             state__in=(MaintenanceTask.STATE_SCHEDULED, MaintenanceTask.STATE_ACTIVE),
         )
         .order_by('-start_time', '-end_time')
-        .annotate(component_count=Count('maintenancecomponent'))
+        .annotate(component_count=Count('maintenance_components'))
     )
     return render(
         request,
@@ -172,7 +180,7 @@ def historic(request):
             )
         )
         .order_by('-start_time', '-end_time')
-        .annotate(component_count=Count('maintenancecomponent'))
+        .annotate(component_count=Count('maintenance_components'))
     )
     return render(
         request,
@@ -189,25 +197,8 @@ def historic(request):
 
 def view(request, task_id):
     task = get_object_or_404(MaintenanceTask, pk=task_id)
-    maint_components = MaintenanceComponent.objects.filter(
-        maintenance_task=task.id
-    ).values_list('key', 'value')
-
-    component_keys = {
-        'service': [],
-        'netbox': [],
-        'room': [],
-        'location': [],
-        'netboxgroup': [],
-    }
-    for key, value in maint_components:
-        if key in PRIMARY_KEY_INTEGER:
-            value = int(value)
-        component_keys[key].append(value)
-
-    component_data = components_for_keys(component_keys)
-    components = structure_component_data(component_data)
-    component_trail = task_component_trails(component_keys, components)
+    components = get_components(task)
+    component_trail = [component_to_trail(c) for c in components]
 
     heading = 'Task "%s"' % task.description
     infodict = infodict_by_state(task)
@@ -252,42 +243,37 @@ def cancel(request, task_id):
 def edit(request, task_id=None, start_time=None, **_):
     account = get_account(request)
     quickselect = QuickSelect(service=True)
-    component_trail = None
-    component_keys = None
-    task = None
+    components = task = None
+    component_keys_errors = []
+    component_keys = {}
 
     if task_id:
         task = get_object_or_404(MaintenanceTask, pk=task_id)
     task_form = MaintenanceTaskForm(initial=task_form_initial(task, start_time))
 
     if request.method == 'POST':
-        component_keys = get_component_keys(request.POST)
+        component_keys, component_keys_errors = get_component_keys(request.POST)
     elif task:
-        component_keys = {
-            'service': [],
-            'netbox': [],
-            'room': [],
-            'location': [],
-            'netboxgroup': [],
-        }
-        for key, value in task.maintenancecomponent_set.values_list('key', 'value'):
-            if key in PRIMARY_KEY_INTEGER:
-                value = int(value)
-            component_keys[key].append(value)
+        components = get_components(task)
     else:
-        component_keys = get_component_keys(request.GET)
+        component_keys, component_keys_errors = get_component_keys(request.GET)
 
     if component_keys:
-        component_data = components_for_keys(component_keys)
-        components = structure_component_data(component_data)
-        component_trail = task_component_trails(component_keys, components)
+        components, component_data_errors = get_components_from_keydict(component_keys)
+        for error in component_data_errors:
+            new_message(request, error, Messages.ERROR)
+
+    component_trail = [component_to_trail(c) for c in components]
+
+    for error in component_keys_errors:
+        new_message(request, error, Messages.ERROR)
 
     if request.method == 'POST':
         if 'save' in request.POST:
             task_form = MaintenanceTaskForm(request.POST)
-            if not any(component_data.values()):
+            if component_keys and not components:
                 new_message(request, "No components selected.", Messages.ERROR)
-            elif task_form.is_valid():
+            elif not component_keys_errors and task_form.is_valid():
                 start_time = task_form.cleaned_data['start_time']
                 end_time = task_form.cleaned_data['end_time']
                 no_end_time = task_form.cleaned_data['no_end_time']
@@ -317,14 +303,18 @@ def edit(request, task_id=None, start_time=None, **_):
                     sql = """DELETE FROM maint_component
                                 WHERE maint_taskid = %s"""
                     cursor.execute(sql, (new_task.id,))
-                for key in component_data:
-                    for component in component_data[key]:
-                        task_component = MaintenanceComponent(
-                            maintenance_task=new_task,
-                            key=key,
-                            value="%s" % component['id'],
-                        )
-                        task_component.save()
+                for component in components:
+                    table = component._meta.db_table
+                    descr = (
+                        str(component) if table in COMPONENTS_WITH_INTEGER_PK else None
+                    )
+                    task_component = MaintenanceComponent(
+                        maintenance_task=new_task,
+                        key=table,
+                        value=component.pk,
+                        description=descr,
+                    )
+                    task_component.save()
                 new_message(
                     request, "Saved task %s" % new_task.description, Messages.SUCCESS
                 )

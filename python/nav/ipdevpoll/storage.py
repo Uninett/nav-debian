@@ -264,10 +264,7 @@ class Shadow(object, metaclass=MetaShadow):
         dependencies = []
         for field in cls._meta.fields:
             if issubclass(field.__class__, django.db.models.fields.related.ForeignKey):
-                try:
-                    django_dependency = field.remote_field.model
-                except AttributeError:  # Django <= 1.8
-                    django_dependency = field.rel.to
+                django_dependency = field.remote_field.model
 
                 shadow_dependency = MetaShadow.shadowed_classes.get(
                     django_dependency, None
@@ -382,7 +379,7 @@ class Shadow(object, metaclass=MetaShadow):
         for lookup in lookups:
             kwargs = None
             if isinstance(lookup, tuple):
-                kwargs = dict(zip(lookup, [getattr(self, l) for l in lookup]))
+                kwargs = dict(zip(lookup, [getattr(self, field) for field in lookup]))
             else:
                 value = getattr(self, lookup)
                 if value is not None:

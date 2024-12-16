@@ -15,7 +15,6 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Models for racks and rack items"""
-from __future__ import unicode_literals
 
 import json
 from itertools import chain
@@ -56,7 +55,9 @@ class Rack(models.Model):
     objects = RackManager()
 
     id = models.AutoField(primary_key=True, db_column='rackid')
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, db_column='roomid')
+    room = models.ForeignKey(
+        Room, on_delete=models.CASCADE, db_column='roomid', related_name="racks"
+    )
     rackname = VarcharField(blank=True)
     ordering = models.IntegerField()
     _configuration = models.JSONField(

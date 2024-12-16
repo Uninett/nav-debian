@@ -32,6 +32,7 @@ from nav.event2 import EventFactory
 from nav.ipdevpoll.storage import MetaShadow, Shadow, shadowify
 from nav.ipdevpoll import descrparsers
 from nav.ipdevpoll import utils
+from nav.oids import get_enterprise_id
 
 from .netbox import Netbox
 from .interface import Interface, InterfaceStack, InterfaceAggregate
@@ -41,6 +42,38 @@ from .adjacency import AdjacencyCandidate, UnrecognizedNeighbor
 from .entity import NetboxEntity
 from .prefix import Prefix
 from .gwpeers import GatewayPeerSession
+
+__all__ = [
+    "NetboxType",
+    "NetboxInfo",
+    "Vendor",
+    "Module",
+    "Device",
+    "Location",
+    "Room",
+    "Category",
+    "Organization",
+    "Usage",
+    "Vlan",
+    "GwPortPrefix",
+    "NetType",
+    "SwPortVlan",
+    "Arp",
+    "SwPortAllowedVlan",
+    "Sensor",
+    "PowerSupplyOrFan",
+    "POEPort",
+    "POEGroup",
+    "Interface",
+    "InterfaceStack",
+    "InterfaceAggregate",
+    "SwPortBlocked",
+    "Cam",
+    "AdjacencyCandidate",
+    "UnrecognizedNeighbor",
+    "NetboxEntity",
+    "GatewayPeerSession",
+]
 
 # Shadow classes.  Not all of these will be used to store data, but
 # may be used to retrieve and cache existing database records.
@@ -54,6 +87,7 @@ ALERT_TYPE_MAPPING = {
     "software_version": "deviceSwUpgrade",
     "firmware_version": "deviceFwUpgrade",
 }
+device_event = EventFactory('ipdevpoll', 'eventEngine', 'deviceState')
 
 
 class NetboxType(Shadow):
@@ -72,11 +106,10 @@ class NetboxType(Shadow):
                   otherwise.
 
         """
-        prefix = u"1.3.6.1.4.1."
-        if self.sysobjectid.startswith(prefix):
-            specific = self.sysobjectid[len(prefix) :]
-            enterprise = specific.split('.')[0]
-            return int(enterprise)
+        try:
+            return get_enterprise_id(self.sysobjectid)
+        except ValueError:
+            return None
 
 
 class NetboxInfo(Shadow):
@@ -113,6 +146,10 @@ class Module(Shadow):
     __lookups__ = [('netbox', 'device'), ('netbox', 'name')]
     event = EventFactory('ipdevpoll', 'eventEngine', 'moduleState')
 
+    def __init__(self, *args, **kwargs):
+        super(Module, self).__init__(*args, **kwargs)
+        self.is_new = None
+
     @classmethod
     def prepare_for_save(cls, containers):
         cls._resolve_actual_duplicate_names(containers)
@@ -148,6 +185,7 @@ class Module(Shadow):
         self._fix_binary_garbage()
         self._fix_missing_name()
         self._resolve_duplicate_names()
+        self.is_new = not self.get_existing_model()
 
     def _fix_binary_garbage(self):
         """Fixes string attributes that appear as binary garbage."""
@@ -238,9 +276,28 @@ class Module(Shadow):
             for module in reappeared_modules:
                 cls.event.end(module.device, module.netbox, module.id).save()
 
+    def cleanup(self, containers):
+        self._handle_new_module()
+
+    def _handle_new_module(self):
+        if not self.is_new:
+            return
+        module = self.get_existing_model()
+        # If a module is also registered as a chassis, then avoid duplicate
+        # events and let NetboxEntity handle it. This should not really happen,
+        # but its possible if the standard MIBs detects something as a module
+        # and proprietary MIBs detect the same thing as a chassis.
+        if not module.get_entity().is_chassis() and module.device.serial:
+            device_event.notify(
+                device=module.device,
+                netbox=module.netbox,
+                alert_type='deviceNewModule',
+            ).save()
+
     @classmethod
     def cleanup_after_save(cls, containers):
         cls._handle_missing_modules(containers)
+        super(Module, cls).cleanup_after_save(containers)
 
 
 class Device(Shadow):
@@ -305,8 +362,8 @@ class Device(Shadow):
                 netbox=containers.get(None, Netbox).get_existing_model(),
                 alert_type=ALERT_TYPE_MAPPING[alert_type],
                 varmap={
-                    "old_version": old_version,
-                    "new_version": new_version,
+                    "old_version": old_version if old_version else "N/A",
+                    "new_version": new_version if new_version else "N/A",
                 },
             ).save()
 
@@ -542,7 +599,7 @@ class Vlan(Shadow):
 
         """
         address_filter = Q(
-            interface__gwportprefix__prefix__net_address=str(net_address)
+            interfaces__gwport_prefixes__prefix__net_address=str(net_address)
         )
         if include_netboxid:
             address_filter = address_filter | Q(id=include_netboxid)
@@ -754,15 +811,38 @@ class PowerSupplyOrFan(Shadow):
     __shadowclass__ = manage.PowerSupplyOrFan
     __lookups__ = [('netbox', 'name')]
 
+    def __init__(self, *args, **kwargs):
+        super(PowerSupplyOrFan, self).__init__(*args, **kwargs)
+        self.is_new = None
+
     def prepare(self, containers):
-        existing = self.get_existing_model(containers)
+        self.is_new = not self.get_existing_model()
         # Set a default value of UNKNOWN if this is a new object
-        if not existing and self.up is None:
+        if self.is_new and self.up is None:
             self.up = manage.PowerSupplyOrFan.STATE_UNKNOWN
+
+    def cleanup(self, containers):
+        self._handle_new_psu_or_fan()
+
+    def _handle_new_psu_or_fan(self):
+        if not self.is_new:
+            return
+        psufan = self.get_existing_model()
+        # Device not existing seems to be an issue exclusive to PowerSupplyOrFan objects
+        try:
+            if psufan.device.serial:
+                device_event.notify(
+                    device=psufan.device,
+                    netbox=psufan.netbox,
+                    alert_type="deviceNewPsu" if psufan.is_psu() else "deviceNewFan",
+                ).save()
+        except manage.Device.DoesNotExist:
+            return
 
     @classmethod
     def cleanup_after_save(cls, containers):
         cls._delete_missing_psus_and_fans(containers)
+        super(PowerSupplyOrFan, cls).cleanup_after_save(containers)
 
     @classmethod
     def _delete_missing_psus_and_fans(cls, containers):
@@ -779,6 +859,7 @@ class PowerSupplyOrFan(Shadow):
             netbox.sysname,
             ", ".join(psu_and_fan_names),
         )
+        cls._alert_missing_devices_are_deleted(missing_psus_and_fans)
         missing_psus_and_fans.delete()
 
     @classmethod
@@ -789,6 +870,23 @@ class PowerSupplyOrFan(Shadow):
             netbox=netbox.id
         ).exclude(pk__in=found_psus_and_fans_pks)
         return missing_psus_and_fans
+
+    @classmethod
+    def _alert_missing_devices_are_deleted(cls, deleted_psus_and_fans):
+        for psufan in deleted_psus_and_fans:
+            try:
+                if psufan.device.serial:
+                    device_event.notify(
+                        device=psufan.device,
+                        netbox=psufan.netbox,
+                        alert_type=(
+                            "deviceDeletedPsu"
+                            if psufan.is_psu()
+                            else "deviceDeletedFan"
+                        ),
+                    ).save()
+            except manage.Device.DoesNotExist:
+                pass
 
 
 class POEPort(Shadow):
@@ -819,7 +917,7 @@ class POEGroup(Shadow):
                 netbox=self.netbox.id, index=self.phy_index
             ).first()
             if entity and entity.device:
-                self.module = entity.device.module_set.first()
+                self.module = entity.device.modules.first()
         vendor = self.netbox.type.vendor.id if self.netbox.type else ''
         if vendor == 'hp' and not self.module:
             module = manage.Module.objects.filter(

@@ -28,7 +28,6 @@ from nav.ipdevpoll import Plugin, shadows
 from nav.ipdevpoll.plugins.modules import get_ignored_serials
 from nav.ipdevpoll.timestamps import TimestampChecker
 from nav.models import manage
-from nav.oids import OID
 
 INFO_VAR_NAME = 'entityphysical'
 
@@ -51,7 +50,8 @@ class Entity(Plugin):
     @defer.inlineCallbacks
     def handle(self):
         self._logger.debug("Collecting physical entity data")
-        need_to_collect = yield self._need_to_collect()
+        # Temporarily disabled due to consistency issues with some vendors:
+        # need_to_collect = yield self._need_to_collect()
         # if need_to_collect:
         if True:
             physical_table = yield self.entitymib.get_entity_physical_table()
@@ -72,7 +72,8 @@ class Entity(Plugin):
         # be able to look up all entities using entPhysicalIndex
         entities = EntityTable(result)
         containers = [
-            self._container_from_entity(entity) for entity in entities.values()
+            self._container_from_entity(entity)
+            for _, entity in sorted(entities.items())
         ]
         self._fix_hierarchy(containers)
 
@@ -149,7 +150,9 @@ class Entity(Plugin):
             for key in ('hardware', 'firmware', 'software'):
                 val = getattr(container, key + '_revision')
                 if val:
-                    setattr(device, key + '_version', val)
+                    version = getattr(device, key + '_version', None)
+                    if not version:
+                        setattr(device, key + '_version', val)
             device.active = True
             container.device = device
 

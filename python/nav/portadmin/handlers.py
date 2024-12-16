@@ -15,14 +15,26 @@
 #
 """Interface definition for PortAdmin management handlers"""
 import time
-from typing import List, Tuple, Dict, Any, Sequence
+from typing import Any, Optional, Sequence, Union
 import logging
+from dataclasses import dataclass
 
 from nav.models import manage
 from nav.portadmin.vlan import FantasyVlan
 
 
 _logger = logging.getLogger(__name__)
+
+
+@dataclass
+class PoeState:
+    """Class for defining PoE states.
+    `state` is the value used on the device itself.
+    `name` is a human readable name for the state
+    """
+
+    state: Union[str, int]
+    name: str
 
 
 class ManagementHandler:
@@ -33,8 +45,15 @@ class ManagementHandler:
     a class.
     """
 
+    VENDOR = None
+
     def __init__(self, netbox: manage.Netbox, **kwargs):
         self.netbox = netbox
+
+    @classmethod
+    def can_handle(cls, netbox: manage.Netbox) -> bool:
+        """Returns True if this handler can handle the given netbox"""
+        return netbox.type and netbox.type.get_enterprise_id() == cls.VENDOR
 
     def set_interface_description(self, interface: manage.Interface, description: str):
         """Configures a single interface's description, AKA the ifalias value"""
@@ -46,7 +65,7 @@ class ManagementHandler:
 
     def get_interfaces(
         self, interfaces: Sequence[manage.Interface] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retrieves running configuration switch ports on the device.
 
         :param interfaces: Optional list of interfaces to filter for, as fetching
@@ -128,7 +147,7 @@ class ManagementHandler:
 
     def _filter_oper_up_interfaces(
         self, interfaces: Sequence[manage.Interface]
-    ) -> List[manage.Interface]:
+    ) -> list[manage.Interface]:
         """Filters a list of Interface objects, returning only those that are
         currently operationally up.
 
@@ -171,7 +190,7 @@ class ManagementHandler:
         """
         raise NotImplementedError
 
-    def get_netbox_vlans(self) -> List[FantasyVlan]:
+    def get_netbox_vlans(self) -> list[FantasyVlan]:
         """Returns a list of FantasyVlan objects representing the enabled VLANs on
         this netbox.
 
@@ -181,7 +200,7 @@ class ManagementHandler:
         """
         raise NotImplementedError
 
-    def get_netbox_vlan_tags(self) -> List[int]:
+    def get_netbox_vlan_tags(self) -> list[int]:
         """Returns a list of enabled VLANs on this netbox.
 
         :returns: A list of VLAN tags (integers)
@@ -220,7 +239,7 @@ class ManagementHandler:
         """Should not be implemented on anything else than Cisco"""
         raise NotImplementedError
 
-    def get_native_and_trunked_vlans(self, interface) -> Tuple[int, List[int]]:
+    def get_native_and_trunked_vlans(self, interface) -> tuple[int, list[int]]:
         """Get the trunked vlans on this interface
 
         :returns: (native_vlan_tag, list_of_trunked_vlan_tags)
@@ -252,7 +271,7 @@ class ManagementHandler:
         """Returns True if 802.1X authentication is is enabled on interface"""
         raise NotImplementedError
 
-    def get_dot1x_enabled_interfaces(self) -> Dict[str, bool]:
+    def get_dot1x_enabled_interfaces(self) -> dict[str, bool]:
         """Fetches the 802.1X enabled state of every interface.
 
         :returns: A dict mapping each interface name to a "802.1X enabled" value
@@ -278,6 +297,33 @@ class ManagementHandler:
             return False
         return True
 
+    def get_poe_state_options(self) -> Sequence[PoeState]:
+        """Returns the available options for enabling/disabling PoE on this netbox"""
+        raise NotImplementedError
+
+    def set_poe_state(self, interface: manage.Interface, state: PoeState):
+        """Set state for enabling/disabling PoE on this interface.
+        Available options should be retrieved using `get_poe_state_options`
+        """
+        raise NotImplementedError
+
+    def get_poe_states(
+        self, interfaces: Optional[Sequence[manage.Interface]] = None
+    ) -> dict[str, Optional[PoeState]]:
+        """Retrieves current PoE state for interfaces on this device.
+
+        :param interfaces: Optional sequence of interfaces to filter for, as fetching
+                           data for all interfaces may be a waste of time if only a
+                           single interface is needed. If this parameter is omitted,
+                           the default behavior is to filter on all Interface objects
+                           registered for this device.
+        :returns: A dict mapping interfaces to their discovered PoE state.
+                  The key matches the `ifname` attribute for the related
+                  Interface object.
+                  The value will be None if the interface does not support PoE.
+        """
+        raise NotImplementedError
+
 
 class ManagementError(Exception):
     """Base exception class for device management errors"""
@@ -299,3 +345,17 @@ class ProtocolError(ManagementError):
     """Raised when some non-categorized error in the underlying protocol occurred
     during communication
     """
+
+
+class POENotSupportedError(ManagementError):
+    """Raised when an interface that does not support PoE is used in a context
+    where PoE support is expected
+    """
+
+
+class POEStateNotSupportedError(ManagementError):
+    """Raised when a PoE state is detected in a context where it is not supported"""
+
+
+class XMLParseError(ManagementError):
+    """Raised when failing to parse XML"""

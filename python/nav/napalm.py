@@ -16,13 +16,14 @@
 """This module contains NAPALM connectivity interfaces for NAV"""
 import weakref
 from tempfile import NamedTemporaryFile
-from typing import TypeVar, Type
+from typing import TypeVar
 import logging
 import napalm
 from napalm.base import NetworkDriver
 
 from nav.models import manage
 
+DEFAULT_TIMEOUT_SECONDS = 60
 
 Host = TypeVar("Host", str, manage.Netbox)
 _logger = logging.getLogger(__name__)
@@ -33,7 +34,10 @@ def connect(host: Host, profile: manage.ManagementProfile) -> NetworkDriver:
     driver = get_driver(profile)
     config = profile.configuration
     hostname = host if not isinstance(host, manage.Netbox) else host.ip
-    optional_args = {"config_lock": True, "lock_disable": True}
+    optional_args = {
+        "config_lock": True,
+        "lock_disable": True,
+    }
     key_file = _write_key_to_temporary_file(config, optional_args)
 
     try:
@@ -41,6 +45,7 @@ def connect(host: Host, profile: manage.ManagementProfile) -> NetworkDriver:
             hostname=hostname,
             username=config.get("username"),
             password=config.get("password"),
+            timeout=config.get("timeout") or DEFAULT_TIMEOUT_SECONDS,
             optional_args=optional_args,
         )
         # Let temporary file live as long as the device connection exists
@@ -66,7 +71,7 @@ def _write_key_to_temporary_file(config: dict, optional_args: dict):
 
 def get_driver(
     profile: manage.ManagementProfile,
-) -> Type[napalm.base.base.NetworkDriver]:
+) -> type[napalm.base.base.NetworkDriver]:
     """Returns a NAPALM NetworkDriver based on a management profile config"""
     if profile.protocol != profile.PROTOCOL_NAPALM:
         raise NapalmError("Management profile is not a NAPALM profile")

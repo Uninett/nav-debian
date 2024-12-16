@@ -52,7 +52,10 @@ class Message(models.Model):
         null=True,
     )
     maintenance_tasks = models.ManyToManyField(
-        'MaintenanceTask', through='MessageToMaintenanceTask', blank=True
+        'MaintenanceTask',
+        through='MessageToMaintenanceTask',
+        blank=True,
+        related_name="messages",
     )
 
     class Meta(object):
@@ -137,7 +140,7 @@ class MaintenanceTask(models.Model):
         """
         Returns the list of model objects involved in this task
         """
-        return [c.component for c in self.maintenancecomponent_set.all()]
+        return [c.component for c in self.maintenance_components.all()]
 
     def get_event_subjects(self):
         """
@@ -147,7 +150,7 @@ class MaintenanceTask(models.Model):
         subjects = []
         for component in self.get_components():
             if isinstance(component, (manage.Room, manage.NetboxGroup)):
-                subjects.extend(component.netbox_set.all())
+                subjects.extend(component.netboxes.all())
             elif isinstance(component, manage.Location):
                 for location in component.get_descendants(include_self=True):
                     subjects.extend(
@@ -171,10 +174,14 @@ class MaintenanceComponent(models.Model):
 
     id = models.AutoField(primary_key=True)  # Serial for faking primary key
     maintenance_task = models.ForeignKey(
-        MaintenanceTask, on_delete=models.CASCADE, db_column='maint_taskid'
+        MaintenanceTask,
+        on_delete=models.CASCADE,
+        db_column='maint_taskid',
+        related_name="maintenance_components",
     )
     key = VarcharField()
     value = VarcharField()
+    description = VarcharField(null=True, blank=True)
     component = LegacyGenericForeignKey('key', 'value')
 
     class Meta(object):
@@ -183,6 +190,10 @@ class MaintenanceComponent(models.Model):
 
     def __str__(self):
         return u'%s=%s' % (self.key, self.value)
+
+    def get_component_class(self) -> models.Model:
+        """Returns a Model class based on the database table name stored in key"""
+        return LegacyGenericForeignKey.get_model_class(self.key)
 
 
 class MessageToMaintenanceTask(models.Model):

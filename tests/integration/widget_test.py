@@ -39,6 +39,20 @@ def test_get_navlet_should_return_200(client, admin_navlet):
     assert response.status_code == 200
 
 
+def test_get_pdu_navlet_in_edit_mode_should_return_200(client, admin_account):
+    """Tests a GET request against the pdu navlet in edit mode"""
+    pdu_navlet = AccountNavlet.objects.create(
+        navlet="nav.web.navlets.pdu.PduWidget",
+        account=admin_account,
+    )
+    url = reverse('get-user-navlet', kwargs={'navlet_id': pdu_navlet.id}) + "?mode=EDIT"
+    print(
+        "Testing admin navlet instance of {!r} at {!r}".format(pdu_navlet.navlet, url)
+    )
+    response = client.get(url)
+    assert response.status_code == 200
+
+
 #
 # Fixtures
 #

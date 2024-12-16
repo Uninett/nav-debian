@@ -19,20 +19,16 @@ from socket import error as SocketError
 
 from django import forms
 from django.db.models import Q
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import (
-    Layout,
-    Row,
-    Column,
-    Submit,
-    Fieldset,
-    Field,
-    Div,
-    HTML,
-)
 
 from nav.django.forms import HStoreField
-from nav.web.crispyforms import LabelSubmit, NavButton
+from nav.web.crispyforms import (
+    FlatFieldset,
+    FormColumn,
+    FormRow,
+    SubmitField,
+    set_flat_form_attributes,
+)
+
 from nav.models.manage import Room, Category, Organization, Netbox, ManagementProfile
 from nav.web.seeddb.utils.edit import (
     resolve_ip_and_sysname,
@@ -113,68 +109,8 @@ class NetboxModelForm(forms.ModelForm):
             # Set the inital value of the function field
             self.fields['function'].initial = self.instance.get_function()
 
-        css_class = 'large-4'
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_method = 'POST'
-        self.helper.form_id = 'seeddb-netbox-form'
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row(
-                Column(
-                    Fieldset(
-                        'Inventory',
-                        'ip',
-                        Div(id='verify-address-feedback'),
-                        'room',
-                        'category',
-                        'organization',
-                    ),
-                    css_class=css_class,
-                ),
-                Column(
-                    Fieldset(
-                        'Management profiles',
-                        Field('profiles', css_class='select2'),
-                        NavButton(
-                            'check_connectivity',
-                            'Check connectivity',
-                            css_class='check_connectivity',
-                        ),
-                    ),
-                    Fieldset(
-                        'Collected info',
-                        Div(
-                            'sysname',
-                            'type',
-                            css_class='hide',
-                            css_id='real_collected_fields',
-                        ),
-                    ),
-                    css_class=css_class,
-                ),
-                Column(
-                    Fieldset(
-                        'Meta information',
-                        'function',
-                        Field('groups', css_class='select2'),
-                        'data',
-                        HTML(
-                            "<a class='advanced-toggle'><i class='fa fa-caret-square-o-right'>&nbsp;</i>Advanced options</a>"
-                        ),
-                        Div(
-                            HTML(
-                                '<small class="alert-box">NB: An IP Device cannot both have a master and have virtual instances</small>'
-                            ),
-                            'master',
-                            'virtual_instance',
-                            css_class='advanced',
-                        ),
-                    ),
-                    css_class=css_class,
-                ),
-            ),
-        )
+        self.fields['profiles'].widget.attrs.update({'class': 'select2'})
+        self.fields['groups'].widget.attrs.update({'class': 'select2'})
 
     def create_instance_query(self, masters):
         """Creates query for virtual instance multiselect"""
@@ -204,7 +140,7 @@ class NetboxModelForm(forms.ModelForm):
         name = self.cleaned_data['ip'].strip()
         try:
             ip, _ = resolve_ip_and_sysname(name)
-        except SocketError:
+        except (SocketError, UnicodeError):
             raise forms.ValidationError("Could not resolve name %s" % name)
         return str(ip)
 
@@ -235,7 +171,7 @@ class NetboxModelForm(forms.ModelForm):
             self._errors['profiles'] = self.error_class(
                 ["Category %s requires a management profile." % cat.id]
             )
-            del cleaned_data['profiles']
+            cleaned_data.pop('profiles', None)
 
         return cleaned_data
 
@@ -282,25 +218,46 @@ class NetboxFilterForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(NetboxFilterForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = ''
-        self.helper.form_method = 'GET'
-        self.helper.form_class = 'custom'
 
-        self.helper.layout = Layout(
-            Fieldset(
-                'Filter devices',
-                Row(
-                    Column('category', css_class='medium-3'),
-                    Column('room', css_class='medium-3'),
-                    Column('organization', css_class='medium-3'),
-                    Column('profile', css_class='medium-3'),
-                    Column(
-                        LabelSubmit('submit', 'Filter', css_class='postfix'),
-                        css_class='medium-3',
-                    ),
-                ),
-            )
+        common_class = "medium-3"
+
+        self.attrs = set_flat_form_attributes(
+            form_method="get",
+            form_class="custom",
+            form_fields=[
+                FlatFieldset(
+                    "Filter devices",
+                    fields=[
+                        FormRow(
+                            fields=[
+                                FormColumn(
+                                    fields=[self["category"]], css_classes=common_class
+                                ),
+                                FormColumn(
+                                    fields=[self["room"]], css_classes=common_class
+                                ),
+                                FormColumn(
+                                    fields=[self["organization"]],
+                                    css_classes=common_class,
+                                ),
+                                FormColumn(
+                                    fields=[self["profile"]], css_classes=common_class
+                                ),
+                                FormColumn(
+                                    fields=[
+                                        SubmitField(
+                                            value="Filter",
+                                            css_classes="postfix",
+                                            has_empty_label=True,
+                                        )
+                                    ],
+                                    css_classes=common_class,
+                                ),
+                            ]
+                        )
+                    ],
+                )
+            ],
         )
 
     @staticmethod

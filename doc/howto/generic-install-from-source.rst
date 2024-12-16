@@ -5,6 +5,8 @@
 This is a generic guide to installing NAV from source code on a \*NIX flavored
 operating system. The specifics of how to install NAV's dependencies, such as
 :xref:`PostgreSQL` or :xref:`Graphite` will be entirely up to you and your choice of OS.
+Note that building NAV from source will also require Node.js and npm to be installed
+in order to manage frontend assets.
 
 
 Dependencies
@@ -18,8 +20,13 @@ Build requirements
 
 To build NAV, you need at least the following:
 
- * Python >= 3.7.0
+ * Python >= 3.9.0
  * Sphinx >= 1.0 (for building this documentation)
+
+Additionally to build frontend assets (like CSS and JS), you will need:
+
+ * Node.js >= 14.0
+ * npm >= 6.0
 
 Runtime requirements
 --------------------
@@ -27,26 +34,30 @@ Runtime requirements
 To run NAV, these software packages are required:
 
  * Apache2 + mod_wsgi (or, really, any web server that supports the WSGI interface)
- * PostgreSQL >= 9.6 (With the ``hstore`` extension available)
+ * PostgreSQL >= 13 (With the ``hstore`` extension available)
  * :xref:`Graphite`
- * Python >= 3.7.0
+ * Python >= 3.9.0
  * nbtscan = 1.5.1
  * dhcping (only needed if using DHCP service monitor)
 
 PostgreSQL and Graphite are services that do not necessarily need to run on
 the same server as NAV.
 
-The required Python modules can be installed either from your OS package
-manager, or from the Python Package Index (PyPI_) using the regular ``setup.py``
-method described below. The packages can also be installed from PyPI_ in a
-separate step, using the pip_ tool and the provided requirements files::
+While the required Python modules can be installed from your OS package
+manager, most distributions do not provide all of them, or cannot provide them
+in the required versions.  We recommend creating a Python virtual environment
+(virtualenv), which will ensure NAV's Python requirements do not interfere with
+your system Python libraries. Use pip_ to install all Python requirements
+from the Python Package Index (PyPI_), using the method described below. The
+packages can also be installed from PyPI_ in a separate step, using the pip_
+tool and the provided requirements and constraints files::
 
-  pip install -r requirements.txt
+  pip install -r requirements.txt -c constraints.txt
 
 *However*, some of the required modules are C extensions that will require the
 presence of some C libraries to be correctly built (unless PyPI provides binary
 wheels for your platform). These include the ``psycopg2`` driver and the
-``python-ldap`` and ``Pillow`` modules).
+``python-ldap`` and ``Pillow`` modules.
 
 The current Python requirements are as follows:
 
@@ -72,13 +83,35 @@ default.
 Installing NAV
 ==============
 
-To build and install NAV and all its Python dependencies::
+First you need to build the static assets. To do this, you will need to have
+Node.js and npm installed. Once you have these installed, you can run
+the following command to build the CSS assets::
 
-  pip install -r requirements.txt .
+  npm install
+  npm run build:sass
 
-This will build and install NAV in the default system-wide directories for your
-system. If you wish to customize the install locations, please consult the
-output of ``python setup.py install --help``.
+This will build the CSS assets and place them in the :file:`python/nav/web/static/css`
+directory.
+
+We recommend installing NAV into a Python virtual environment, to avoid
+interfering with your system-wide Python libraries.  Pick a suitable path for
+the virtual environment (e.g. :file:`/opt/nav`), create it and activate it in
+your shell before installing NAV::
+
+  python3 -m venv /opt/nav
+  source /opt/nav/bin/activate
+
+To build and install NAV and all its Python dependencies in the activated
+virtual environment, run::
+
+  pip install -r requirements.txt -c constraints.txt .
+
+If you want to make sure you can run all NAV programs without first explicitly
+activating the virtual environment in a shell, you can add the virtual
+environment's :file:`bin` directory to your system's :envvar:`PATH` variable,
+e.g.::
+
+  export PATH=$PATH:/opt/nav/bin
 
 
 .. _initializing-the-configuration-files:
@@ -184,7 +217,7 @@ Building the documentation
 
 If you wish, this HTML documentation can be built separately using this step::
 
-  python setup.py build_sphinx
+  sphinx-build
 
 The resulting files will typically be placed in :file:`build/sphinx/html/`.
 

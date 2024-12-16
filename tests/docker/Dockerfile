@@ -10,16 +10,18 @@ ENV DEBIAN_FRONTEND noninteractive
 ### Installing packages
 RUN sed -ie 's/^# *deb-src/deb-src/' /etc/apt/sources.list  # Enable source repos
 RUN apt-get update && \
-    apt-get install -y software-properties-common gosu && \
+    apt-get install -y software-properties-common gosu sudo && \
     chmod u+s /usr/sbin/gosu
+
+RUN echo "build   ALL =(ALL: ALL) NOPASSWD: ALL" > /etc/sudoers.d/navbuild
+
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
     apt-get -y install --no-install-recommends \
       curl git build-essential \
-      python3.7-dbg python3.7-dev python3.7-distutils \
-      python3.8-dbg python3.8-dev \
       python3.9-dbg python3.9-dev \
+      python3.10-dbg python3.10-dev \
       python3-pip
 
 RUN echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
@@ -45,27 +47,28 @@ RUN apt-get update && \
 
 
 # Now install NodeJS and NPM for Javascript testing needs -
-RUN curl -sL https://deb.nodesource.com/setup_14.x  | bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_18.x  | bash - && \
     apt-get install -y --no-install-recommends nodejs
 
 # Install geckodriver to properly run Selenium tests in Firefox versions>=47
-ENV GECKOVERSION=0.21.0
+ENV GECKOVERSION=0.35.0
 RUN cd /tmp && \
     wget https://github.com/mozilla/geckodriver/releases/download/v$GECKOVERSION/geckodriver-v$GECKOVERSION-linux64.tar.gz && \
     tar xvzf geckodriver-v$GECKOVERSION-linux64.tar.gz && \
     mv geckodriver /usr/local/bin/
 
 # Install chromedriver to properly run Selenium tests in Chrome, if need be
-ENV CHROMEDRIVERVERSION=2.35
+# Ref: https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json
+ENV CHROMEDRIVERVERSION=131.0.6778.69
 RUN cd /tmp && \
     apt-get update && \
     apt-get -y --no-install-recommends install unzip && \
-    wget http://chromedriver.storage.googleapis.com/$CHROMEDRIVERVERSION/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip && \
-    mv chromedriver /usr/local/bin/
+    wget https://storage.googleapis.com/chrome-for-testing-public/$CHROMEDRIVERVERSION/linux64/chromedriver-linux64.zip && \
+    unzip chromedriver-linux64.zip && \
+    mv chromedriver-linux64/chromedriver /usr/local/bin/
 
 # Install our primary test runner
-RUN python3.7 -m pip install tox snmpsim 'virtualenv<20.0.0'
+RUN python3.9 -m pip install tox virtualenv
 
 # Add a build user
 ENV USER build

@@ -1,5 +1,3 @@
-from __future__ import print_function, unicode_literals
-
 import configparser
 import pytest
 import signal
@@ -36,7 +34,7 @@ def test_plugin_loader_reading_in_modules_from_config_file():
     config.read(configfile)
     list_from_config = config.get('snmptrapd', 'handlermodules').split(',')
 
-    assert type(list_from_config) == list
+    assert isinstance(list_from_config, list)
     if len(list_from_config) <= 0:
         pytest.skip(
             "Requires at least one plugin in snmptrapd.conf to run"
@@ -92,3 +90,70 @@ class TestSnmpTrap:
         )
         netbox = trap.netbox
         assert netbox.netboxid == localhost_using_legacy_db
+
+    def test_trap_agent_should_be_correctly_identified_if_sent_from_different_ip(
+        self, localhost_using_legacy_db, gwportprefix_using_legacy_db
+    ):
+        trap = SNMPTrap(
+            src=localhost_using_legacy_db,
+            agent=gwportprefix_using_legacy_db,
+            type=None,
+            genericType=None,
+            snmpTrapOID=None,
+            uptime=None,
+            community="public",
+            version=2,
+            varbinds={},
+        )
+        netbox = trap.netbox
+        assert netbox.netboxid == localhost_using_legacy_db
+
+
+@pytest.fixture()
+def interface_using_legacy_db(localhost_using_legacy_db):
+    from nav.db import getConnection
+
+    conn = getConnection('default')
+    cursor = conn.cursor()
+
+    sql = """
+        INSERT INTO interface
+        (netboxid)
+        VALUES
+        (%s)
+        RETURNING interfaceid;
+        """
+    cursor.execute(sql, (localhost_using_legacy_db,))
+    interfaceid = cursor.fetchone()[0]
+    conn.commit()
+    yield interfaceid
+
+    print("teardown interface using legacy connection")
+    cursor.execute("DELETE FROM interface WHERE interfaceid=%s", (interfaceid,))
+    conn.commit()
+
+
+@pytest.fixture()
+def gwportprefix_using_legacy_db(interface_using_legacy_db):
+    gwip = "127.0.0.2"
+
+    from nav.db import getConnection
+
+    conn = getConnection('default')
+    cursor = conn.cursor()
+
+    sql = """
+        INSERT INTO gwportprefix
+        (interfaceid, prefixid, gwip)
+        VALUES
+        (%s, 1, %s)
+        RETURNING gwip;
+        """
+    cursor.execute(sql, (interface_using_legacy_db, gwip))
+    gwip = cursor.fetchone()[0]
+    conn.commit()
+    yield gwip
+
+    print("teardown gwportprefix using legacy connection")
+    cursor.execute("DELETE FROM gwportprefix WHERE gwip=%s", (gwip,))
+    conn.commit()

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from nav.compatibility import force_str
+from django.utils.encoding import force_str
 
 from datetime import datetime, timedelta
 import json
@@ -131,6 +130,22 @@ def test_update_group_on_org(db, api_client, token):
 # Netbox specific tests
 
 
+def test_filter_netbox_by_invalid_ip(db, api_client, token):
+    create_token_endpoint(token, 'netbox')
+    response = api_client.get('{}?ip=10'.format(ENDPOINTS['netbox']))
+    print(response)
+    assert response.status_code == 200
+
+
+def test_filter_netbox_by_invalid_ip_that_cannot_be_converted_throws_error(
+    db, api_client, token
+):
+    create_token_endpoint(token, 'netbox')
+    response = api_client.get('{}?ip=x'.format(ENDPOINTS['netbox']))
+    print(response)
+    assert response.status_code == 400
+
+
 def test_update_netbox(db, api_client, token):
     endpoint = 'netbox'
     create_token_endpoint(token, endpoint)
@@ -155,7 +170,7 @@ def test_delete_netbox(db, api_client, token):
     print(json_get['deleted_at'])
 
     assert response_delete.status_code == 204
-    assert json_get['deleted_at'] != None
+    assert json_get['deleted_at'] is not None
 
 
 # Room specific tests
@@ -173,6 +188,32 @@ def test_get_new_room(db, api_client, token):
     create_token_endpoint(token, endpoint)
     create(api_client, endpoint, TEST_DATA.get(endpoint))
     response = api_client.get('/api/1/room/blapp/')
+    print(response)
+    assert response.status_code == 200
+
+
+def test_when_room_has_dot_in_id_the_api_should_still_find_it(db, api_client, token):
+    create_token_endpoint(token, "room")
+    from nav.models.manage import Room
+
+    room = Room(id="foo.bar", location_id="mylocation")
+    room.save()
+
+    response = api_client.get(f"/api/1/room/{room.id}/")
+    print(response)
+    assert response.status_code == 200
+
+
+def test_when_location_has_dot_in_id_the_api_should_still_find_it(
+    db, api_client, token
+):
+    create_token_endpoint(token, "location")
+    from nav.models.manage import Location
+
+    location = Location(id="foo.bar")
+    location.save()
+
+    response = api_client.get(f"/api/1/location/{location.id}/")
     print(response)
     assert response.status_code == 200
 
@@ -364,13 +405,13 @@ def test_api_urls_should_resolve(urlname, arg):
 
 
 @pytest.fixture()
-def serializer_models(localhost):
+def serializer_models(localhost, admin_account):
     """Fixture for testing API serializers
 
     - unrecognized_neighbor
     - auditlog
     """
-    from nav.models import cabling, event, manage, profiles, rack
+    from nav.models import cabling, event, manage, rack
     from nav.auditlog import models as auditlog
 
     netbox = localhost
@@ -417,7 +458,6 @@ def serializer_models(localhost):
         alert_type_id=boxdown_id,
         end_time=INFINITY,
     ).save()
-    admin = profiles.Account.objects.get(login='admin')
-    auditlog.LogEntry.add_log_entry(admin, verb='verb', template='asd')
+    auditlog.LogEntry.add_log_entry(admin_account, verb='verb', template='asd')
     manage.Usage(id='ans', description='Ansatte').save()
     manage.Usage(id='student', description='Studenter').save()

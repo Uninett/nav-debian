@@ -22,12 +22,13 @@ import sys
 import copy
 import warnings
 
-import django
 from django.utils.log import DEFAULT_LOGGING
 
 from nav.config import NAV_CONFIG, getconfig, find_config_dir
 from nav.db import get_connection_parameters
 import nav.buildconf
+from nav.jwtconf import JWTConf
+from nav.web.security import WebSecurityConfigParser
 
 ALLOWED_HOSTS = ['*']
 
@@ -124,17 +125,16 @@ TEMPLATES = [
 
 # Middleware
 MIDDLEWARE = (
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'nav.web.auth.AuthenticationMiddleware',
-    'nav.web.auth.AuthorizationMiddleware',
+    'nav.web.auth.middleware.AuthenticationMiddleware',
+    'nav.web.auth.middleware.AuthorizationMiddleware',
     'nav.django.legacy.LegacyCleanupMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 )
-if django.VERSION[:2] == (1, 8):  # Django <= 1.8
-    MIDDLEWARE_CLASSES = MIDDLEWARE
 
-SESSION_SERIALIZER = 'django.contrib.sessions.serializers.PickleSerializer'
+SESSION_SERIALIZER = 'nav.web.session_serializer.PickleSerializer'
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = int(_webfront_config.get('sessions', {}).get('timeout', 3600))
 SESSION_COOKIE_NAME = 'nav_sessionid'
@@ -164,16 +164,20 @@ SHORT_DATETIME_FORMAT = '%s %s' % (DATE_FORMAT, SHORT_TIME_FORMAT)
 TIME_ZONE = NAV_CONFIG.get('TIME_ZONE', 'Europe/Oslo')
 DOMAIN_SUFFIX = NAV_CONFIG.get('DOMAIN_SUFFIX', None)
 
-# Cache backend. Used only for report subsystem in NAV 3.5.
+# Cache backend. Used for report subsystem in NAV 3.5 and sorted statistics.
 # FIXME: Make this configurable in nav.conf (or possibly webfront.conf)
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION': '/tmp/nav_cache',
         'TIMEOUT': '60',
-    }
+    },
+    'sortedstats': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/tmp/nav_cache',
+        'TIMEOUT': '900',
+    },
 }
-
 
 SECRET_KEY = NAV_CONFIG.get('SECRET_KEY', 'Very bad default value!')
 
@@ -207,8 +211,6 @@ NAVLETS = (
     'nav.web.navlets.env_rack.EnvironmentRackWidget',
 )
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = 'foundation-5'
-CRISPY_TEMPLATE_PACK = 'foundation-5'
 
 INSTALLED_APPS = (
     'nav.models',
@@ -218,8 +220,6 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.humanize',
     'django_filters',
-    'crispy_forms',
-    'crispy_forms_foundation',
     'rest_framework',
     'nav.auditlog',
     'nav.web.macwatch',
@@ -249,6 +249,23 @@ SEARCHPROVIDERS = [
     'nav.web.info.searchproviders.UnrecognizedNeighborSearchProvider',
 ]
 
+## Web security options supported by Django
+# * https://docs.djangoproject.com/en/3.2/ref/middleware/#module-django.middleware.security
+# * https://docs.djangoproject.com/en/3.2/topics/http/sessions/
+# * https://docs.djangoproject.com/en/3.2/ref/clickjacking/
+#
+# Configured in etc/webfront/webfront.conf:
+#  [security]
+#  needs_tls = yes
+#  frames_allow = self
+
+SECURE_BROWSER_XSS_FILTER = True  # Does no harm
+
+_websecurity_config = WebSecurityConfigParser()
+_needs_tls = bool(_websecurity_config.getboolean('needs_tls'))
+SESSION_COOKIE_SECURE = _needs_tls
+X_FRAME_OPTIONS = _websecurity_config.get_x_frame_options()
+
 # Hack for hackers to use features like debug_toolbar etc.
 # https://code.djangoproject.com/wiki/SplitSettings (Rob Golding's method)
 if _config_dir:
@@ -262,3 +279,10 @@ except NameError:
         from local_settings import *
     except ImportError:
         pass
+
+_issuers_setting = JWTConf().get_issuers_setting()
+
+OIDC_AUTH = {
+    'JWT_ISSUERS': _issuers_setting,
+    'JWT_AUTH_HEADER_PREFIX': 'Bearer',
+}

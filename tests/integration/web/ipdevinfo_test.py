@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
 
 from django.urls import reverse
-from nav.compatibility import smart_str
+from django.utils.encoding import smart_str
 
 from nav.models.manage import Netbox, Module, Interface, Device, NetboxProfile
 from nav.web.ipdevinfo.utils import get_module_view
@@ -17,7 +16,7 @@ def test_device_details_should_include_sysname(client, netbox):
 
 
 def test_port_search_should_match_case_insensitively(client, netbox):
-    ifc = netbox.interface_set.all()[0]
+    ifc = netbox.interfaces.all()[0]
     url = reverse(
         'ipdevinfo-interface-details-by-name',
         kwargs={
@@ -40,7 +39,7 @@ def test_port_search_should_match_case_insensitively(client, netbox):
     ],
 )
 def test_get_module_view(netbox, perspective):
-    module = netbox.module_set.all()[0]
+    module = netbox.modules.all()[0]
     result = get_module_view(module, perspective='swportstatus', netbox=netbox)
     assert result['object'] == module
     assert 'ports' in result

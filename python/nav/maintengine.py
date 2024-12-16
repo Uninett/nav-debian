@@ -21,7 +21,6 @@ the state of registered maintenance tasks and dispatching maintenance events
 to the event queue.
 
 """
-from __future__ import absolute_import
 import datetime
 import logging
 
@@ -87,10 +86,8 @@ def check_tasks_without_end():
 
 @transaction.atomic()
 def do_state_transitions():
-    """
-    Finds active or scheduled tasks that have run out and sets them as passed,
-    and finds scheduled scheduled tasks in the current window and sets them
-    as active.
+    """Finds active or scheduled tasks that have run out and sets them as passed,
+    and finds scheduled tasks in the current window and sets them as active.
     """
     tasks = MaintenanceTask.objects.past().filter(
         state__in=[MaintenanceTask.STATE_ACTIVE, MaintenanceTask.STATE_SCHEDULED]
@@ -105,6 +102,20 @@ def do_state_transitions():
     tasks.update(state=MaintenanceTask.STATE_ACTIVE)
 
     _logger.debug("Tasks transitioned to active state: %r", tasks)
+
+    cancel_tasks_without_components()
+
+
+def cancel_tasks_without_components():
+    """Cancels active tasks where all components are missing"""
+    tasks = MaintenanceTask.objects.filter(
+        state=MaintenanceTask.STATE_ACTIVE
+    ).prefetch_related('maintenance_components')
+    for task in tasks:
+        if not any(task.get_components()):
+            task.state = MaintenanceTask.STATE_CANCELED
+            task.save()
+            _logger.debug("Task %r canceled because all components were missing", task)
 
 
 def check_state_differences():

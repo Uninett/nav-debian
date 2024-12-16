@@ -1,0 +1,56 @@
+{% extends 'custom_crispy_templates/_form_content.html' %}
+{% load forms %}
+
+{% block form_fields %}
+  <div class="row">
+    <div class="columns large-4">
+      <fieldset>
+        <legend>Inventory</legend>
+        {% show_field form.ip %}
+        <div id="verify-address-feedback"></div>
+        {% show_field form.room %}
+        {% show_field form.category %}
+        {% show_field form.organization %}
+      </fieldset>
+    </div>
+
+    <div class="columns large-4">
+      <fieldset>
+        <legend>Management profiles</legend>
+        {% show_field form.profiles %}
+        <input
+            type="button"
+            name="check_connectivity"
+            value="Check connectivity"
+            class="button small check_connectivity"
+            id="button-id-check_connectivity"
+        />
+      </fieldset>
+
+      <fieldset>
+        <legend>Collected info</legend>
+        <div id="real_collected_fields" class="hide">
+          {% show_field form.sysname %}
+          {% show_field form.type %}
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="columns large-4">
+      <fieldset>
+        <legend>Meta information</legend>
+        {% show_field form.function %}
+        {% show_field form.groups %}
+        {% show_field form.data %}
+        <a class='advanced-toggle'>
+          <i class='fa fa-caret-square-o-right'>&nbsp;</i>Advanced options
+        </a>
+        <div class="advanced">
+          <small class="alert-box">NB: An IP Device cannot both have a master and have virtual instances</small>
+          {% show_field form.master %}
+          {% show_field form.virtual_instance %}
+        </div>
+      </fieldset>
+    </div>
+  </div>
+{% endblock form_fields %}

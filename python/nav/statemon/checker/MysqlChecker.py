@@ -53,7 +53,7 @@ class MysqlChecker(AbstractChecker):
             conn.write_auth_packet('navmon')
             try:
                 conn.read_packet()
-            except MysqlError as err:
+            except MysqlError:
                 pass  # Ignore login error
 
             return Event.UP, 'OK'
@@ -92,7 +92,7 @@ class MysqlConnection(object):
 
         data = self.file.read(size)
         if data.startswith(b'\xff'):
-            error = data[3:].decode("utf-8")
+            error = data.removeprefix(b'\xff').decode("utf-8")
             raise MysqlError(error)
 
         return data

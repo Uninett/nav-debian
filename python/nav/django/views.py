@@ -15,7 +15,6 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
 import traceback
 
 from django.template import loader
@@ -27,14 +26,10 @@ def custom_500(request):
 
     template = loader.get_template('500.html')
 
-    type, value, tb = sys.exc_info()
-
     return HttpResponseServerError(
         template.render(
             context={
-                'type': type.__name__,
-                'value': value,
-                'traceback': traceback.format_exception(type, value, tb),
+                'traceback': traceback.format_exc(),
             },
             request=request,
         )

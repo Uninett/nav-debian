@@ -26,7 +26,7 @@ from nav.bulkparse import ManagementProfileBulkParser
 from nav.bulkimport import ManagementProfileImporter
 from nav.web.message import new_message, Messages
 
-from nav.web.seeddb import SeeddbInfo, reverse_lazy
+from nav.web.seeddb import SeeddbInfo
 from nav.web.seeddb.constants import SEEDDB_EDITABLE_MODELS
 from nav.web.seeddb.page import view_switcher
 from nav.web.seeddb.utils.list import render_list
@@ -91,8 +91,7 @@ def management_profile_list(request):
     management_profile()"""
     info = ManagementProfileInfo()
     value_list = ('name', 'description', 'get_protocol_display', 'related')
-    netbox_link = reverse('seeddb-netbox')
-    queryset = ManagementProfile.objects.annotate(related=Count('netbox'))
+    queryset = ManagementProfile.objects.annotate(related=Count('netboxes'))
     filter_form = ManagementProfileFilterForm(request.GET)
     return render_list(
         request,
@@ -134,7 +133,7 @@ def management_profile_edit(request, management_profile_id=None):
     """
     try:
         profile = ManagementProfile.objects.get(id=management_profile_id)
-        num_netboxes = profile.netbox_set.distinct().count()
+        num_netboxes = profile.netboxes.distinct().count()
     except ManagementProfile.DoesNotExist:
         profile = None
         num_netboxes = 0

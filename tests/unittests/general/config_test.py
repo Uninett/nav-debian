@@ -13,16 +13,11 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from __future__ import unicode_literals
+from io import StringIO
 from os import makedirs, remove, rmdir, listdir
 from os.path import join
 
 import pytest
-
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
 
 from nav import config
 

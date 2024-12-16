@@ -1,8 +1,130 @@
-nav (5.5.2-2bullseye) buster; urgency=medium
+nav (5.11.0-1) bullseye; urgency=medium
 
-  * Package ported to Debian 11 (Bullseye)
+  * New upstream release.
+    - Modernize Sphinx docs build procedure.
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 10 Nov 2022 09:29:29 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 03 Oct 2024 13:07:40 +0000
+
+nav (5.10.2-2bullseye) bullseye; urgency=medium
+
+  * Ported package to Debian 11
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 03 Jun 2024 08:11:57 +0000
+
+nav (5.10.2-1) buster; urgency=medium
+
+  * New upstream release.
+    - snmptrapd command line program renamed to navtrapd
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 03 Jun 2024 08:04:58 +0000
+
+nav (5.10.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 27 May 2024 11:35:04 +0000
+
+nav (5.10.0-1) buster; urgency=medium
+
+  * New upstream release.
+  * 5.10 is the last NAV series that will be packaged for Debian Buster.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 16 May 2024 13:22:45 +0000
+
+nav (5.9.1-3bullseye) buster; urgency=medium
+
+  * Re-enable inclusion of system site packages in NAV virtual environment
+    - Fixes outdated virtualenv manipulation that only works for Pythons
+      earlier than 3.9
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Mar 2024 12:10:27 +0000
+
+nav (5.9.1-2) buster; urgency=medium
+
+  * Patch for double-run on binary invocation problem: https://github.com/Uninett/nav/issues/2877
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 20 Mar 2024 11:17:00 +0000
+
+nav (5.9.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 15 Mar 2024 11:46:06 +0000
+
+nav (5.9.0-1) buster; urgency=medium
+
+  * New upstream release.
+    - Updated symlinks to NAV commands, which no longer have .py extensions.
+    - Refrehsed all patches due to code that has moved around.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 08 Mar 2024 15:28:42 +0000
+
+nav (5.8.4-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 14 Dec 2023 09:26:26 +0000
+
+nav (5.8.3-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 01 Dec 2023 11:58:09 +0000
+
+nav (5.8.2-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 30 Nov 2023 12:33:47 +0000
+
+nav (5.8.1-1) buster; urgency=medium
+
+  * New upstream version.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 29 Nov 2023 13:32:47 +0000
+
+nav (5.8.0-1) buster; urgency=medium
+
+  * New upstream version.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 24 Nov 2023 14:22:25 +0000
+
+nav (5.7.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 18 Sep 2023 12:04:54 +0000
+
+nav (5.7.0-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 07 Sep 2023 12:10:07 +0000
+
+nav (5.6.1-2) buster; urgency=medium
+
+  * Add dhcping and smbclient to recommends.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 25 May 2023 07:58:54 +0000
+
+nav (5.6.1-1) buster; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 23 Mar 2023 10:44:09 +0000
+
+nav (5.6.0-2) buster; urgency=medium
+
+  * Ensure sortedstats_cacher.py command is properly installed.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 23 Jan 2023 14:07:48 +0000
+
+nav (5.6.0-1) buster; urgency=medium
+
+  * New upstream release.
+    - Delete obsolete sortedStats.conf file on upgrades.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 20 Jan 2023 14:42:47 +0000
 
 nav (5.5.2-1) buster; urgency=medium
 
@@ -108,7 +230,7 @@ nav (5.1.0-2) buster; urgency=medium
 
   * Add python3-distutils dependency
     - It appears it is required now to get virtualenvs working on Debian
-      Buster 
+      Buster
 
  -- Morten Brekkevold <morten.brekkevold@uninett.no>  Thu, 26 Nov 2020 15:18:59 +0000
 

@@ -4,7 +4,9 @@
 *.swp
 *~
 .*
+!.gitkeep
 !.github/
+!.mega-linter.yml
 *.bak
 *.iml # JetBrains (PyCharm/IDEA) project files
 *.rrd
@@ -40,3 +42,7 @@ python/nav/web/static/css
 python/nav/web/static/js/node_modules
 python/nav/web/static/js/require_config.dev.js
 python/nav/web/static/js/coverage
+
+# Javascript libraries
+/node_modules
+package-lock.json

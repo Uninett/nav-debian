@@ -58,8 +58,8 @@ class Expression(typing.NamedTuple):
 
 
 SeverityModifier = typing.Callable[[int], int]
-Expressions = typing.Union[typing.Tuple[Expression], typing.Tuple[()]]
-Rule = typing.Tuple[Expressions, SeverityModifier]
+Expressions = typing.Union[tuple[Expression], tuple]
+Rule = tuple[Expressions, SeverityModifier]
 AlertObject = typing.Union[event.EventQueue, event.AlertQueue, event.AlertHistory]
 
 #
@@ -155,7 +155,7 @@ class SeverityRules(tuple):
 
     @classmethod
     def _parse_rule_sublist(
-        cls, current: Expressions, definitions: typing.List[dict]
+        cls, current: Expressions, definitions: list[dict]
     ) -> typing.Generator[Rule, None, None]:
         """Generator that parses a nested list of severity rule definitions and their
         corresponding severity modifiers, yielding a list of tuples describing the rules
@@ -171,7 +171,7 @@ class SeverityRules(tuple):
                 if attr == "severity":
                     try:
                         modifier = cls._parse_modifier(value)
-                    except ValueError as error:
+                    except ValueError:
                         raise ValueError(
                             f"{value!r} is an invalid severity modifier expression"
                         ) from None

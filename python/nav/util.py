@@ -15,15 +15,13 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """General utility functions for Network Administration Visualized"""
-from __future__ import absolute_import
 import os
 import re
 import stat
 import socket
 import datetime
-import uuid
-import hashlib
 from functools import wraps
+from importlib.resources import as_file, files as resource_files
 from itertools import chain, tee, groupby, islice
 from operator import itemgetter
 from secrets import token_hex
@@ -509,3 +507,24 @@ class NumberRange(object):
             return str(x)
         else:
             return "{}-{}".format(x, y)
+
+
+def resource_filename(package, filename):
+    """Return the path of the filename as it is inside the package
+
+    package: either a dotted path to a module or a module object
+    filename: str or pathlib.Path
+    """
+    ref = resource_files(package) / filename
+    with as_file(ref) as path:
+        return str(path)
+
+
+def resource_bytes(package, filename):
+    """Read and return a bytes-object of the filename found in the package
+
+    package: either a dotted path to a module or a module object
+    filename: str or pathlib.Path
+    """
+    ref = resource_files(package) / filename
+    return ref.read_bytes()

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import re
 import time
 import uuid
@@ -98,9 +97,9 @@ class LogDetailQuery(SQLQuery):
         try:
             message = row[LOG_DETAILFIELDS.index('message')]
             return map(
-                lambda x: x
-                if x != message
-                else x.replace('[', '[<b>').replace(']', '</b>]'),
+                lambda x: (
+                    x if x != message else x.replace('[', '[<b>').replace(']', '</b>]')
+                ),
                 row,
             )
         except ValueError:
@@ -218,9 +217,9 @@ class LogSearchQuery(SQLQuery):
         try:
             message = row[LOG_SEARCHRESULTFIELDS.index('message')]
             return map(
-                lambda x: x
-                if x != message
-                else x.replace('[', '[<b>').replace(']', '</b>]'),
+                lambda x: (
+                    x if x != message else x.replace('[', '[<b>').replace(']', '</b>]')
+                ),
                 row,
             )
         except ValueError:

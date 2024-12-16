@@ -16,10 +16,16 @@
 """Forms for sorted stats"""
 
 from operator import itemgetter
+
 from django import forms
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import Layout, Fieldset, Row, Column
-from nav.web.crispyforms import LabelSubmit
+
+from nav.web.crispyforms import (
+    FlatFieldset,
+    FormColumn,
+    FormRow,
+    SubmitField,
+    set_flat_form_attributes,
+)
 from . import CLASSMAP, TIMEFRAMES
 
 
@@ -44,26 +50,55 @@ class ViewForm(forms.Form):
     """Form the choosing which view to see on the statistics page"""
 
     view = forms.ChoiceField(choices=get_sections_list())
-    timeframe = forms.ChoiceField(choices=TIMEFRAMES, initial=TIMEFRAMES[1][0])
+    choices = [(tf, TIMEFRAMES[tf]['descr']) for tf in TIMEFRAMES]
+    timeframe = forms.ChoiceField(choices=choices, initial=choices[1][0])
     rows = NumberField(initial=5)
+
+    use_cache = forms.BooleanField(
+        initial=True,
+        help_text=(
+            "Ticking this box will make it so results "
+            "are fetched from a cache if possible. "
+            "If the cache is empty, live data is fetched instead."
+        ),
+        required=False,
+    )
 
     def __init__(self, *args, **kwargs):
         super(ViewForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_class = 'custom'
-        self.helper.form_action = ''
-        self.helper.form_method = 'GET'
-        self.helper.layout = Layout(
-            Fieldset(
-                'Choose statistic',
-                Row(
-                    Column('view', css_class='medium-5'),
-                    Column('timeframe', css_class='medium-3'),
-                    Column('rows', css_class='medium-1'),
-                    Column(
-                        LabelSubmit('submit', 'Show statistics', css_class='postfix'),
-                        css_class='medium-3',
-                    ),
-                ),
-            )
+
+        self.attrs = set_flat_form_attributes(
+            form_method="get",
+            form_class="custom",
+            form_fields=[
+                FlatFieldset(
+                    "Choose statistic",
+                    fields=[
+                        FormRow(
+                            fields=[
+                                FormColumn(
+                                    fields=[self["view"]], css_classes="medium-5"
+                                ),
+                                FormColumn(
+                                    fields=[self["timeframe"]], css_classes="medium-3"
+                                ),
+                                FormColumn(
+                                    fields=[self["rows"]], css_classes="medium-1"
+                                ),
+                                FormColumn(
+                                    fields=[
+                                        SubmitField(
+                                            value="Show statistics",
+                                            css_classes="postfix",
+                                            has_empty_label=True,
+                                        )
+                                    ],
+                                    css_classes="medium-3",
+                                ),
+                                FormColumn(fields=[self["use_cache"]]),
+                            ]
+                        )
+                    ],
+                )
+            ],
         )

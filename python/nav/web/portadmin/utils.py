@@ -14,8 +14,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Util functions for the PortAdmin"""
-from __future__ import unicode_literals
-from typing import List, Sequence, Dict, Any
+from typing import Any, Optional, Sequence
 import re
 import logging
 from operator import attrgetter
@@ -24,6 +23,7 @@ from django.template import loader
 
 from nav.models import manage, profiles
 from nav.django.utils import is_admin
+from nav.models.profiles import Account
 from nav.portadmin.config import CONFIG
 from nav.portadmin.management import ManagementFactory
 from nav.portadmin.handlers import ManagementHandler
@@ -44,7 +44,7 @@ def get_and_populate_livedata(netbox, interfaces):
 
 
 def update_interfaces_with_collected_data(
-    interfaces: Sequence[manage.Interface], livedata: Sequence[Dict[str, Any]]
+    interfaces: Sequence[manage.Interface], livedata: Sequence[dict[str, Any]]
 ):
     """Updates the list of Interface objects with data gathered via
     ManagementHandler.get_interfaces().
@@ -76,13 +76,13 @@ def find_and_populate_allowed_vlans(
 ):
     """Finds allowed vlans and indicate which interfaces can be edited"""
     allowed_vlans = find_allowed_vlans_for_user_on_netbox(account, netbox, handler)
-    set_editable_flag_on_interfaces(interfaces, allowed_vlans)
+    set_editable_flag_on_interfaces(interfaces, allowed_vlans, account)
     return allowed_vlans
 
 
 def find_allowed_vlans_for_user_on_netbox(
     account: profiles.Account, netbox: manage.Netbox, handler: ManagementHandler = None
-) -> List[FantasyVlan]:
+) -> list[FantasyVlan]:
     """Finds allowed vlans for this user on this netbox"""
     netbox_vlans = find_vlans_on_netbox(netbox, handler=handler)
 
@@ -100,7 +100,7 @@ def find_allowed_vlans_for_user_on_netbox(
 
 def find_vlans_on_netbox(
     netbox: manage.Netbox, handler: ManagementHandler = None
-) -> List[FantasyVlan]:
+) -> list[FantasyVlan]:
     """Find all the available vlans on this netbox
 
     :param netbox: The Netbox whose available VLANs you want to find.
@@ -126,7 +126,9 @@ def find_allowed_vlans_for_user(account):
 
 
 def set_editable_flag_on_interfaces(
-    interfaces: Sequence[manage.Interface], vlans: Sequence[FantasyVlan]
+    interfaces: Sequence[manage.Interface],
+    vlans: Sequence[FantasyVlan],
+    user: Optional[Account] = None,
 ):
     """Sets the pseudo-attribute `iseditable` on each interface in the interfaces
     list, indicating whether the PortAdmin UI should allow edits to it or not.
@@ -136,8 +138,13 @@ def set_editable_flag_on_interfaces(
     an uplink, depending on how portadmin is configured.
     """
     vlan_tags = {vlan.vlan for vlan in vlans}
+    allow_everything = not should_check_access_rights(account=user) if user else False
 
     for interface in interfaces:
+        if allow_everything:
+            interface.iseditable = True
+            continue
+
         vlan_is_acceptable = interface.vlan in vlan_tags
         is_link = bool(interface.to_netbox)
         refuse_link_edit = not CONFIG.get_link_edit() and is_link
@@ -156,8 +163,8 @@ def find_vlans_in_org(org):
     :returns: list of FantasyVlans
     :rtype: list
     """
-    vlans = list(org.vlan_set.all())
-    for child_org in org.organization_set.all():
+    vlans = list(org.vlans.all())
+    for child_org in org.child_organizations.all():
         vlans.extend(find_vlans_in_org(child_org))
     return [FantasyVlan(x.vlan, x.net_ident) for x in list(set(vlans)) if x.vlan]
 
@@ -213,10 +220,10 @@ def mark_detained_interfaces(interfaces):
         # If interface is administratively down, check if Arnold is the source
         if (
             interface.ifadminstatus == 2
-            and interface.identity_set.filter(status='disabled').count() > 0
+            and interface.arnold_identities.filter(status='disabled').count() > 0
         ):
             interface.detained = True
-        if interface.identity_set.filter(status='quarantined').count() > 0:
+        if interface.arnold_identities.filter(status='quarantined').count() > 0:
             interface.detained = True
 
 
@@ -243,3 +250,11 @@ def is_cisco(netbox):
     :type netbox: manage.Netbox
     """
     return netbox.type.get_enterprise_id() == VENDOR_ID_CISCOSYSTEMS
+
+
+def add_poe_info(interfaces, handler):
+    """Add information about PoE state for interfaces"""
+    states = handler.get_poe_states(interfaces)
+    for interface in interfaces:
+        interface.poe_state = states.get(interface.ifname)
+        interface.supports_poe = True if interface.poe_state else False

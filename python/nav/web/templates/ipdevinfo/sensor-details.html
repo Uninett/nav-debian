@@ -1,6 +1,5 @@
 {% extends "ipdevinfo/base.html" %}
 {% load thresholds %}
-{% load crispy_forms_tags %}
 
 
 {% block base_header_additional_head %}
@@ -105,8 +104,7 @@
             Add to dashboard
           </button>
           <form method="post">
-            {% csrf_token %}
-            {% crispy form %}
+            {% include 'custom_crispy_templates/_form_content.html' %}
             <button type="submit" class="button small">Update settings</button>
           </form>
         {% else %}

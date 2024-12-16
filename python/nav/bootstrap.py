@@ -13,7 +13,6 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 
-from __future__ import absolute_import
 
 from os.path import dirname, realpath
 import os
@@ -29,6 +28,14 @@ RUN = False
 
 
 def bootstrap_django(caller=None):
+    """
+    Set up django (especially important: the database connection)
+
+    This is necessary when having standalone Python scripts that use the
+    database via the Django model definitions. NAV is older than Django, the
+    Django native way is to use management-commands. The Django "manage.py"
+    script essentially does this before it runs a command.
+    """
     global RUN
 
     if 'DJANGO_SETTINGS_MODULE' not in os.environ:

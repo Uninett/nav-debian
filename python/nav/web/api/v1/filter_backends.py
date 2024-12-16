@@ -48,7 +48,7 @@ class IfClassFilter(filters.BaseFilterBackend):
         """
         filters = {
             'swport': Q(baseport__isnull=False),
-            'gwport': Q(gwportprefix__isnull=False),
+            'gwport': Q(gwport_prefixes__isnull=False),
             'physicalport': Q(ifconnectorpresent=True),
             'trunk': Q(trunk=True),
         }
@@ -181,7 +181,10 @@ def _get_descendants(parents):
             pass
         else:
             locations.extend(
-                [l.pk for l in location.get_descendants(include_self=True)]
+                [
+                    location.pk
+                    for location in location.get_descendants(include_self=True)
+                ]
             )
 
     return list(set(locations))

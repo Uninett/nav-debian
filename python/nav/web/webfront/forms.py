@@ -17,11 +17,12 @@
 
 from django import forms
 from django.forms.models import modelformset_factory
-from django.urls import reverse
-from crispy_forms.helper import FormHelper
-from crispy_forms_foundation.layout import Layout, Fieldset, Row, Column, HTML, Submit
 from nav.models.profiles import NavbarLink, Account
-from nav.web.crispyforms import CheckBox, NavSubmit
+from nav.web.crispyforms import (
+    SubmitField,
+    set_flat_form_attributes,
+    FlatFieldset,
+)
 
 
 class LoginForm(forms.Form):
@@ -33,14 +34,10 @@ class LoginForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(LoginForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = 'webfront-login'
-        self.helper.form_method = 'post'
-        self.helper.layout = Layout(
-            'username',
-            'password',
-            'origin',
-            Submit('submit', 'Log in', css_class='small expand'),
+        self.attrs = set_flat_form_attributes(
+            form_action='webfront-login',
+            form_fields=[self['username'], self['password'], self['origin']],
+            submit_field=SubmitField(value='Log in', css_classes='small expand'),
         )
 
 
@@ -48,20 +45,12 @@ class NavbarlinkForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(NavbarlinkForm, self).__init__(*args, **kwargs)
         self.empty_permitted = True
-        self.helper = FormHelper()
-        self.helper.form_tag = False
         self.render_unmentioned_fields = True
-
-        self.helper.layout = Layout(
-            Row(
-                Column('name', css_class='medium-5'),
-                Column('uri', css_class='medium-5'),
-                Column(
-                    HTML('<label>&nbsp;</label>'),
-                    CheckBox('DELETE'),
-                    css_class='link-delete medium-2',
-                ),
-            ),
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                self['name'],
+                self['uri'],
+            ]
         )
 
 
@@ -95,16 +84,18 @@ class ChangePasswordForm(forms.Form):
 
         super(ChangePasswordForm, self).__init__(*args, **kwargs)
 
-        self.helper = FormHelper()
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Fieldset(
-                'Change password',
-                'old_password',
-                'new_password1',
-                'new_password2',
-                Submit('submit', 'Change password', css_class='small'),
-            )
+        self.attrs = set_flat_form_attributes(
+            form_fields=[
+                FlatFieldset(
+                    legend='Change password',
+                    fields=[
+                        self['old_password'],
+                        self['new_password1'],
+                        self['new_password2'],
+                        SubmitField(value='Change password', css_classes='small'),
+                    ],
+                )
+            ],
         )
 
     def clean_old_password(self):
@@ -146,13 +137,16 @@ class ColumnsForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(ColumnsForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_action = reverse('webfront-preferences-setwidgetcolumns')
 
-        self.helper.layout = Layout(
-            Fieldset(
-                'Number of columns for widgets',
-                'num_columns',
-                NavSubmit('submit', 'Save'),
-            )
+        self.attrs = set_flat_form_attributes(
+            form_action='webfront-preferences-setwidgetcolumns',
+            form_fields=[
+                FlatFieldset(
+                    legend='Number of columns for widgets',
+                    fields=[
+                        self['num_columns'],
+                        SubmitField(value='Save', css_classes='small'),
+                    ],
+                )
+            ],
         )

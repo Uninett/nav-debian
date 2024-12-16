@@ -1,5 +1,4 @@
 {% extends "alertprofiles/base.html" %}
-{% load crispy_forms_tags %}
 
 {% block tabcontent %}
   <h4>
@@ -44,8 +43,9 @@
                 <td><a href="{% url 'alertprofiles-filter_groups-detail' s.filter_group.id %}">{{ s.filter_group.name }}</a></td>
                 <td>
                     {% if not s.alert_address.type.supported %}<div class="alert-box error with-icon inside-table" title="{{ s.alert_address.type.name }} is no longer supported">{% endif %}
+                    {% if s.alert_address.type.blacklisted_reason %}<div class="alert-box warning inside-table" title="{{ s.alert_address.type.name }} is currently non-functional: {{ s.alert_address.type.blacklisted_reason }}">{% endif %}
                     <a href="{% url 'alertprofiles-address-detail' s.alert_address.id %}">{{ s.alert_address }}</a>
-                    {% if not s.alert_address.type.supported %}</div>{% endif %}
+                    {% if not s.alert_address.type.supported or s.alert_address.type.blacklisted_reason %}</div>{% endif %}
                 </td>
                 <td>{{ s.get_type_display|capfirst }}</td>
                 <td>{{ s.ignore_resolved_alerts|yesno:"Yes,No" }}</td>
@@ -83,7 +83,7 @@
               <a href="{% url 'alertprofiles-filter_groups-new' %}">Add your first filter group</a> to fix this problem.
             </div>
         {% endif %}
-          {% crispy form %}
+          {% include 'custom_crispy_templates/_form_content.html' %}
           <input type="submit" value="{{ editing|yesno:"Save,Add" }}" class="button small"/>
         </div>
     </form>

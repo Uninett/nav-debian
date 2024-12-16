@@ -1,4 +1,5 @@
 """Utility functions for various parts of the frontpage, navbar etc."""
+
 #
 # Copyright (C) 2009, 2012 Uninett AS
 #
@@ -133,7 +134,7 @@ def tool_list(account):
 
 def get_account_tools(account, all_tools):
     """Get tools for this account"""
-    account_tools = account.accounttool_set.all()
+    account_tools = account.account_tools.all()
     tools = []
     for tool in all_tools:
         try:

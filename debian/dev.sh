@@ -7,7 +7,7 @@ else
     TTYARGS="--tty --interactive"
 fi
 
-docker build -t "$TAG" .
+docker build -t "$TAG" . && \
 docker run \
        $TTYARGS \
        --user $(id -u):$(id -g) \

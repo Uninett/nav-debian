@@ -1,5 +1,4 @@
 {% extends 'navlets/base.html' %}
-{% load crispy_forms_tags %}
 
 {% block navlet-content %}
 
@@ -13,7 +12,7 @@
   </p>
 
   <form action="{% url 'get-user-navlet' navlet.navlet_id %}" method="post">
-    {% crispy form %}
+    {% include 'custom_crispy_templates/_form_content.html' %}
     <input type="submit" class="button tiny" value="Save">
     <a class="button tiny secondary cancel-button">Cancel</a>
   </form>

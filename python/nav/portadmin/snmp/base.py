@@ -14,13 +14,12 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-import time
 from functools import wraps
 from operator import attrgetter
 import logging
-from typing import Dict, Sequence, List, Any
+from typing import Any, Sequence
 
-from nav import Snmp
+from nav.Snmp.profile import get_snmp_session_for_profile
 from nav.Snmp import safestring, OID
 from nav.Snmp.errors import (
     UnsupportedSnmpVersionError,
@@ -88,8 +87,6 @@ class InvalidManagementProfileError(ManagementError):
 
 class SNMPHandler(ManagementHandler):
     """Implements PortAdmin management functions for SNMP-enabled switches"""
-
-    VENDOR = None
 
     QBRIDGENODES = get_mib('Q-BRIDGE-MIB')['nodes']
 
@@ -170,19 +167,13 @@ class SNMPHandler(ManagementHandler):
     def _get_read_only_handle(self):
         """Get a read only SNMP-handle."""
         if self.read_only_handle is None:
-            profile = self.netbox.get_preferred_snmp_management_profile(writeable=False)
+            profile = self.netbox.get_preferred_snmp_management_profile()
 
             if not profile:
                 raise NoReadOnlyManagementProfileError
-            if not hasattr(profile, "snmp_community") or not hasattr(
-                profile, "snmp_version"
-            ):
-                raise InvalidManagementProfileError
 
-            self.read_only_handle = Snmp.Snmp(
+            self.read_only_handle = get_snmp_session_for_profile(profile)(
                 host=self.netbox.ip,
-                community=profile.snmp_community,
-                version=profile.snmp_version,
                 retries=self.retries,
                 timeout=self.timeout,
             )
@@ -208,11 +199,11 @@ class SNMPHandler(ManagementHandler):
         :rtype: nav.Snmp.Snmp
         """
         if self.read_write_handle is None:
-            profile = self.netbox.get_preferred_snmp_management_profile(writeable=True)
-            self.read_write_handle = Snmp.Snmp(
+            profile = self.netbox.get_preferred_snmp_management_profile(
+                require_write=True
+            )
+            self.read_write_handle = get_snmp_session_for_profile(profile)(
                 host=self.netbox.ip,
-                community=profile.snmp_community,
-                version=profile.snmp_version,
                 retries=self.retries,
                 timeout=self.timeout,
             )
@@ -241,7 +232,7 @@ class SNMPHandler(ManagementHandler):
         try:
             handle.get(self.SYSOBJECTID)
             return True
-        except SnmpError as error:
+        except SnmpError:
             return False
 
     def test_write(self):
@@ -257,7 +248,7 @@ class SNMPHandler(ManagementHandler):
     @translate_protocol_errors
     def get_interfaces(
         self, interfaces: Sequence[manage.Interface] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         names = self._get_interface_names()
         aliases = self._get_all_ifaliases()
         oper = dict(self._get_all_interfaces_oper_status())
@@ -277,7 +268,7 @@ class SNMPHandler(ManagementHandler):
         ]
         return result
 
-    def _get_interface_names(self) -> Dict[int, str]:
+    def _get_interface_names(self) -> dict[int, str]:
         """Returns a mapping of interface indexes to ifName values"""
         return {
             OID(index)[-1]: safestring(value)
@@ -379,7 +370,7 @@ class SNMPHandler(ManagementHandler):
         """Make a list with tuples.  Each tuple contain
         interface-index and corresponding status-value"""
         available_stats = []
-        for (if_index, stat) in stats:
+        for if_index, stat in stats:
             if_index = OID(if_index)[-1]
             if isinstance(if_index, int):
                 available_stats.append((if_index, stat))
@@ -399,7 +390,7 @@ class SNMPHandler(ManagementHandler):
     def get_netbox_vlans(self):
         numerical_vlans = self.get_netbox_vlan_tags()
         vlan_objects = Vlan.objects.filter(
-            swportvlan__interface__netbox=self.netbox
+            swport_vlans__interface__netbox=self.netbox
         ).distinct()
         vlans = []
         for numerical_vlan in numerical_vlans:
@@ -548,7 +539,7 @@ class SNMPHandler(ManagementHandler):
     @staticmethod
     def _set_interface_hex(interface, trunk_vlans):
         try:
-            allowedvlan = interface.swportallowedvlan
+            allowedvlan = interface.swport_allowed_vlan
         except SwPortAllowedVlan.DoesNotExist:
             allowedvlan = SwPortAllowedVlan(interface=interface)
 
@@ -572,7 +563,7 @@ class SNMPHandler(ManagementHandler):
             raise ProtocolError("SNMP error") from error
 
     def raise_if_not_configurable(self):
-        if not self.netbox.get_preferred_snmp_management_profile(writeable=True):
+        if not self.netbox.get_preferred_snmp_management_profile(require_write=True):
             raise DeviceNotConfigurableError(
                 "No writeable SNMP management profile set for this device, "
                 "changes cannot be saved"

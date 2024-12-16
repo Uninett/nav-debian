@@ -194,7 +194,7 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
 
         filter_stateful = Q(end_time__gt=lowest_end_time)
         filter_stateless = Q(end_time__isnull=True) & Q(start_time__gt=lowest_end_time)
-        queryset = netbox.alerthistory_set.filter(
+        queryset = netbox.alert_history_set.filter(
             filter_stateful | filter_stateless
         ).order_by('-start_time')
         count = queryset.count()
@@ -266,9 +266,8 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
         return cam_info[0] if cam_info else None
 
     # Get data needed by the template
-    addr = is_valid_ip(addr)
+    addr_valid = is_valid_ip(addr)
     host_info = None
-    netbox = get_netbox(name=name, addr=addr)
 
     # Assign default values to variables
     no_netbox = {
@@ -282,12 +281,30 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
     job_descriptions = None
     system_metrics = netbox_availability = []
     sensor_metrics = []
-
     graphite_error = False
+
+    # Invalid IP address
+    if not name and not addr_valid:
+        navpath = NAVPATH + [(addr, '')]
+        return render(
+            request,
+            'ipdevinfo/ipdev-details.html',
+            {
+                'heading': navpath[-1][0],
+                'navpath': navpath,
+                'title': create_title(navpath),
+                'display_services_tab': False,
+                'invalid_ip': True,
+                'no_netbox': no_netbox,
+            },
+        )
+
+    netbox = get_netbox(name=name, addr=addr)
+
     # If addr or host not a netbox it is not monitored by NAV
     if netbox is None:
         host_info = get_host_info(name or addr)
-        if not addr and host_info['addresses']:
+        if not addr_valid and host_info['addresses']:
             # Picks the first address in array if addr not specified
             addr = host_info['addresses'][0]['addr']
 
@@ -324,7 +341,7 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
         except GraphiteUnreachableError:
             graphite_error = True
 
-        for sensor in netbox.sensor_set.all():
+        for sensor in netbox.sensors.all():
             metric_id = sensor.get_metric_name()
             metric = {
                 'id': metric_id,
@@ -347,13 +364,13 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
         if netbox in task.get_event_subjects():
             relevant_future_tasks.append(task)
 
-    interfaces = netbox.interface_set.order_by('ifindex') if netbox else []
+    interfaces = netbox.interfaces.order_by('ifindex') if netbox else []
     for interface in interfaces:
         interface.combined_data_urls = create_combined_urls(interface, COUNTER_TYPES)
 
     # Only display services tab for certain instances
     display_services_tab = netbox and (
-        netbox.category.is_srv() or netbox.service_set.count()
+        netbox.category.is_srv() or netbox.services.count()
     )
 
     return render(
@@ -430,7 +447,7 @@ def get_port_view(request, netbox_sysname, perspective):
         port_view['activity_complete_data'] = False
 
     # Add the modules
-    for module in netbox.module_set.select_related():
+    for module in netbox.modules.select_related():
         port_view['modules'].append(
             utils.get_module_view(module, perspective, activity_interval)
         )
@@ -604,7 +621,7 @@ def port_details(request, netbox_sysname, port_type=None, port_id=None, port_nam
         graphite_error = True
 
     sensor_metrics = []
-    for sensor in port.sensor_set.all():
+    for sensor in port.sensors.all():
         metric_id = sensor.get_metric_name()
         metric = {
             'id': metric_id,
@@ -616,7 +633,7 @@ def port_details(request, netbox_sysname, port_type=None, port_id=None, port_nam
     # If interface is detained in Arnold, this should be visible on the
     # port details view
     try:
-        detention = port.identity_set.get(status__in=['quarantined', 'disabled'])
+        detention = port.arnold_identities.get(status__in=['quarantined', 'disabled'])
     except Identity.DoesNotExist:
         detention = None
 

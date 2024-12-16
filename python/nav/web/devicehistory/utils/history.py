@@ -125,7 +125,7 @@ def fetch_history(selection, form):
 
     # Find device ids that belongs to
     #   - selected devices
-    device = Device.objects.filter(module__in=selection['module'])
+    device = Device.objects.filter(modules__in=selection['module'])
 
     # Find alert history that belongs to the netbox and device ids we found in
     # the previous two queries.
@@ -256,5 +256,5 @@ def add_descendants(parents):
         except Location.DoesNotExist:
             pass
         else:
-            locations.extend([l.pk for l in location.get_descendants()])
+            locations.extend([location.pk for location in location.get_descendants()])
     return list(set(locations))

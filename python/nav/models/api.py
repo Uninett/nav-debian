@@ -17,10 +17,10 @@
 
 from datetime import datetime
 
+from django.contrib.postgres.fields import HStoreField
 from django.db import models
 from django.urls import reverse
 
-from nav.adapters import HStoreField
 from nav.models.fields import VarcharField
 from nav.models.profiles import Account
 
@@ -38,7 +38,12 @@ class APIToken(models.Model):
     token = VarcharField()
     expires = models.DateTimeField()
     created = models.DateTimeField(auto_now_add=True)
-    client = models.ForeignKey(Account, on_delete=models.CASCADE, db_column='client')
+    client = models.ForeignKey(
+        Account,
+        on_delete=models.CASCADE,
+        db_column='client',
+        related_name="api_tokens",
+    )
     scope = models.IntegerField(null=True, default=0)
     comment = models.TextField(null=True, blank=True)
     revoked = models.BooleanField(default=False)

@@ -20,8 +20,8 @@ import pickle
 import json
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
-import django
 from django import forms
 from django.db import models
 from django.db.models import signals
@@ -46,10 +46,7 @@ class DateTimeInfinityField(models.DateTimeField):
             return super(DateTimeInfinityField, self).get_db_prep_value(
                 value, connection, prepared=prepared
             )
-        try:
-            return connection.ops.value_to_db_datetime(value)  # <= 1.8
-        except AttributeError:
-            return connection.ops.adapt_datetimefield_value(value)  # >= 1.9
+        return connection.ops.adapt_datetimefield_value(value)
 
 
 class VarcharField(models.TextField):
@@ -73,15 +70,9 @@ class DictAsJsonField(models.TextField):
     def db_type(self, connection):
         return 'varchar'
 
-    if django.VERSION < (2,):  # Django < 2.x
-        # pylint: disable=unused-argument
-        def from_db_value(self, value, expression, connection, context):
-            return self.to_python(value)
-
-    else:
-        # pylint: disable=unused-argument
-        def from_db_value(self, value, expression, connection):
-            return self.to_python(value)
+    # pylint: disable=unused-argument
+    def from_db_value(self, value, expression, connection):
+        return self.to_python(value)
 
     def to_python(self, value):
         if value:
@@ -128,27 +119,16 @@ class PointField(models.CharField):
     def db_type(self, connection):
         return 'point'
 
-    if django.VERSION < (2,):  # Django < 2.x
-
-        def from_db_value(self, value, expression, connection, context):
-            return self.to_python(value)
-
-    else:
-
-        def from_db_value(self, value, expression, connection):
-            return self.to_python(value)
+    def from_db_value(self, value, expression, connection):
+        return self.to_python(value)
 
     def to_python(self, value):
         if not value or isinstance(value, tuple):
             return value
-        if isinstance(value, str):
-            if validators.is_valid_point_string(value):
-                if value.startswith('(') and value.endswith(')'):
-                    noparens = value[1:-1]
-                else:
-                    noparens = value
-                latitude, longitude = noparens.split(',')
-                return (Decimal(latitude.strip()), Decimal(longitude.strip()))
+        if isinstance(value, str) and validators.is_valid_point_string(value):
+            noparens = value.removeprefix("(").removesuffix(")")
+            latitude, longitude = noparens.split(',')
+            return (Decimal(latitude.strip()), Decimal(longitude.strip()))
         raise exceptions.ValidationError("This value must be a point-string.")
 
     def get_db_prep_value(self, value, connection, prepared=False):
@@ -196,10 +176,7 @@ class LegacyGenericForeignKey(object):
         self.name = name
         self.model = cls
         self.cache_attr = "_%s_cache" % name
-        if django.VERSION[:2] == (1, 8):  # Django <= 1.8
-            cls._meta.virtual_fields.append(self)
-        else:
-            cls._meta.private_fields.append(self)
+        cls._meta.private_fields.append(self)
 
         if not cls._meta.abstract:
             signals.pre_init.connect(self.instance_pre_init, sender=cls)
@@ -258,11 +235,11 @@ class LegacyGenericForeignKey(object):
         setattr(instance, self.cache_attr, value)
 
     @staticmethod
-    def get_model_name(obj):
+    def get_model_name(obj) -> str:
         return obj._meta.db_table
 
     @staticmethod
-    def get_model_class(table_name):
+    def get_model_class(table_name) -> Optional[models.Model]:
         """Returns a Model class based on a database table name"""
         classmap = {model._meta.db_table: model for model in apps.get_models()}
         if table_name in classmap:

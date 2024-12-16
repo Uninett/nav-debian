@@ -19,10 +19,9 @@ While Sikt is still the main contributor to NAV, developing NAV to support the
 needs of the Norwegian higher education community, contributions from third
 parties are highly appreciated.
 
-We communicate mainly through mailing lists, GitHub_, and the ``#nav`` IRC
-channel on *Libera.Chat*. At times, Sikt also arranges workshops and
-gatherings for its customers: Norwegian universities, university colleges and
-research institutions.
+We communicate mainly through mailing lists and GitHub_. At times, Sikt also
+arranges workshops and gatherings for its customers: Norwegian universities,
+university colleges and research institutions.
 
 To contribute:
 
@@ -104,6 +103,41 @@ contribute to NAV.
 
 .. _CLA assistant: https://cla-assistant.io/
 
+Adding a changelog entry
+------------------------
+
+We are using `towncrier`_ to automatically produce the changelog from separate files
+at the time of a release. These files can be found in the folder :file:`changelog.d/`.
+Every entry should explain what a change does in terms that are understandable for end
+users.
+
+When creating a pull request you should also add such a file.
+
+The name of the file consists of three parts separated by a period:
+
+1. The identifier: either the issue number (in case the pull request fixes that issue)
+   or the pull request number. If you don't want to add a link to the resulting
+   changelog entry then a + followed by a unique short description.
+2. The type of the change: we use security, removed, deprecated, added, changed and
+   fixed.
+3. The file suffix, e.g. .md, towncrier does not care which suffix a fragment has.
+
+So an example for a file name related to an issue/pull request would be
+:file:`214.added.md` or for a file without corresponding issue
+:file:`+fixed-pagination-bug.fixed.md`.
+
+This file can either be created manually with a file name as specified above and the
+changelog text as content or you can use towncrier to create such a file as following:
+
+.. code-block:: console
+
+   $ towncrier create -c "Changelog content" 214.added.md
+
+When opening a pull request there will be a check to make sure that a news fragment is
+added and it will fail if it is missing.
+
+.. _towncrier: https://towncrier.readthedocs.io/
+
 
 Directory layout
 ================
@@ -113,7 +147,6 @@ A rough guide to the source tree:
 =================================  =================================================================
 Directory                          Description
 =================================  =================================================================
-:file:`bin/`                       NAV 'binaries'; executable scripts and programs.
 :file:`contrib/`                   User contributed NAV tools. NAV doesn't depend on these, and any
                                    maintenance of them is left up to the original developers. We do
                                    not offer support for these tools.
@@ -123,6 +156,7 @@ Directory                          Description
                                    processes.
 :file:`python/`                    Python source code.
 :file:`python/nav/etc/`            Example/initial configuration files.
+:file:`python/nav/web/sass/`       SCSS stylesheets.
 :file:`python/nav/web/static/`     Static media such as CSS stylesheets, images and JavaScript to be
                                    served by a webserver.
 :file:`python/nav/web/templates/`  Main/global Django HTML templates. More be located in individual
@@ -249,6 +283,24 @@ developing, something browsers love to do! See `config-urlArgs
 <http://requirejs.org/docs/api.html#config-urlArgs>`_ in the RequireJS
 documentation for details. :file:`require_config.dev.js` is listed in the
 repository :file:`.gitignore` file.
+
+CSS
+---
+
+NAV uses Sass for styling. If you want to modify the styling,
+you can do so by editing the SCSS files in the :file:`python/nav/web/static/scss`
+directory. To build the CSS assets, you will need to have Node.js
+and npm installed. Once you have these installed, you can run
+the following command to build the CSS files::
+
+  npm install
+  npm run build:sass
+
+This will build the CSS assets and place them in the :file:`python/nav/web/static/css`
+directory. If you want to watch for changes in the SCSS files and rebuild the
+CSS assets automatically, you can run the following command instead::
+
+  npm run watch:sass
 
 
 
@@ -407,7 +459,7 @@ like thus:
    ...
    $ make shell
    ...
-   $ tox -e unit-py38-django32
+   $ tox run -e unit-py39-django32
    ...
 
 

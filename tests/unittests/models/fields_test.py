@@ -4,8 +4,6 @@ from datetime import datetime as dt
 from decimal import Decimal
 import pickle
 
-from decimal import Decimal
-
 from django.core import exceptions
 from django.db import connection
 
@@ -62,7 +60,7 @@ class TestCIDRField(object):
         field = CIDRField()
         ip6 = u'1234:dead:beef::63/23'
         with pytest.raises(exceptions.ValidationError):
-            result6 = field.to_python(ip6)
+            field.to_python(ip6)
 
 
 class TestDateTimeInfinityField(object):

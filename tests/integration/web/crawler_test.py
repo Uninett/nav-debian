@@ -3,51 +3,39 @@
 The crawler attempts to retrieve any NAV web UI page that can be reached with
 parameterless GET requests, while logged in as an administrator.
 
-We want one test for each such URL, but since generating more tests while
-running existing tests isn't easily supported under pytest (yield tests are
-becoming deprecated under pytest 4), the crawler is the de-facto reachability
-tester. A dummy test will be generated for each seen URL, and the dummy tests
-will assert that the response code of the URL was 200 OK.
-
-In addition, HTML validation tests (using libtidy) will be generated for all
-URLs that report a Content-Type of text/html.
-
+In some respects, it would be preferable to generate 1 named test for each
+reachable page, but the tests need to be generated during the test collection
+phase, which means that a full web server needs to be running before pytest
+runs - and it would also be preferable that the web server is started from a
+fixture. Instead, the webcrawler is itself a fixture that allows iteration over
+all reachable pages.
 """
-from __future__ import print_function
 
 from collections import namedtuple
+from http.client import BadStatusLine
 from lxml.html import fromstring
-import os
-
-try:
-    from http.client import BadStatusLine
-except ImportError:
-    from httplib import BadStatusLine
 
 import pytest
 
 from tidylib import tidy_document
 from urllib.request import (
-    urlopen,
-    build_opener,
-    install_opener,
     HTTPCookieProcessor,
     Request,
+    build_opener,
+    install_opener,
+    urlopen,
 )
 from urllib.error import HTTPError, URLError
 from urllib.parse import (
-    urlsplit,
-    urlencode,
-    urlunparse,
-    urlparse,
     quote,
+    urlencode,
+    urljoin,
+    urlparse,
+    urlsplit,
+    urlunparse,
 )
-from mock import Mock
 
 
-HOST_URL = os.environ.get('TARGETURL', None)
-USERNAME = os.environ.get('ADMINUSERNAME', 'admin')
-PASSWORD = os.environ.get('ADMINPASSWORD', 'admin')
 TIMEOUT = 90  # seconds?
 
 TIDY_OPTIONS = {
@@ -113,6 +101,12 @@ class WebCrawler(object):
             if page:
                 yield page
 
+    def crawl_only_html(self):
+        """Only yields crawled pages that have a content-type of html and is not
+        blacklisted.
+        """
+        yield from filter(should_validate, self.crawl())
+
     def _visit_with_error_handling(self, url):
         try:
             page = self._visit(url)
@@ -171,7 +165,7 @@ class WebCrawler(object):
                 self.queue.append('%s://%s%s' % (url.scheme, url.netloc, url.path))
 
     def login(self):
-        login_url = '%sindex/login/' % self.base_url
+        login_url = urljoin(self.base_url, '/index/login/')
         opener = build_opener(HTTPCookieProcessor())
         data = urlencode({'username': self.username, 'password': self.password})
         opener.open(login_url, data.encode('utf-8'), TIMEOUT)
@@ -215,32 +209,31 @@ def _quote_url(url):
 
 
 #
+# fixtures
+#
+
+
+@pytest.fixture(scope="session")
+def webcrawler(gunicorn, admin_username, admin_password):
+    crawler = WebCrawler(gunicorn, admin_username, admin_password)
+    yield crawler
+
+
+#
 # test functions
 #
 
-# just one big, global crawler instance to ensure it's results are cached
-# throughout all the tests in a single session
-if HOST_URL:
-    crawler = WebCrawler(HOST_URL, USERNAME, PASSWORD)
-else:
-    crawler = Mock()
-    crawler.crawl.return_value = []
 
-
-def page_id(page):
-    """Extracts a URL as a test id from a page"""
-    return normalize_path(page.url)
-
-
-@pytest.mark.skipif(
-    not HOST_URL,
-    reason="Missing environment variable TARGETURL "
-    "(ADMINUSERNAME, ADMINPASSWORD) , skipping crawler "
-    "tests!",
-)
-@pytest.mark.parametrize("page", crawler.crawl(), ids=page_id)
-def test_link_should_be_reachable(page):
-    assert page.response == 200, _content_as_string(page.content)
+def test_all_links_should_be_reachable(webcrawler):
+    unreachable = []
+    for page in webcrawler.crawl():
+        if page.response != 200:
+            # No need to fill up the test report files with contents of OK pages
+            print(_content_as_string(page.content))
+            unreachable.append(f"{page.url} ({page.response})")
+    assert not unreachable, f"{len(unreachable)} unreachable pages:\n" + '\n'.join(
+        unreachable
+    )
 
 
 def _content_as_string(content):
@@ -250,31 +243,37 @@ def _content_as_string(content):
         return content.decode('utf-8')
 
 
-@pytest.mark.skipif(
-    not HOST_URL,
-    reason="Missing environment variable TARGETURL "
-    "(ADMINUSERNAME, ADMINPASSWORD) , skipping crawler "
-    "tests!",
-)
-@pytest.mark.parametrize("page", crawler.crawl(), ids=page_id)
-def test_page_should_be_valid_html(page):
-    if page.response != 200:
-        pytest.skip("not validating non-reachable page")
-    if not page.content_type or 'html' not in page.content_type.lower():
-        pytest.skip("not attempting to validate non-html page")
-    if not should_validate(page.url):
-        pytest.skip("skip validation of blacklisted page")
-    if not page.content:
-        pytest.skip("page has no content")
+def test_page_should_be_valid_html(webcrawler):
+    try:
+        tidy_document("")
+    except OSError as error:
+        pytest.skip("tidylib is not available: {!r}".format(error))
 
-    document, errors = tidy_document(page.content, TIDY_OPTIONS)
-    errors = filter_errors(errors)
+    invalid = []
+    for page in webcrawler.crawl_only_html():
+        if page.response != 200 or not page.content:
+            continue
 
-    assert not errors, "Found following validation errors:\n" + errors
+        document, errors = tidy_document(page.content, TIDY_OPTIONS)
+        errors = filter_errors(errors)
+        if errors:
+            print(f"{page.url} :")
+            print(errors)
+            invalid.append(page.url)
+
+    assert not invalid, f"{len(invalid)} invalid HTML pages:\n" + '\n'.join(invalid)
 
 
-def should_validate(url):
-    path = normalize_path(url)
+def should_validate(page: Page):
+    """Returns True if page is eligible for HTML validation, False if not"""
+    if (
+        page.response == 500
+        or not page.content_type
+        or not isinstance(page.content_type, str)
+        or 'html' not in page.content_type.lower()
+    ):
+        return False
+    path = normalize_path(page.url)
     for blacklisted_path in TIDY_BLACKLIST:
         if path.startswith(blacklisted_path):
             return False

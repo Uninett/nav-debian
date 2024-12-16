@@ -21,7 +21,7 @@ Build-Depends:
 # This is needed to ensure building of the docs without error
  libsnmp40,
 Standards-Version: 3.9.6
-X-Python-Version: 3.7
+X-Python-Version: 3.9
 Homepage: https://nav.uninett.no/
 
 Package: nav
@@ -31,17 +31,18 @@ Depends:
   ${misc:Depends},
   systemd,
   adduser,
-  python3 (>= 3.7),
+  python3 (>= 3.9),
   nbtscan,
   logrotate,
-  postgresql (>= 9.4),
-  postgresql-contrib (>= 9.4),
+  postgresql (>= 13.0),
+  postgresql-contrib (>= 13.0),
   python3-distutils,
   rrdtool,
   makepasswd,
   rsync,
   wwwconfig-common (>= 0.0.37),
   samba-common-bin,
+  libgsmsd8,
 # The following are mostly requirements of the embedded Python libraries of this package:
   ca-certificates,
   libjpeg62,
@@ -50,7 +51,13 @@ Depends:
   libldap-2.4-2 (>= 2.4.7),
   libpq5,
   zlib1g
-Recommends: apache2, libapache2-mod-wsgi-py3, graphite-carbon, graphite-web
+Recommends:
+  apache2,
+  libapache2-mod-wsgi-py3,
+  graphite-carbon,
+  graphite-web,
+  smbclient,
+  dhcping
 Conflicts: graphite-web-django14
 Description: Network Administration Visualized
  This package contains Network Administration Visualized, an advanced

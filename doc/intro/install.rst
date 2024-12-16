@@ -7,7 +7,8 @@
 There are two main options for installing NAV: Either from source code, or from
 a pre-packaged version. Some of these options will require manually installing
 and/or configuring 3rd party software that NAV depends on, mainly :xref:`PostgreSQL`
-and :xref:`Graphite`.
+and :xref:`Graphite`. Building NAV from source code will also require Node.js
+and npm to be installed.
 
 
 Installing a pre-packaged version of NAV
@@ -56,7 +57,7 @@ patches from the Debian team.
 
 This is normally our recommended option for regular NAV users.
 
-`Instructions for installing the Debian package is available on the official
+`Instructions for installing the Debian package are available on the official
 NAV web site <https://nav.uninett.no/install-instructions/#debian>`_.
 
 After installing the Debian package, you will need to :ref:`integrate Graphite
@@ -96,4 +97,3 @@ For you, we provide two guides:
    </howto/generic-install-from-source>`.
 2. :doc:`A step-by-step, detailed guide on installing NAV from source on a
    Debian GNU/Linux operating system </howto/manual-install-on-debian>`.
-

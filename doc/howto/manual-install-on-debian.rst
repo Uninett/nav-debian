@@ -39,7 +39,7 @@ available tags, and ``git checkout x.y.z`` to checkout version ``x.y.z``.
 To install NAV's Python requirements::
 
   apt-get install -y libpq-dev libjpeg-dev libz-dev libldap2-dev libsasl2-dev
-  pip install -r requirements.txt
+  pip install -r requirements.txt -c constraints.txt
 
 4. Install NAV itself
 =====================
@@ -59,7 +59,7 @@ actually find :file:`nav.conf`::
 
 If you like, you can build the complete HTML documentation thus::
 
-    python setup.py build_sphinx
+    sphinx-build
 
 
 6. Initialize the database
@@ -160,7 +160,7 @@ Copy the file :file:`/etc/nav/apache/apache.conf.example` to
 * ``documentation_path`` is where Sphinx put the docs, in
   ``$SOURCE_CODE_DIRECTORY/build/sphinx/html/``.
 * ``nav_uploads_path`` is the upload path you created in step 8.
-* ``nav_python_base`` should be :file:`/usr/local/lib/python3.7/dist-packages` (or wherever the ``nav`` Python module was installed)
+* ``nav_python_base`` should be :file:`/usr/local/lib/python3.9/dist-packages` (or wherever the ``nav`` Python module was installed)
 
 We suggest creating a new Apache site config:
 Inside a ``VirtualHost``-directive, add:

@@ -1,12 +1,11 @@
 {% extends "base.html" %} {# Don't need a deeper hierarchy for one template #}
-{% load crispy_forms_tags %}
 {% load tools %}
 
 {% block base_header_additional_head %}
   <style type="text/css">
-   .statistics-chart {
+    .statistics-chart {
        margin: 0 2em 2em 0;
-   }
+    }
   </style>
   <script type="text/javascript">require(['src/statistics']);</script>
 {% endblock %}
@@ -17,12 +16,25 @@
     {% include 'nav_header.html' %}
   {% endwith %}
 
+  {% if cache_misconfigured %}
+    <div class="alert-box error">
+      The cache for Ranked Statistics is not configured correctly.
+    </div>
+  {% endif %}
 
-  {% crispy form %}
+  {% include 'custom_crispy_templates/flat_form.html' %}
 
   {# Display view if exists #}
   {% if result %}
     {% if result.graph_url %}
+      <div>
+        {% if from_cache %}
+          <p>Showing cached results ({{ duration }} sec) </p>
+        {% else %}
+          <p>Showing live results ({{ duration }} sec) </p>
+        {% endif %}
+      </div>
+
       <ul class="button-group">
         <li>
           <a id="line-chart" href="javascript:void(0);" class="button small active">Line chart</a>

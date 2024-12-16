@@ -19,7 +19,6 @@
 Provides helpfunctions for Arnold web and script
 """
 
-from __future__ import absolute_import
 
 import re
 import os
@@ -28,9 +27,9 @@ import configparser
 import logging
 import socket
 from datetime import datetime, timedelta
-from subprocess import Popen, PIPE
 from collections import namedtuple
 from smtplib import SMTPException
+from typing import Callable
 
 from IPy import IP
 from django.db import connection
@@ -40,16 +39,14 @@ import nav.Snmp
 from nav.Snmp.errors import AgentError
 import nav.bitvector
 import nav.buildconf
+from nav.Snmp.profile import get_snmp_session_for_profile
 from nav.config import find_config_file
 from nav.errors import GeneralException
 from nav.models.arnold import Identity, Event
 from nav.models.manage import Interface, Prefix
 from nav.netbiostracker.tracker import scan, parse_get_workstations
 from nav.portadmin.management import ManagementFactory
-from nav.portadmin.snmp.base import (
-    InvalidManagementProfileError,
-    NoReadWriteManagementProfileError,
-)
+from nav.portadmin.snmp.base import NoReadWriteManagementProfileError
 from nav.util import is_valid_ip
 
 CONFIGFILE = os.path.join("arnold", "arnold.conf")
@@ -298,7 +295,7 @@ def disable(candidate, justification, username, comment="", autoenablestep=0):
     )
 
     if not candidate.interface.netbox.get_preferred_snmp_management_profile(
-        writeable=True
+        require_write=True
     ):
         raise NoReadWriteManagementProfileError(candidate.interface.netbox)
     identity = check_identity(candidate)
@@ -320,7 +317,7 @@ def quarantine(candidate, qvlan, justification, username, comment="", autoenable
     )
 
     if not candidate.interface.netbox.get_preferred_snmp_management_profile(
-        writeable=True
+        require_write=True
     ):
         raise NoReadWriteManagementProfileError(candidate.interface.netbox)
     identity = check_identity(candidate)
@@ -443,7 +440,11 @@ def open_port(identity, username, eventcomment=""):
     _logger.info("openPort: Port successfully opened")
 
 
-def change_port_status(action, identity):
+def change_port_status(
+    action,
+    identity,
+    agent_getter: Callable = get_snmp_session_for_profile,
+):
     """Use SNMP to change status on an interface.
 
     We use ifadminstatus to enable and disable ports
@@ -459,18 +460,12 @@ def change_port_status(action, identity):
 
     # Create snmp-object
     netbox = identity.interface.netbox
-    profile = netbox.get_preferred_snmp_management_profile(writeable=True)
+    profile = netbox.get_preferred_snmp_management_profile(require_write=True)
 
     if not profile:
         raise NoReadWriteManagementProfileError
-    if not hasattr(profile, "snmp_community") or not hasattr(profile, "snmp_version"):
-        raise InvalidManagementProfileError
 
-    agent = nav.Snmp.Snmp(
-        host=netbox.ip,
-        community=profile.snmp_community,
-        version=profile.snmp_version,
-    )
+    agent = agent_getter(profile)(host=netbox.ip)
 
     # Disable or enable based on input
     try:

@@ -1,4 +1,5 @@
 """Models for uploaded image information"""
+
 import os
 from os.path import exists, join
 
@@ -15,17 +16,28 @@ class Image(models.Model):
 
     id = models.AutoField(db_column='imageid', primary_key=True)
     room = models.ForeignKey(
-        Room, on_delete=models.CASCADE, db_column='roomid', null=True
+        Room,
+        on_delete=models.CASCADE,
+        db_column='roomid',
+        null=True,
+        related_name="images",
     )
     location = models.ForeignKey(
-        Location, on_delete=models.CASCADE, db_column='locationid', null=True
+        Location,
+        on_delete=models.CASCADE,
+        db_column='locationid',
+        null=True,
+        related_name="images",
     )
     title = VarcharField()
     path = VarcharField()
     name = VarcharField()
     created = models.DateTimeField(auto_now_add=True)
     uploader = models.ForeignKey(
-        Account, on_delete=models.CASCADE, db_column='uploader'
+        Account,
+        on_delete=models.CASCADE,
+        db_column='uploader',
+        related_name="images",
     )
     priority = models.IntegerField()
 

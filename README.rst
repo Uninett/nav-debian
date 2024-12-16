@@ -13,9 +13,6 @@
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :alt: Code style: black
    :target: https://github.com/psf/black
-.. image:: https://img.shields.io/badge/irc.libera.chat-%23nav-blue.svg
-   :alt: #nav@libera.chat
-   :target: https://web.libera.chat/?channel=#nav
 
 
 This is NAV - Network Administration Visualized - an advanced software suite
@@ -32,7 +29,7 @@ NAV is licensed under the *GNU GPL version 3*.  NAV includes software from third
 parties, which are either licensed under the GPL or compatible licenses.
 
 * Copyright 2002-2021 Uninett AS
-* Copyright 2022-2023 Sikt
+* Copyright 2022-2024 Sikt
 
 See individual source files for more detailed copyright notices.
 
@@ -56,6 +53,10 @@ For detailed instructions on how to install NAV, see
 `<doc/intro/install.rst>`_. See the file `<NOTES.rst>`_ for release notes and
 upgrade instructions.
 
+Take it for a quick spin
+------------------------
+For instruction on how to use docker to run code straight from the repo, see
+`<doc/hacking/using-docker.rst>`_.  Please be aware, though, that this is a highly developer-oriented environment, and is not suitable for production use.
 
 Contributing
 ------------

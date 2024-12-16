@@ -1,21 +1,19 @@
 #!/bin/bash
 
-set -e
+set -ex
 
-if [[ ! -f "/source/setup.py" ]]; then
+if [[ ! -f "/source/pyproject.toml" ]]; then
   echo NAV source code does not appear to be mounted at /source
   exit 1
 fi
 
 cd /source
-sudo -u nav python3 setup.py build
-python3 setup.py develop
-sudo -u nav python3 setup.py build_sass
+pip install -vv -e .
+make sassbuild
 
 if [[ ! -f "/etc/nav/nav.conf" ]]; then
     echo "Copying initial NAV config files into this container"
     nav config install --verbose /etc/nav
-    chown -R nav:nav /etc/nav
     cd /etc/nav
     sed -e 's/^#\s*\(DJANGO_DEBUG.*\)$/\1/' -i nav.conf  # Enable django debug.
     sed -e 's/^NAV_USER\s*=.*/NAV_USER=nav/' -i nav.conf  # Set the nav user
@@ -24,3 +22,5 @@ if [[ ! -f "/etc/nav/nav.conf" ]]; then
 
     cp /source/tools/docker/graphite.conf /etc/nav/graphite.conf
 fi
+
+sudo chown -R nav /tmp/nav_cache

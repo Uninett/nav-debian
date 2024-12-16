@@ -15,10 +15,9 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals, absolute_import
 
 import logging
-from nav.compatibility import force_str
+from django.utils.encoding import force_str
 
 from django.db import models
 from django.utils.timezone import now as utcnow
