@@ -18,8 +18,8 @@ override_dh_virtualenv:
 
 	dh_virtualenv --extra-pip-arg "-rdoc/requirements.txt" --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0"
 
-	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python $(DEBIAN_ROOT)/opt/venvs/nav/bin/sphinx-build doc/ doc/_build
-	dh_installdocs build/sphinx/html
+	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python $(DEBIAN_ROOT)/opt/venvs/nav/bin/sphinx-build doc/ doc/_build/html
+	dh_installdocs doc/_build/html
 	dh_installdocs NOTES.rst
 	dh_installchangelogs CHANGELOG.md HISTORY
 
