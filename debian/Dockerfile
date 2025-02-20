@@ -5,7 +5,8 @@ RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
      --mount=target=/var/cache/apt,type=cache,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     apt-get -y update && \
-     apt-get install -y \
+    apt-get install -y \
+       curl \
        pbuilder \
        vim \
        cdbs \
