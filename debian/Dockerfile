@@ -1,4 +1,7 @@
 FROM debian:bullseye
+# We're using mount caches, so don't clean the apt cache after every apt command!
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
