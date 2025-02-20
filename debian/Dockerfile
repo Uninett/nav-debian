@@ -1,4 +1,5 @@
 FROM debian:bullseye
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
      --mount=target=/var/cache/apt,type=cache,sharing=locked \
