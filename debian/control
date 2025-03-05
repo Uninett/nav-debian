@@ -5,7 +5,6 @@ Maintainer: Morten Brekkevold <morten.brekkevold@sikt.no>
 Build-Depends:
  debhelper (>= 13.3.4),
  quilt,
- python-all,
  python3-all,
  dh-virtualenv (>= 1.2.2),
  dh-python,
@@ -48,7 +47,7 @@ Depends:
   libjpeg62,
   libsasl2-2,
   libsnmp40,
-  libldap-2.4-2 (>= 2.4.7),
+  libldap-2.5-0 (>= 2.5.13),
   libpq5,
   zlib1g
 Recommends:
