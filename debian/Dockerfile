@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:bookworm
 # We're using mount caches, so don't clean the apt cache after every apt command!
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 
@@ -21,10 +21,10 @@ RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
        libpq-dev \
        libjpeg-dev \
        libz-dev \
+       libgammu-dev \
        libldap2-dev \
        libsasl2-dev \
        python3-dev \
-       python-all \
        python3-all \
        libsnmp40 \
      && \
@@ -37,13 +37,6 @@ RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
          dh-virtualenv \
          dh-python \
          python3-setuptools
-
-# Backports game to make python-gammu build and install properly
-RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
-     --mount=target=/var/cache/apt,type=cache,sharing=locked \
-     echo 'deb https://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
-     apt-get -y update && \
-     apt-get install -y libgammu-dev
 
 # Install NodeJS so we can use webpack to build NAV stylesheets.  Nodejs on
 # Debian Bullseye is just too darn old to be usable for us, so we have to fetch
