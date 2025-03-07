@@ -52,14 +52,14 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'NAV'
-copyright = u'2012-2021 Uninett AS, 2022-2024 Sikt'
+copyright = u'2012-2021 Uninett AS, 2022-2025 Sikt'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '5.12'
+version = '5.13'
 # version = '.'.join(buildconf.VERSION.split('.')[:2])
 # The full version, including alpha/beta/rc tags.
 release = buildconf.VERSION
@@ -236,8 +236,8 @@ latex_documents = [
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'django': (
-        'https://docs.djangoproject.com/en/3.2/',
-        'https://docs.djangoproject.com/en/3.2/_objects/',
+        'https://docs.djangoproject.com/en/4.2/',
+        'https://docs.djangoproject.com/en/4.2/_objects/',
     ),
 }
 

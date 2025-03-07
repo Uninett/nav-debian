@@ -17,13 +17,20 @@
 import base64
 import io
 import os
+from datetime import datetime, timedelta
 
-from django.http import HttpResponse
+from django import forms
+from django.http import HttpResponse, HttpRequest
 from django.views.generic.list import ListView
 
 import qrcode
 from PIL import ImageDraw, ImageFont
 import qrcode.image.pil
+
+
+def is_ajax(request: HttpRequest) -> bool:
+    """Returns True if this request is an AJAX (XMLHttpRequest) request"""
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
 
 
 def get_navpath_root():
@@ -125,3 +132,17 @@ def generate_qr_codes_as_byte_strings(url_dict: dict[str, str]) -> list[str]:
             convert_bytes_buffer_to_bytes_string(bytes_buffer=qr_code_byte_buffer)
         )
     return qr_code_byte_strings
+
+
+def validate_timedelta_for_overflow(days: int = 0, hours: int = 0):
+    """
+    Validates that the given numbers of days and hours when subtracted from the
+    current time will not result in an overflow error
+
+
+    If that happens this function will raise a forms.ValidationError
+    """
+    try:
+        datetime.now() - timedelta(days=days, hours=hours)
+    except OverflowError:
+        raise forms.ValidationError("They did not have computers that long ago")

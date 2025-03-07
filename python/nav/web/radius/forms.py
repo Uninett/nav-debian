@@ -29,6 +29,8 @@ from nav.web.crispyforms import (
 
 from nav.util import is_valid_cidr
 
+from ..utils import validate_timedelta_for_overflow
+
 
 def validate_integer(value):
     """Validator for integer"""
@@ -167,6 +169,12 @@ class ErrorLogSearchForm(forms.Form):
             ],
         )
 
+    def clean_time(self):
+        time_type, time = self.cleaned_data["time"]
+        if time_type == "hours":
+            validate_timedelta_for_overflow(hours=int(time))
+        return time
+
 
 class AccountLogSearchForm(forms.Form):
     """Form for searching in the radius account log"""
@@ -236,6 +244,12 @@ class AccountLogSearchForm(forms.Form):
             ],
         )
 
+    def clean_time(self):
+        time_type, time = self.cleaned_data["time"]
+        if time_type == "days":
+            validate_timedelta_for_overflow(days=int(time))
+        return time
+
 
 class AccountChartsForm(forms.Form):
     """Form for displaying top talkers"""
@@ -258,3 +272,9 @@ class AccountChartsForm(forms.Form):
             form_fields=[self['days'], self['charts']],
             submit_field=SubmitField('send', 'Show me', css_classes='small'),
         )
+
+    def clean_days(self):
+        days = self.cleaned_data["days"]
+        validate_timedelta_for_overflow(days=days)
+
+        return days

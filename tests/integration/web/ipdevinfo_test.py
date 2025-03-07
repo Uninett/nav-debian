@@ -15,6 +15,12 @@ def test_device_details_should_include_sysname(client, netbox):
     assert netbox.sysname in smart_str(response.content)
 
 
+def test_device_details_should_match_sysname_case_insensitively(client, netbox):
+    url = reverse('ipdevinfo-details-by-name', args=(netbox.sysname.upper(),))
+    response = client.get(url)
+    assert netbox.sysname in smart_str(response.content)
+
+
 def test_port_search_should_match_case_insensitively(client, netbox):
     ifc = netbox.interfaces.all()[0]
     url = reverse(
@@ -27,6 +33,20 @@ def test_port_search_should_match_case_insensitively(client, netbox):
     response = client.get(url)
     assert response.status_code == 200
     assert ifc.ifdescr in smart_str(response.content)
+
+
+def test_get_port_view_should_not_crash_on_big_interval(client, netbox):
+    url = reverse(
+        'ipdevinfo-get-port-view',
+        kwargs={
+            'netbox_sysname': netbox.sysname,
+            'perspective': 'swportactive',
+        },
+    )
+    url = url + '?interval=123123123123'
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "They did not have computers" in smart_str(response.content)
 
 
 @pytest.mark.parametrize(
