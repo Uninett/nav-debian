@@ -15,7 +15,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        distro: ['bullseye']
+        distro: ['bullseye', 'bookworm']
 
     env:
       DISTRO: ${{ matrix.distro }}
