@@ -1,3 +1,9 @@
+nav (5.13.0-2bookworm) bookworm; urgency=medium
+
+  * Repackaged for Debian bookworm.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 07 Mar 2025 09:42:00 +0000
+
 nav (5.13.0-1bullseye) bullseye; urgency=medium
 
   * New upstream release.
