@@ -1,6 +1,6 @@
 --- nav-debian.orig/python/nav/bin/navmain.py
 +++ nav-debian/python/nav/bin/navmain.py
-@@ -21,6 +21,8 @@ import os
+@@ -22,6 +22,8 @@ import os
  import os.path
  import argparse
  import textwrap
@@ -9,7 +9,7 @@
  
  from nav import colors
  
-@@ -246,6 +248,7 @@ def c_start(args):
+@@ -247,6 +249,7 @@ def c_start(args):
      """starts services"""
      if not args.nonroot:
          verify_root()
@@ -17,7 +17,7 @@
      from nav import config
  
      try:
-@@ -263,6 +266,17 @@ def c_stop(args):
+@@ -264,6 +267,17 @@ def c_stop(args):
      action_iterator(args.service, "stop", "Stopping", "Failed", verbose=args.verbose)
  
  
