@@ -1,8 +1,8 @@
-nav (5.14.0-2bookworm) UNRELEASED; urgency=high
+nav (5.14.0-2bookworm) bookworm; urgency=high
 
   * Repackaged for Debian bookworm.
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 16 May 2025 09:25:08 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 21 Aug 2025 14:19:58 +0200
 
 nav (5.14.0-1bullseye) bullseye; urgency=medium
 
