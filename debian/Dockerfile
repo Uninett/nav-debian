@@ -41,7 +41,7 @@ RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 # Backports game to make python-gammu build and install properly
 RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
      --mount=target=/var/cache/apt,type=cache,sharing=locked \
-     echo 'deb https://deb.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
+     echo 'deb https://archive.debian.org/debian bullseye-backports main' > /etc/apt/sources.list.d/backports.list && \
      apt-get -y update && \
      apt-get install -y libgammu-dev
 
