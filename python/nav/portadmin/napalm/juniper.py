@@ -13,8 +13,6 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-# Sorry pylint, we can't shorten URLs, you dumbass.
-# pylint: disable=line-too-long
 """Juniper specific PortAdmin functionality.
 
 Some references:
@@ -26,6 +24,7 @@ but many of the operations PortAdmin needs are not directly supported by the NAP
 so the underlying Juniper PyEZ library is utilized directly in most cases.
 
 """
+
 from operator import attrgetter
 from typing import Any, Optional, Sequence
 

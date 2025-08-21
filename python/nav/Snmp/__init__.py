@@ -20,6 +20,7 @@ This interface only supports pynetsnmp, but is designed to allow
 multiple implementations
 
 """
+
 import os
 import sys
 
@@ -33,8 +34,6 @@ except ImportError:
 else:
     BACKEND = 'pynetsnmp'
 
-# These wildcard imports are informed, not just accidents.
-# pylint: disable=W0401
 if BACKEND == 'pynetsnmp':
     if sys.platform == "darwin" and not os.getenv("DYLD_LIBRARY_PATH"):
         # horrible workaround for MacOS problems, described at length at

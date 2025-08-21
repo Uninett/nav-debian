@@ -154,7 +154,7 @@ def main():
 
         except DatabaseError as err:
             _logger.error(
-                'Database error, closing the DB connection just in ' 'case:\n%s', err
+                'Database error, closing the DB connection just in case:\n%s', err
             )
             _logger.debug('', exc_info=True)
             if connection.queries:
@@ -164,7 +164,7 @@ def main():
             except InterfaceError:
                 connection.connection = None
 
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _logger.critical('Unhandled error: %s', err, exc_info=True)
             sys.exit(1)
 
@@ -233,7 +233,7 @@ def loginitsmtp(loglevel, mailaddr, fromaddr, mailserver):
             mailserver, fromaddr, mailaddr, 'NAV alertengine warning from ' + hostname
         )
         mailformat = (
-            '[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] ' '%(message)s'
+            '[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] %(message)s'
         )
         mailformatter = logging.Formatter(mailformat)
         mailhandler.setFormatter(mailformatter)
@@ -241,7 +241,7 @@ def loginitsmtp(loglevel, mailaddr, fromaddr, mailserver):
         _logger = logging.getLogger()
         _logger.addHandler(mailhandler)
         return True
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001
         print(
             "Failed creating SMTP loghandler. Daemon mode disabled. (%s)" % error,
             file=sys.stderr,

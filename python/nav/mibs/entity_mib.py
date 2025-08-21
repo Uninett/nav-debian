@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Implements a MibRetriever for the ENTITY-MIB, as well as helper classes."""
+
 from collections import defaultdict
 from itertools import chain
 from operator import itemgetter
@@ -89,13 +90,13 @@ class EntityMib(mibretriever.MibRetriever):
         df.addCallback(self.translate_result)
         ret_table = yield df
         named_table = EntityTable(ret_table)
-        defer.returnValue(named_table)
+        return named_table
 
     @defer.inlineCallbacks
     def get_entity_physical_table(self):
         """Retrieves the full entPhysicalTable contents"""
         phy_sensor_table = yield self._get_named_table('entPhysicalTable')
-        defer.returnValue(phy_sensor_table)
+        return phy_sensor_table
 
     @defer.inlineCallbacks
     def get_useful_physical_table_columns(self):
@@ -115,12 +116,12 @@ class EntityMib(mibretriever.MibRetriever):
                 'entPhysicalIsFRU',
             ]
         )
-        defer.returnValue(self.translate_result(columns))
+        return self.translate_result(columns)
 
     @defer.inlineCallbacks
     def get_alias_mapping(self):
         alias_mapping = yield self.retrieve_column('entAliasMappingIdentifier')
-        defer.returnValue(self._process_alias_mapping(alias_mapping))
+        return self._process_alias_mapping(alias_mapping)
 
     def _process_alias_mapping(self, alias_mapping):
         mapping = defaultdict(list)
@@ -154,7 +155,7 @@ class EntityMib(mibretriever.MibRetriever):
             for e in table.values()
             if filter_function(e)
         ]
-        defer.returnValue(objects)
+        return objects
 
 
 class EntityTable(dict):

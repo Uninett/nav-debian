@@ -19,8 +19,8 @@ jobs:
         python-version: ["3.9", "3.10", "3.11"]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: kenchan0130/actions-system-info@6a1e7522ec3f38a344c8ea597867a012c3e691a8
+      - uses: actions/checkout@v5
+      - uses: kenchan0130/actions-system-info@59699597e84e80085a750998045983daa49274c4
         id: system-info
 
       - name: "Cache pip packages"
@@ -72,10 +72,6 @@ jobs:
         run: |
           set -xe
           sudo apt-get install -y libldap2-dev libsasl2-dev libtidy5deb1 libsnmp40
-
-      - uses: browser-actions/setup-chrome@latest
-      - run: chrome --version
-      - uses: nanasess/setup-chromedriver@v2
 
       - name: "Set up PostgreSQL"
         uses: harmon758/postgresql-action@v1
@@ -132,7 +128,7 @@ jobs:
     name: "Test Javascript code"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: browser-actions/setup-chrome@latest
       - uses: browser-actions/setup-firefox@latest
       - run: chrome --version

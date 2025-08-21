@@ -9,6 +9,8 @@ from django.urls import reverse
 from nav.models.event import AlertHistory
 from nav.models.fields import INFINITY
 from nav.web.api.v1.views import get_endpoints
+from nav.models.oui import OUI
+from nav.models.manage import NetboxEntity
 
 
 ENDPOINTS = {name: force_str(url) for name, url in get_endpoints().items()}
@@ -45,7 +47,11 @@ TEST_DATA = {
 @pytest.mark.parametrize("url", ENDPOINTS.values())
 def test_forbidden_endpoints(db, api_client, url):
     response = api_client.get(url)
-    assert response.status_code == 403
+    if url == ENDPOINTS['jwt_refresh']:
+        # JWT refresh endpoint only accepts POST requests
+        assert response.status_code == 405
+    else:
+        assert response.status_code == 403
 
 
 @pytest.mark.parametrize("name, url", ENDPOINTS.items())
@@ -56,7 +62,11 @@ def test_allowed_endpoints(db, api_client, token, serializer_models, name, url):
         response = api_client.get("{}?active=1".format(url))
     else:
         response = api_client.get(url)
-    assert response.status_code == 200
+    if name == 'jwt_refresh':
+        # JWT refresh endpoint only accepts POST requests
+        assert response.status_code == 405
+    else:
+        assert response.status_code == 200
 
 
 @pytest.mark.parametrize("endpoint", ['account', 'location', 'room', 'vlan'])
@@ -346,6 +356,103 @@ def test_interface_with_last_used_should_be_listable(
     assert response.status_code == 200
 
 
+class TestVendorLookupGet:
+    def test_if_vendor_is_found_it_should_include_vendor_in_response(
+        self, db, api_client, vendor_endpoint, oui
+    ):
+        test_mac = 'aa:bb:cc:dd:ee:ff'
+        response = api_client.get(f"{ENDPOINTS[vendor_endpoint]}?mac={test_mac}")
+        assert response.status_code == 200
+        assert response.data[test_mac] == oui.vendor
+
+    def test_should_always_return_mac_with_correct_format(
+        self, db, api_client, vendor_endpoint, oui
+    ):
+        test_mac = 'AA-BB-CC-DD-EE-FF'
+        response = api_client.get(f"{ENDPOINTS[vendor_endpoint]}?mac={test_mac}")
+        assert response.status_code == 200
+        assert response.data['aa:bb:cc:dd:ee:ff'] == oui.vendor
+
+    def test_if_vendor_is_not_found_it_should_return_empty_dict(
+        self, db, api_client, vendor_endpoint
+    ):
+        test_mac = 'aa:bb:cc:dd:ee:ff'
+        response = api_client.get(f"{ENDPOINTS[vendor_endpoint]}?mac={test_mac}")
+        assert response.status_code == 200
+        assert response.data == {}
+
+    def test_if_mac_is_invalid_it_should_return_400(
+        self, db, api_client, vendor_endpoint
+    ):
+        test_mac = 'invalidmac'
+        response = api_client.get(f"{ENDPOINTS[vendor_endpoint]}?mac={test_mac}")
+        assert response.status_code == 400
+
+    def test_if_mac_is_not_provided_it_should_return_empty_dict(
+        self, db, api_client, vendor_endpoint
+    ):
+        response = api_client.get(ENDPOINTS[vendor_endpoint])
+        assert response.status_code == 200
+        assert response.data == {}
+
+
+class TestVendorLookupPost:
+    def test_if_vendor_is_found_it_should_include_vendor_in_response(
+        self, db, api_client, vendor_endpoint, oui
+    ):
+        test_mac = 'aa:bb:cc:dd:ee:ff'
+        response = create(api_client, vendor_endpoint, [test_mac])
+        assert response.status_code == 200
+        assert response.data[test_mac] == oui.vendor
+
+    def test_should_always_return_macs_with_correct_format(
+        self, db, api_client, vendor_endpoint, oui
+    ):
+        test_mac = 'AA-BB-CC-DD-EE-FF'
+        response = create(api_client, vendor_endpoint, [test_mac])
+        assert response.status_code == 200
+        assert response.data['aa:bb:cc:dd:ee:ff'] == oui.vendor
+
+    def test_if_vendor_is_not_found_it_should_be_omitted_from_response(
+        self, db, api_client, vendor_endpoint, oui
+    ):
+        test_mac = '11:22:33:44:55:66'
+        response = create(api_client, vendor_endpoint, [test_mac])
+        assert response.status_code == 200
+        assert test_mac not in response.data
+
+    def test_if_empty_list_is_provided_it_should_return_empty_dict(
+        self, db, api_client, vendor_endpoint
+    ):
+        response = create(api_client, vendor_endpoint, [])
+        assert response.status_code == 200
+        assert response.data == {}
+
+    def test_if_mac_is_invalid_it_should_return_400(
+        self, db, api_client, vendor_endpoint
+    ):
+        response = create(api_client, vendor_endpoint, ["invalidmac"])
+        assert response.status_code == 400
+
+
+class TestNetboxEntityViewSet:
+    def test_should_return_list_of_entities(
+        self, db, api_client, netboxentity_endpoint, netboxentity
+    ):
+        endpoint = netboxentity_endpoint
+        response = get(api_client, endpoint)
+        assert response.status_code == 200
+        assert response.data['results'][0]['id'] == netboxentity.id
+
+    def test_should_get_correct_entity_when_accessing_with_id(
+        self, db, api_client, netboxentity_endpoint, netboxentity
+    ):
+        endpoint = netboxentity_endpoint
+        response = get(api_client, endpoint, id=netboxentity.id)
+        assert response.status_code == 200
+        assert response.data['id'] == netboxentity.id
+
+
 # Helpers
 
 
@@ -461,3 +568,33 @@ def serializer_models(localhost, admin_account):
     auditlog.LogEntry.add_log_entry(admin_account, verb='verb', template='asd')
     manage.Usage(id='ans', description='Ansatte').save()
     manage.Usage(id='student', description='Studenter').save()
+
+
+@pytest.fixture()
+def oui(db):
+    oui = OUI(oui='aa:bb:cc:00:00:00', vendor='myvendor')
+    oui.save()
+    yield oui
+    oui.delete()
+
+
+@pytest.fixture()
+def vendor_endpoint(db, token):
+    endpoint = 'vendor'
+    create_token_endpoint(token, endpoint)
+    return endpoint
+
+
+@pytest.fixture()
+def netboxentity_endpoint(db, token):
+    endpoint = 'netboxentity'
+    create_token_endpoint(token, endpoint)
+    return endpoint
+
+
+@pytest.fixture()
+def netboxentity(db, localhost):
+    netbox_entity = NetboxEntity(netbox=localhost, index=0)
+    netbox_entity.save()
+    yield netbox_entity
+    netbox_entity.delete()

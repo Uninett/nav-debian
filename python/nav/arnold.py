@@ -19,7 +19,6 @@
 Provides helpfunctions for Arnold web and script
 """
 
-
 import re
 import os
 import configparser
@@ -53,7 +52,6 @@ CONFIGFILE = os.path.join("arnold", "arnold.conf")
 NONBLOCKFILE = os.path.join("arnold", "nonblock.conf")
 _logger = logging.getLogger(__name__)
 
-# pylint: disable=C0103
 Candidate = namedtuple("Candidate", "camid ip mac interface endtime")
 
 
@@ -498,14 +496,14 @@ def change_port_vlan(identity, vlan):
     agent = ManagementFactory().get_instance(netbox)
     try:
         fromvlan = agent.get_interface_native_vlan(interface)
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001
         raise ChangePortVlanError(error)
     else:
         _logger.info('Setting vlan %s on interface %s', vlan, interface)
         try:
             agent.set_vlan(interface, vlan)
             agent.cycle_interfaces([interface])
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             raise ChangePortVlanError(error)
         else:
             return fromvlan
@@ -533,7 +531,6 @@ def get_host_name(ip):
     return hostname
 
 
-# pylint: disable=E1103
 def get_netbios(ip):
     """Get netbiosname of computer with ip"""
 

@@ -151,7 +151,7 @@ def detain(address, profile, comment=''):
         candidate.ip, profile.active_on_vlans
     ):
         _logger.error(
-            "%s is not inside defined vlanrange for this predefined " "detention",
+            "%s is not inside defined vlanrange for this predefined detention",
             address,
         )
         return
@@ -231,7 +231,7 @@ def report_detentions(profile, detentions):
 
         try:
             nav.arnold.sendmail(fromaddr, toaddr, subject, msg)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             _logger.error(error)
             continue
 

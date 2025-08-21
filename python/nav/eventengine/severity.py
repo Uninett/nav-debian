@@ -27,6 +27,7 @@ Then, given an alert object you wish to assign a new severity value to:
     alert.save()
 
 """
+
 from operator import attrgetter
 import logging
 import typing
@@ -158,10 +159,11 @@ class SeverityRules(tuple):
         cls, current: Expressions, definitions: list[dict]
     ) -> typing.Generator[Rule, None, None]:
         """Generator that parses a nested list of severity rule definitions and their
-        corresponding severity modifiers, yielding a list of tuples describing the rules
-        to be applied.
+        corresponding severity modifiers, yielding a list of tuples describing the
+        rules to be applied.
 
-        :param current: The current set of expressions that new expressions will begin with.
+        :param current: The current set of expressions that new expressions will begin
+        with.
         :param definitions: The list of YAML-deserialized rule definitions to parse.
         """
         for ruledef in definitions:
@@ -188,8 +190,8 @@ class SeverityRules(tuple):
     @staticmethod
     def _parse_modifier(value: typing.Union[str, int]) -> SeverityModifier:
         """Parses a severity modifier expression and returns a modifier callable. The
-        callable will take a severity value as an argument, and returns a modified severity
-        value.
+        callable will take a severity value as an argument, and returns a modified
+        severity value.
         """
         oper = None
         if isinstance(value, str):

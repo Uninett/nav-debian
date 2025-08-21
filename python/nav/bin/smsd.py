@@ -251,7 +251,7 @@ def main():
                 except:
                     _logger.exception("")
                     raise
-            except Exception as error:
+            except Exception as error:  # noqa: BLE001
                 _logger.exception("Unknown exception: %s", error)
 
             _logger.info("SMS sent to %s.", user)
@@ -340,9 +340,7 @@ def parse_args():
     if args.TEST and args.uid is None:
         parser.error("Please provide an account id using the --uid option")
     if args.message and not (args.test or args.TEST):
-        parser.error(
-            "--message can only be used in combination with either " "-t or -T"
-        )
+        parser.error("--message can only be used in combination with either -t or -T")
     return args
 
 
@@ -401,8 +399,7 @@ def backoff(seconds, error, retryvars):
     elif retrylimit == 0 and delay >= maxdelay:
         if len(msgs):
             _logger.critical(
-                "Dispatching SMS fails. %d unsent message(s), "
-                "the oldest from %s. (%s)",
+                "Dispatching SMS fails. %d unsent message(s), the oldest from %s. (%s)",
                 len(msgs),
                 msgs[0]['time'],
                 error,
@@ -423,18 +420,18 @@ def backoffaction(error, retrylimitaction):
         # message details, then resumes run.
         numbmsg = queue.cancel()
         error_message = (
-            u"Dispatch retry limit has been reached. Dispatching SMS has failed %s "
-            u"times. Ignoring %s message(s)."
+            "Dispatch retry limit has been reached. Dispatching SMS has failed %s "
+            "times. Ignoring %s message(s)."
         ) % (failed, numbmsg)
 
         for index, msg in enumerate(msgs):
-            error_message += u'\n%s: "%s" --> %s' % (
+            error_message += '\n%s: "%s" --> %s' % (
                 index + 1,
                 smart_str(msg['msg']),
                 smart_str(msg['name']),
             )
 
-        error_message += u"\nError message: %s" % error
+        error_message += "\nError message: %s" % error
         _logger.critical(error_message)
         failed = 0
         resetdelay()
@@ -490,7 +487,7 @@ def loginitsmtp(loglevel, mailaddr, fromaddr, mailserver):
             mailserver, fromaddr, mailaddr, 'NAV smsd warning from ' + hostname
         )
         mailformat = (
-            '[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] ' '%(message)s'
+            '[%(asctime)s] [%(levelname)s] [pid=%(process)d %(name)s] %(message)s'
         )
         mailformatter = logging.Formatter(mailformat)
         mailhandler.setFormatter(mailformatter)
@@ -498,7 +495,7 @@ def loginitsmtp(loglevel, mailaddr, fromaddr, mailserver):
         _logger = logging.getLogger()
         _logger.addHandler(mailhandler)
         return True
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001
         print(
             "Failed creating SMTP loghandler. Daemon mode disabled. (%s)" % error,
             file=sys.stderr,

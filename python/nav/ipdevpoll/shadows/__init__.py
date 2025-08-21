@@ -21,6 +21,7 @@ object", in the sense that access to member attributes will not result in
 database I/O.
 
 """
+
 from collections import defaultdict
 import IPy
 
@@ -78,9 +79,6 @@ __all__ = [
 # Shadow classes.  Not all of these will be used to store data, but
 # may be used to retrieve and cache existing database records.
 
-# Shadow classes usually don't need docstrings - these can be found in the
-# Django models being shadowed:
-# pylint: disable=C0111
 
 ALERT_TYPE_MAPPING = {
     "hardware_version": "deviceHwUpgrade",
@@ -139,8 +137,6 @@ class Vendor(Shadow):
     __shadowclass__ = manage.Vendor
 
 
-# pylint is unable to see which members are created dynamically by metaclass:
-# pylint: disable=E0203,W0201
 class Module(Shadow):
     __shadowclass__ = manage.Module
     __lookups__ = [('netbox', 'device'), ('netbox', 'name')]
@@ -223,7 +219,7 @@ class Module(Shadow):
                 other.device.serial,
             )
 
-            other.name = u"%s (%s)" % (other.name, other.device.serial)
+            other.name = "%s (%s)" % (other.name, other.device.serial)
             other.save()
 
     def _find_name_duplicates(self):
@@ -447,7 +443,7 @@ class Vlan(Shadow):
             )
             if vlans:
                 self._logger.debug(
-                    "get_existing_model: %d matches found for " "vlan+net_ident: %r",
+                    "get_existing_model: %d matches found for vlan+net_ident: %r",
                     len(vlans),
                     self,
                 )

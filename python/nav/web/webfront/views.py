@@ -16,7 +16,6 @@
 #
 """Navbar (tools, preferences) and login related controllers"""
 
-
 from datetime import datetime
 import json
 import logging
@@ -39,21 +38,20 @@ from nav.auditlog.models import LogEntry
 from nav.django.utils import get_account
 from nav.models.profiles import NavbarLink, AccountDashboard, AccountNavlet
 from nav.web.auth import logout as auth_logout
-from nav.web import auth
+from nav.web import auth, webfrontConfig
 from nav.web.auth import ldap
 from nav.web.auth.utils import set_account
+from nav.web.utils import generate_qr_code_as_string
 from nav.web.utils import require_param
 from nav.web.webfront.utils import quick_read, tool_list
 from nav.web.webfront.forms import (
     LoginForm,
     NavbarLinkFormSet,
     ChangePasswordForm,
-    ColumnsForm,
 )
 from nav.web.navlets import list_navlets, can_modify_navlet
 from nav.web.message import new_message, Messages
 from nav.web.webfront import (
-    get_widget_columns,
     find_dashboard,
     WELCOME_ANONYMOUS_PATH,
     WELCOME_REGISTERED_PATH,
@@ -80,7 +78,7 @@ def index(request, did=None):
         'dashboard': dashboard,
         'dashboards': dashboards,
         'navlets': list_navlets(),
-        'title': u'NAV - {}'.format(dashboard.name),
+        'title': 'NAV - {}'.format(dashboard.name),
     }
 
     if dashboards.count() > 1:
@@ -239,7 +237,7 @@ def do_login(request):
             else:
                 _logger.info("failed login: %r", username)
                 errors.append(
-                    'Username or password is incorrect, or the ' 'account is locked.'
+                    'Username or password is incorrect, or the account is locked.'
                 )
 
     # Something went wrong. Display login page with errors.
@@ -303,9 +301,6 @@ def _create_preference_context(request):
         'navpath': [('Home', '/'), ('Preferences', None)],
         'title': 'Personal NAV preferences',
         'password_form': password_form,
-        'columns_form': ColumnsForm(
-            initial={'num_columns': get_widget_columns(account)}
-        ),
         'account': account,
         'tool': {
             'name': 'My account',
@@ -324,6 +319,19 @@ def preferences(request):
     context = _create_preference_context(request)
 
     return render(request, 'webfront/preferences.html', context)
+
+
+def qr_code(request):
+    """Show qr code linking to current page"""
+    url = request.headers.get("referer")
+    file_format = webfrontConfig.get("qr_codes", "file_format")
+    qr_code = generate_qr_code_as_string(url=url, caption=url, file_format=file_format)
+
+    return render(
+        request,
+        'webfront/_qr_code.html',
+        {'qr_code': qr_code, 'file_format': file_format},
+    )
 
 
 @sensitive_post_parameters('old_password', 'new_password1', 'new_password2')
@@ -374,19 +382,6 @@ def save_links(request):
     return HttpResponseRedirect(reverse('webfront-preferences'))
 
 
-def set_widget_columns(request):
-    """Set the number of columns on the webfront"""
-    if request.method == 'POST':
-        form = ColumnsForm(request.POST)
-        if form.is_valid():
-            account = request.account
-            num_columns = form.cleaned_data.get('num_columns')
-            account.preferences[account.PREFERENCE_KEY_WIDGET_COLUMNS] = num_columns
-            account.save()
-            return HttpResponseRedirect(reverse('webfront-index'))
-    return HttpResponseRedirect(reverse('webfront-preferences'))
-
-
 def set_account_preference(request):
     """Set account preference using url attributes"""
     account = request.account
@@ -412,7 +407,7 @@ def set_default_dashboard(request, did):
         objs=old_defaults + [dash], fields=["is_default"]
     )
 
-    return HttpResponse(u'Default dashboard set to «{}»'.format(dash.name))
+    return HttpResponse('Default dashboard set to «{}»'.format(dash.name))
 
 
 @require_POST
@@ -447,7 +442,7 @@ def rename_dashboard(request, did):
     dash = get_object_or_404(AccountDashboard, pk=did, account=request.account)
     dash.name = request.POST.get('dashboard-name', dash.name)
     dash.save()
-    return HttpResponse(u'Dashboard renamed to «{}»'.format(dash.name))
+    return HttpResponse('Dashboard renamed to «{}»'.format(dash.name))
 
 
 @require_POST
@@ -472,4 +467,4 @@ def moveto_dashboard(request, did):
     )
     widget.dashboard = dashboard
     widget.save()
-    return HttpResponse(u'Widget moved to {}'.format(dashboard))
+    return HttpResponse('Widget moved to {}'.format(dashboard))

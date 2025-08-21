@@ -14,6 +14,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Views for /info"""
+
 import importlib
 import logging
 
@@ -84,7 +85,7 @@ def process_form(form):
         except (AttributeError, ImportError) as error:
             providers_with_errors.append((providerpath, error))
             _logger.error('Could not import %s', providerpath)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             providers_with_errors.append((providerpath, error))
             _logger.exception(
                 "Search provider raised unhandled exception: %s", providerpath

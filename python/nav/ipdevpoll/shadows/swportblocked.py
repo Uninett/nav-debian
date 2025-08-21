@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """stp blocked ports storage and handling"""
+
 from nav.models import manage
 
 from nav.ipdevpoll.storage import Shadow, DefaultManager
@@ -63,7 +64,6 @@ class SwPortBlockedManager(DefaultManager):
             manage.SwPortBlocked.objects.filter(id__in=[b.id for b in gone]).delete()
 
 
-# pylint: disable=W0201,E0203,C0111
 class SwPortBlocked(Shadow):
     __shadowclass__ = manage.SwPortBlocked
     manager = SwPortBlockedManager

@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Status2 widget"""
+
 from datetime import datetime
 from operator import itemgetter
 
@@ -117,7 +118,7 @@ class Status2Widget(Navlet):
                 navlet.preferences['refresh_interval'] = (
                     int(request.POST['interval']) * 1000
                 )
-            except Exception:
+            except (TypeError, ValueError):
                 pass
             navlet.save()
             return JsonResponse(self.preferences)

@@ -31,6 +31,10 @@ NAV directly from the checked out source code, and as such it defines an
 environment for developers, not for production use of NAV.  The alternative is
 to manage all the dependencies and integrations on your own host machine.
 
+.. tip:: Be mindful that :doc:`a devcontainer-based solution
+         <using-devcontainers>` is largely superseding this way of working with
+         NAV development—at least for developers who prefer using IDEs.
+
 The quickest way to build the container images and start all the services for
 the first time is by running these commands::
 
@@ -60,12 +64,12 @@ Docker Compose build process needs to know your ``UID`` and ``GID``.
           bind-mounted volumes.  You still will need to set the ``UID`` and
           ``GID`` arguments for the build to work, though.
 
-The quickest way to go about this is the :kbd:`make .env` command.  This will
+The quickest way to go about this is the :code:`make .env` command.  This will
 attempt to generate a :file:`.env` file in your top-level source code
 directory, which will set the ``UID`` and ``GID`` variables from your running
 environment.  Docker Compose will implicitly read the environment variables in
 this file when it builds or runs the services defined in
-:file:`docker-compose.yml`.  If, for some reason, the :kbd:`make .env` command
+:file:`docker-compose.yml`.  If, for some reason, the :code:`make .env` command
 does not work for you, you can create the :file:`.env` file by hand (but supply
 real values if you're on Linux):
 
@@ -139,7 +143,7 @@ A complete rebuild of the NAV code can be initiated by::
 Rebuilding the containers
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Running :kbd:`docker compose up` will normally build the container images,
+Running :code:`docker compose up` will normally build the container images,
 before starting them, if they don't exist already.  However, if the image
 definitions have changed (e.g. when you are switching between development
 branches or changed the :file:`Dockerfile` definitions, or any of the files
@@ -207,7 +211,7 @@ The ``nav`` and ``web`` containers share a common configuration volume named
 ``nav_config``. This volume should persist even between rebuilds of the
 containers themselves. If you want NAV to install a completely new set of
 config files from scratch, you may need to manually trash this volume using the
-``-v`` option to the :kbd:`docker compose down` command.
+``-v`` option to the :code:`docker compose down` command.
 
 
 Overriding the compose services
@@ -218,6 +222,15 @@ definitions for your own purposes during development, you can usually do so
 without patching the :file:`docker-compose.yml` file. You can "patch" the
 definitions via `Docker Compose's override mechanism`_: Simply add a
 :file:`docker-compose.override.yml` to the top-level source directory.
+
+
+Dumping/loading data from remote production server
+--------------------------------------------------
+
+For some development tasks, it is useful to initialize the development database
+with a database snapshot from a production server. You can read more about
+:ref:`migrating_prod_db_to_dev`.
+
 
 Preventing NAV backend services from starting at container startup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

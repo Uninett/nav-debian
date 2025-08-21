@@ -25,6 +25,7 @@ This implementation sticks with the easily graphable sensors,
 like temperature, humidity, voltages and currents.
 
 """
+
 from twisted.internet import defer
 from nav.mibs import reduce_index
 from nav.smidumps import get_mib
@@ -111,7 +112,7 @@ class SPAgentMib(MibRetriever):
         for table, config in TABLES[model_id].items():
             sensors = yield self._get_sensors(config)
             result.extend(sensors)
-        defer.returnValue(result)
+        return result
 
     @defer.inlineCallbacks
     def _get_sensors(self, config):
@@ -135,7 +136,7 @@ class SPAgentMib(MibRetriever):
             self._row_to_sensor(config, index, row) for index, row in result.items()
         )
 
-        defer.returnValue([s for s in sensors if s])
+        return [s for s in sensors if s]
 
     def _row_to_sensor(self, config, index, row):
         """

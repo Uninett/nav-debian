@@ -17,7 +17,10 @@
 Utilities for authentication/authorization in NAV that is independent of
 login method.
 """
+
 import logging
+
+from django.core.cache import cache
 
 from nav.models.profiles import Account
 
@@ -26,6 +29,7 @@ _logger = logging.getLogger(__name__)
 
 
 ACCOUNT_ID_VAR = 'account_id'
+PASSWORD_ISSUES_CACHE_KEY = "auth:accounts_password_issues"
 
 
 def set_account(request, account, cycle_session_id=True):
@@ -33,7 +37,7 @@ def set_account(request, account, cycle_session_id=True):
     Cycles the session ID by default to avoid session fixation.
     """
     request.session[ACCOUNT_ID_VAR] = account.id
-    request.account = account
+    request.account = request.user = account
     _logger.debug('Set active account to "%s"', account.login)
     if cycle_session_id:
         request.session.cycle_key()
@@ -44,6 +48,8 @@ def clear_session(request):
     """Clears the session and logs out the current account"""
     if hasattr(request, "account"):
         del request.account
+    if hasattr(request, "user"):
+        del request.user
     request.session.flush()
     request.session.save()
 
@@ -84,3 +90,21 @@ def authorization_not_required(fullpath):
         if fullpath.startswith(url):
             _logger.debug('authorization_not_required: %s', url)
             return True
+
+
+def get_number_of_accounts_with_password_issues() -> int:
+    """
+    Returns the number of accounts that have password issues like old style password
+    hashes, plaintext passwords or deprecated password hash methods
+    """
+    number_of_accounts_with_password_issues = cache.get(
+        PASSWORD_ISSUES_CACHE_KEY, default=None
+    )
+    if number_of_accounts_with_password_issues is None:
+        number_of_accounts_with_password_issues = 0
+        for account in Account.objects.all():
+            if account.has_password_issues():
+                number_of_accounts_with_password_issues += 1
+        cache.set(PASSWORD_ISSUES_CACHE_KEY, number_of_accounts_with_password_issues)
+
+    return number_of_accounts_with_password_issues

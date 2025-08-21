@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Job handling."""
+
 import time
 import datetime
 import pprint
@@ -153,9 +154,9 @@ class JobHandler(object):
         ]
 
         if not plugins:
-            defer.returnValue(None)
+            return None
 
-        defer.returnValue(plugins)
+        return plugins
 
     def _get_valid_plugins(self):
         valid_plugins, invalid_plugins = splitby(
@@ -163,8 +164,7 @@ class JobHandler(object):
         )
         if list(invalid_plugins):
             self._logger.error(
-                "Non-existent plugins were configured for job "
-                "%r (ignoring them): %r",
+                "Non-existent plugins were configured for job %r (ignoring them): %r",
                 self.name,
                 list(invalid_plugins),
             )
@@ -181,8 +181,7 @@ class JobHandler(object):
                 raise
             # We very intentionally log and ignore unhandled exception here, to ensure
             # the stability of the ipdevpoll daemon
-            # pylint: disable = broad-except
-            except Exception:
+            except Exception:  # noqa: BLE001
                 self._logger.exception("Unhandled exception from can_handle(): %r", cls)
                 can_handle = False
             if can_handle:
@@ -201,7 +200,7 @@ class JobHandler(object):
             else:
                 self._logger.debug("no %s plugins", willingness)
 
-        defer.returnValue(willing_plugins)
+        return willing_plugins
 
     def _iterate_plugins(self, plugins):
         """Iterates plugins."""
@@ -217,7 +216,7 @@ class JobHandler(object):
                 )
             elif failure.check(SuggestedReschedule):
                 self._logger.debug(
-                    "Plugin %s suggested a reschedule in " "%d seconds",
+                    "Plugin %s suggested a reschedule in %d seconds",
                     plugin_instance,
                     failure.value.delay,
                 )
@@ -278,7 +277,7 @@ class JobHandler(object):
         self._reset_timers()
         if not plugins:
             self._destroy_agentproxy()
-            defer.returnValue(False)
+            return False
 
         self._logger.debug("Starting job %r for %s", self.name, self.netbox.sysname)
 
@@ -326,8 +325,6 @@ class JobHandler(object):
             df.addCallback(wrap_up_job)
             return df
 
-        # pylint is unable to find reactor members:
-        # pylint: disable=E1101
         shutdown_trigger_id = reactor.addSystemEventTrigger(
             "before", "shutdown", self.cancel
         )
@@ -353,7 +350,7 @@ class JobHandler(object):
         df.addBoth(cleanup)
         df.addCallbacks(log_externally_success, log_externally_failure)
         yield df
-        defer.returnValue(True)
+        return True
 
     def cancel(self):
         """Cancels a running job.
@@ -449,9 +446,9 @@ class JobHandler(object):
                 manager.cleanup()
         except AbortedJobError:
             raise
-        except Exception:
+        except Exception:  # noqa: BLE001
             self._logger.exception(
-                "Caught exception during cleanup. " "Last manager = %r", manager
+                "Caught exception during cleanup. Last manager = %r", manager
             )
             import django.db
 
@@ -482,9 +479,9 @@ class JobHandler(object):
             return total_time
         except AbortedJobError:
             raise
-        except Exception:
+        except Exception:  # noqa: BLE001
             self._logger.exception(
-                "Caught exception during save. " "Last manager = %s. Last model = %s",
+                "Caught exception during save. Last manager = %s. Last model = %s",
                 manager,
                 getattr(manager, 'cls', None),
             )
@@ -534,7 +531,6 @@ class JobHandler(object):
         """
         return len([o for o in gc.get_objects() if isinstance(o, cls)])
 
-    # pylint: disable=W0703
     @defer.inlineCallbacks
     def _log_job_externally(self, success=True):
         """Logs a job to the database"""
@@ -575,5 +571,5 @@ class JobHandler(object):
             yield db.run_in_thread(_create_record, timestamp)
         except db.ResetDBConnectionError:
             pass  # this is being logged all over the place at the moment
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             _logger.warning("failed to log job to database: %s", error)

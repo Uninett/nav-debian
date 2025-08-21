@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """RADIUS service checker"""
+
 from nav.util import resource_filename
 
 # Python-radius specific modules. pyrad found at
@@ -86,7 +87,6 @@ class RadiusChecker(AbstractChecker):
 
     def execute(self):
         args = self.args
-        # pylint: disable=W0703
         try:
             username = args.get("username", "")
             password = args.get("password", "")
@@ -102,7 +102,7 @@ class RadiusChecker(AbstractChecker):
             )
             req["User-Password"] = req.PwCrypt(password)
             srv.SendPacket(req)
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             return (
                 Event.DOWN,
                 "Failed connecting to %s: %s)" % (self.get_address(), str(err)),

@@ -2,7 +2,8 @@ from mock import Mock
 
 from django.urls import reverse
 from django.utils.encoding import smart_str
-from nav.models.profiles import AccountDashboard
+
+from nav.models.profiles import Account, AccountDashboard
 from nav.web.webfront.utils import tool_list
 
 
@@ -127,3 +128,55 @@ def test_non_expired_session_id_should_not_be_changed_on_request_unrelated_to_lo
     client.get(index_url)
     session_id_post_login = client.session.session_key
     assert session_id_post_login == session_id_pre_login
+
+
+def test_shows_password_issue_banner_on_own_password_issues(db, client):
+    """
+    The admin user has a password with an outdated password hashing method, so a
+    banner indicating a problem with the password should be shown
+    """
+    index_url = reverse('webfront-index')
+    response = client.get(index_url)
+
+    assert (
+        "Your account has an insecure or old password. It should be reset."
+        in smart_str(response.content)
+    )
+
+
+def test_shows_password_issue_banner_to_admins_on_other_users_password_issues(
+    db, client, admin_account
+):
+    """
+    If other users have insecure or old passwords a banner should be shown to admins
+    """
+
+    # Admin account has a password with outdated password hashing method
+    # This needs to be fixed, otherwise the "Your password is insecure..." banner will
+    # be shown
+    admin_account.set_password("new_password")
+    admin_account.save()
+
+    Account.objects.create(login="plaintext_pw_user", password="plaintext_pw")
+
+    index_url = reverse('webfront-index')
+    response = client.get(index_url)
+
+    assert "There are 1 accounts that have insecure or old passwords." in smart_str(
+        response.content
+    )
+
+
+def test_show_qr_code_returns_fragment_with_qr_code(client):
+    """
+    Tests that calling the qr_code view will return a fragment with a generated QR
+    code
+    """
+    url = reverse("webfront-qr-code")
+    header = {'HTTP_REFERER': 'www.example.com'}
+    response = client.get(url, follow=True, **header)
+
+    assert response.status_code == 200
+    assert "qr-code-modal" in smart_str(response.content)
+    assert "img" in smart_str(response.content)
+    assert "QR Code linking to current page" in smart_str(response.content)

@@ -20,7 +20,6 @@ A command line program to output an entity hierarchy graph from a device's
 ENTITY-MIB::entPhysicalTable.
 """
 
-
 import sys
 import argparse
 
@@ -57,7 +56,7 @@ def reactor_main(box, portnumber):
     header = "{sysname} ({ip}:{port})".format(port=portnumber, **vars(box))
     print(header)
     print("-" * len(header))
-    df = collect_entities(box, portnumber)
+    df = defer.ensureDeferred(collect_entities(box, portnumber))
     df.addCallback(make_graph, box)
     df.addCallback(print_graph)
     df.addErrback(failure_handler)
@@ -65,16 +64,15 @@ def reactor_main(box, portnumber):
     return df
 
 
-@defer.inlineCallbacks
-def collect_entities(netbox, portnumber):
+async def collect_entities(netbox, portnumber):
     """Collects the entPhysicalTable"""
     agent = _create_agentproxy(netbox, portnumber)
     if not agent:
-        defer.returnValue(None)
+        return None
 
     mib = EntityMib(agent)
-    result = yield mib.get_entity_physical_table()
-    defer.returnValue(result)
+    result = await mib.get_entity_physical_table()
+    return result
 
 
 def make_graph(entities, netbox):

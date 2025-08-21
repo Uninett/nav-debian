@@ -35,7 +35,6 @@ import logging
 
 from pynetsnmp.netsnmp import SnmpTimeoutError
 from twisted.internet import defer, reactor
-from twisted.internet.defer import returnValue
 from twisted.internet.error import TimeoutError
 from twisted.python.failure import Failure
 
@@ -372,7 +371,6 @@ class MibRetriever(object, metaclass=MibRetrieverMaker):
         super(MibRetriever, self).__init__()
         self.agent_proxy = agent_proxy
         # touch _logger to initialize logging context right away
-        # pylint: disable=W0104
         self._logger
 
     def get_module_name(self):
@@ -390,7 +388,7 @@ class MibRetriever(object, metaclass=MibRetrieverMaker):
             if oid.is_a_prefix_of(key):
                 if translate_result:
                     value = self.nodes[object_name].to_python(value)
-                defer.returnValue(value)
+                return value
 
     def retrieve_column(self, column_name):
         """Retrieve the contents of a single MIB table column.
@@ -410,7 +408,7 @@ class MibRetriever(object, metaclass=MibRetrieverMaker):
             # snmp library used
             if node.oid not in result and str(node.oid) not in result:
                 self._logger.debug(
-                    "%s (%s) seems to be unsupported, result " "keys were: %r",
+                    "%s (%s) seems to be unsupported, result keys were: %r",
                     column_name,
                     node.oid,
                     result.keys(),
@@ -574,7 +572,7 @@ class MibRetriever(object, metaclass=MibRetrieverMaker):
         result = yield self.agent_proxy._get([oid])
         for obj, value in result:
             assert obj == oid
-            returnValue(node.to_python(value))
+            return node.to_python(value)
 
 
 class MultiMibMixIn(MibRetriever):
@@ -654,7 +652,7 @@ class MultiMibMixIn(MibRetriever):
                 self.agent_proxy = self._base_agent
             results.append((descr, one_result))
             yield lambda thing: fire_eventually(thing)
-        defer.returnValue(integrator(results))
+        return integrator(results)
 
     def __timeout_handler(self, failure, descr):
         """Handles timeouts while processing alternate MIB instances.
