@@ -15,6 +15,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """A class for extracting sensors from RFC1628 compatible UPSes"""
+
 from twisted.internet import defer
 
 from nav.mibs import reduce_index
@@ -115,7 +116,7 @@ class UpsMib(mibretriever.MibRetriever):
             sensor_params = yield self._get_named_column(sensor)
             result.extend(self._get_sensors(sensor, sensor_params))
 
-        defer.returnValue(result)
+        return result
 
     def _get_sensors(self, object_name, sensor_params):
         result = []

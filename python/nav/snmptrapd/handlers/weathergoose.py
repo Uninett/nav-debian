@@ -17,6 +17,7 @@
 Climate Monitor, versions 1 and 2.
 
 """
+
 import re
 import logging
 from collections import defaultdict
@@ -134,7 +135,7 @@ class WeatherGoose1(object):
         # Post event on eventqueue
         try:
             e.post()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             _logger.error(e)
             return False
 
@@ -228,7 +229,6 @@ class GeistWeatherGoose(WeatherGoose2):
 HANDLER_CLASSES = (WeatherGoose1, WeatherGoose2, GeistWeatherGoose)
 
 
-# pylint: disable=unused-argument
 def handleTrap(trap, config=None):
     """This function is called from snmptrapd"""
 
@@ -249,7 +249,7 @@ def initialize_eventdb():
     """Populates the database with eventtype and alerttype information"""
     try:
         nav.event.create_type_hierarchy(_get_event_hierarchy())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         _logger.error(e)
         return False
 

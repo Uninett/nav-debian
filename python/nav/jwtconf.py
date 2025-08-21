@@ -2,15 +2,25 @@ import logging
 from os.path import join
 from functools import partial
 import configparser
-from typing import Any
+from typing import Any, Optional
+from dataclasses import dataclass
 from datetime import timedelta
 
 from nav.config import ConfigurationError, NAVConfigParser
+from nav.util import parse_interval
 
 _logger = logging.getLogger('nav.jwtconf')
 
-ACCESS_TOKEN_EXPIRE_DELTA = timedelta(hours=1)
-REFRESH_TOKEN_EXPIRE_DELTA = timedelta(days=1)
+
+@dataclass
+class LocalJWTConfig:
+    """Local JWT configuration data"""
+
+    private_key: Optional[str] = None
+    public_key: Optional[str] = None
+    name: Optional[str] = None
+    access_token_lifetime: Optional[timedelta] = None
+    refresh_token_lifetime: Optional[timedelta] = None
 
 
 class JWTConf(NAVConfigParser):
@@ -18,6 +28,8 @@ class JWTConf(NAVConfigParser):
 
     DEFAULT_CONFIG_FILES = [join('webfront', 'jwt.conf')]
     NAV_SECTION = "nav"
+    DEFAULT_ACCESS_TOKEN_LIFETIME = timedelta(hours=1)
+    DEFAULT_REFRESH_TOKEN_LIFETIME = timedelta(days=1)
 
     def get_issuers_setting(self) -> dict[str, Any]:
         """Parses the webfront/jwt.conf config file and returns a dictionary that can
@@ -32,6 +44,32 @@ class JWTConf(NAVConfigParser):
         except ConfigurationError as error:
             _logger.error('Error reading jwtconfig: %s', error)
             return dict()
+
+    def get_local_config(self) -> LocalJWTConfig:
+        """Returns dataclass containing the local JWT configuration data.
+        Data will be None if local tokens are not configured or the config is invalid.
+        Logs an error if the config is invalid.
+        """
+        try:
+            return self._get_local_config()
+        except ConfigurationError as error:
+            _logger.error('Error reading NAV section of jwtconfig: %s', error)
+            return LocalJWTConfig()
+
+    def _get_local_config(self) -> LocalJWTConfig:
+        """Internal method without error handling to get
+        the local JWT configuration data.
+        Returns empty LocalJWTConfig if the NAV section is not present.
+        """
+        if not self.has_section(self.NAV_SECTION):
+            return LocalJWTConfig()
+        return LocalJWTConfig(
+            private_key=self.get_nav_private_key(),
+            public_key=self.get_nav_public_key(),
+            name=self.get_nav_name(),
+            access_token_lifetime=self.get_access_token_lifetime(),
+            refresh_token_lifetime=self.get_refresh_token_lifetime(),
+        )
 
     def _get_settings_for_external_tokens(self):
         settings = dict()
@@ -130,18 +168,40 @@ class JWTConf(NAVConfigParser):
             raise ConfigurationError("Invalid 'name': 'name' must not be empty")
         return name
 
+    def get_access_token_lifetime(self):
+        try:
+            interval = self._get_nav_token_config_option('access_token_lifetime')
+        except ConfigurationError:
+            return self.DEFAULT_ACCESS_TOKEN_LIFETIME
+        try:
+            lifetime = parse_interval(interval)
+        except ValueError:
+            raise ConfigurationError("Invalid 'access_token_lifetime': %s", interval)
+        return timedelta(seconds=lifetime)
+
+    def get_refresh_token_lifetime(self):
+        try:
+            interval = self._get_nav_token_config_option('refresh_token_lifetime')
+        except ConfigurationError:
+            return self.DEFAULT_REFRESH_TOKEN_LIFETIME
+        try:
+            lifetime = parse_interval(interval)
+        except ValueError:
+            raise ConfigurationError("Invalid 'refresh_token_lifetime': %s", interval)
+        return timedelta(seconds=lifetime)
+
     def _get_settings_for_nav_issued_tokens(self):
-        if not self.has_section(self.NAV_SECTION):
+        local_config = self._get_local_config()
+        if local_config == LocalJWTConfig():
             return {}
-        name = self.get_nav_name()
         claims_options = {
-            'aud': {'values': [name], 'essential': True},
+            'aud': {'values': [local_config.name], 'essential': True},
             'token_type': {'values': ['access_token'], 'essential': True},
         }
         settings = {
-            name: {
+            local_config.name: {
                 'type': "PEM",
-                'key': self.get_nav_public_key(),
+                'key': local_config.public_key,
                 'claims_options': claims_options,
             }
         }

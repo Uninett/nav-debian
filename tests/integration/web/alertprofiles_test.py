@@ -76,7 +76,7 @@ class TestsAlertProfiles:
         request = factory.get(reverse('alertprofiles-profile-save'))
         request.account = admin_account
         request.session = MagicMock()
-        profile = AlertProfile(account=request.account, name=u'ÆØÅ')
+        profile = AlertProfile(account=request.account, name='ÆØÅ')
         profile.save()
 
         assert set_active_profile(request, profile) is None
@@ -448,7 +448,8 @@ class TestsAddExpressions:
                 "filter": dummy_filter.pk,
                 "match_field": ip_match_field.pk,
                 "operator": Operator.IN,
-                "value": "172.0.0.1 2001:db8:3333:4444:5555:6666:7777:8888 129.241.190.0/24",
+                "value": "172.0.0.1 2001:db8:3333:4444:5555:6666:7777:8888 "
+                "129.241.190.0/24",
             }
             response = client.post(url, data=data, follow=True)
             assert response.status_code == 200
@@ -826,7 +827,7 @@ class TestsAlertAddresses:
         ).exists()
         assert f"Saved address {valid_url}" in smart_str(response.content)
 
-    def test_alertprofiles_add_slack_address_with_a_valid_but_not_absolute_url_should_fail(
+    def test_alertprofiles_add_slack_address_with_a_valid_but_not_absolute_url_should_fail(  # noqa: E501
         self,
         client,
     ):
@@ -919,7 +920,7 @@ class TestsAlertAddresses:
         ).exists()
         assert f"Saved address {valid_phone_number}" in smart_str(response.content)
 
-    def test_alertprofiles_add_valid_non_norwegian_phone_number_without_country_code_should_succeed(
+    def test_alertprofiles_add_valid_non_norwegian_phone_number_without_country_code_should_succeed(  # noqa: E501
         self,
         client,
     ):
@@ -958,13 +959,13 @@ class TestsAlertAddresses:
         ).exists()
         assert f"Saved address {valid_phone_number}" in smart_str(response.content)
 
-    def test_alertprofiles_add_valid_phone_number_with_double_zero_country_code_should_succeed(
+    def test_alertprofiles_add_valid_phone_number_with_double_zero_country_code_should_succeed(  # noqa: E501
         self,
         client,
     ):
         """
-        Tests that a valid phone number with a country code with double zero (00xx) can be
-        added"""
+        Tests that a valid phone number with a country code with double zero (00xx) can
+        be added"""
         valid_phone_number = "004747474747"
         sms = AlertSender.objects.get(name=AlertSender.SMS)
         url = reverse("alertprofiles-address-save")
@@ -1054,7 +1055,7 @@ class TestsFilterGroups:
 @pytest.fixture(scope='function')
 def dummy_profile(admin_account):
     account = admin_account
-    profile = AlertProfile(account=account, name=u'ÆØÅ Profile %d' % randint(1, 1000))
+    profile = AlertProfile(account=account, name='ÆØÅ Profile %d' % randint(1, 1000))
     profile.save()
     return profile
 

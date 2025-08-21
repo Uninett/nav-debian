@@ -36,6 +36,7 @@ instances for Cisco and HP:
 - get_fan_status()
 
 """
+
 from twisted.internet import defer
 
 from nav.ipdevpoll import Plugin
@@ -72,7 +73,9 @@ class PowerSupplyUnit(Plugin):
 
     @defer.inlineCallbacks
     def handle(self):
-        """Collect PSUs and FANs,- their corresponding statuses and store in database."""
+        """
+        Collect PSUs and FANs,- their corresponding statuses and store in database.
+        """
         self._logger.debug("Collecting PSUs and FANs")
         psus = []
         fans = []

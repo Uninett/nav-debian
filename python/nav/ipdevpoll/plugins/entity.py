@@ -18,6 +18,7 @@
 ipdevpoll plugin to collect information about physical entities, if any,
 within a Netbox, from the ENTITY-MIB::entPhysicalTable (RFC 4133 and RFC 6933)
 """
+
 from twisted.internet import defer
 
 from nav.Snmp import safestring
@@ -65,7 +66,7 @@ class Entity(Plugin):
         yield self.stampcheck.collect([self.entitymib.get_last_change_time()])
 
         result = yield self.stampcheck.is_changed()
-        defer.returnValue(result)
+        return result
 
     def _process_entities(self, result):
         """Process the list of collected entities."""

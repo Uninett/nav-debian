@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Implements a Q-BRIDGE-MIB MibRetriever and associated functionality."""
+
 import re
 
 from twisted.internet import defer
@@ -104,7 +105,7 @@ class QBridgeMib(mibretriever.MibRetriever):
             mac = ':'.join("%02x" % o for o in mac[-6:])
             port = row['dot1qTpFdbPort']
             result.append((mac, port))
-        defer.returnValue(result)
+        return result
 
     @defer.inlineCallbacks
     def get_vlan_static_names(self):
@@ -115,7 +116,7 @@ class QBridgeMib(mibretriever.MibRetriever):
         for key, value in names.items():
             if isinstance(value, str) and "\x00" in value:
                 names[key] = value.replace("\x00", "")
-        defer.returnValue(names)
+        return names
 
 
 def filter_newest_current_entries(dot1qvlancurrenttable):

@@ -20,7 +20,6 @@ This is the daemon program that runs the IP device poller.
 
 """
 
-
 import sys
 import os
 import logging
@@ -126,6 +125,10 @@ class IPDevPollProcess(object):
             self.work_pool,
             self.options.onlyjob,
         )
+        db.delete_stale_job_refresh_notifications()
+        reactor.callWhenRunning(
+            db.subscribe_to_event_notifications, schedule.handle_incoming_events
+        )
 
         def log_scheduler_jobs():
             JobScheduler.log_active_jobs(logging.INFO)
@@ -194,6 +197,10 @@ class IPDevPollProcess(object):
             JobScheduler.initialize_from_config_and_run,
             self.work_pool,
             self.options.onlyjob,
+        )
+        db.delete_stale_job_refresh_notifications()
+        reactor.callWhenRunning(
+            db.subscribe_to_event_notifications, schedule.handle_incoming_events
         )
 
         def log_scheduler_jobs():
@@ -280,8 +287,7 @@ class CommandProcessor(object):
     def make_option_parser(self):
         """Sets up and returns a command line option parser."""
         parser = argparse.ArgumentParser(
-            epilog="This program runs SNMP polling jobs for IP devices "
-            "monitored by NAV"
+            epilog="This program runs SNMP polling jobs for IP devices monitored by NAV"
         )
         opt = parser.add_argument
 
@@ -366,8 +372,7 @@ class CommandProcessor(object):
             "--clean",
             action="store_true",
             dest="clean",
-            help="cleans/purges old job log entries from the database and then "
-            "exits",
+            help="cleans/purges old job log entries from the database and then exits",
         )
         opt(
             "--threadpoolsize",

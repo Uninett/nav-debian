@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Collects port traffic counters and pushes to Graphite"""
+
 import time
 import logging
 
@@ -78,7 +79,7 @@ class StatPorts(Plugin):
     def handle(self):
         if self.netbox.master:
             yield self._log_instance_details()
-            defer.returnValue(None)
+            return None
 
         timestamp = time.time()
         stats = yield self._get_stats()
@@ -105,7 +106,7 @@ class StatPorts(Plugin):
                 stats[ifindex][IF_IN_OCTETS_IPV6] = in_octets
                 stats[ifindex][IF_OUT_OCTETS_IPV6] = out_octets
 
-        defer.returnValue(stats)
+        return stats
 
     def _make_metrics(self, stats, netboxes, timestamp=None):
         timestamp = timestamp or time.time()
@@ -144,7 +145,7 @@ class StatPorts(Plugin):
         if self._logger.isEnabledFor(logging.DEBUG):
             master, ifcs = yield db.run_in_thread(_get_master_and_instance_list)
             self._logger.debug(
-                "local interfaces (that do not exist on master " "%s): %r", master, ifcs
+                "local interfaces (that do not exist on master %s): %r", master, ifcs
             )
 
 

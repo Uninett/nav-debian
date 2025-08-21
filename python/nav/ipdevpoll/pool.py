@@ -24,7 +24,7 @@ import logging
 
 from twisted.protocols import amp
 from twisted.internet import reactor, protocol
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.endpoints import ProcessEndpoint, StandardIOEndpoint
 import twisted.internet.endpoints
 
@@ -135,7 +135,6 @@ class JobHandler(amp.CommandLocator):
         self.done = True
         return {}
 
-    # pylint: disable=no-self-use
     @Ping.responder
     def ping(self):
         """Returns the string "pong" as a response to a ping"""
@@ -273,14 +272,13 @@ class Worker(object):
                 now=False,
             )
 
-        returnValue(self)
+        return self
 
     @property
     def pid(self):
         """Returns the PID number of the worker process, if started"""
         try:
             if not self._pid:
-                # pylint: disable=protected-access
                 self._pid = self.process.transport._process.pid
         except AttributeError:
             return None
@@ -314,7 +312,7 @@ class Worker(object):
             except twisted.internet.defer.TimeoutError:
                 self._logger.warning("PING: Timed out for %r", self)
                 is_alive = False
-            except Exception:  # pylint: disable=broad-except
+            except Exception:  # noqa: BLE001
                 self._logger.exception(
                     "PING: Unhandled exception while pinging %r", self
                 )
@@ -328,7 +326,7 @@ class Worker(object):
                         "PING: Not responding, attempting to kill: %r", self
                     )
                     os.kill(self.pid, signal.SIGTERM)
-            except Exception:  # pylint: disable=broad-except
+            except Exception:  # noqa: BLE001
                 self._logger.exception(
                     "PING: Ignoring unhandled exception when killing worker %r", self
                 )
@@ -366,7 +364,7 @@ class Worker(object):
         deferred = self.process.callRemote(Ping)
         response = yield deferred.addTimeout(timeout, clock=reactor)
         self._logger.debug("PING: Response from %r: %r", self, response)
-        returnValue(response.get("result") == "pong")
+        return response.get("result") == "pong"
 
     def cancel(self, serial):
         """Cancels a job running on this worker"""

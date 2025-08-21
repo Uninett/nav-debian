@@ -14,7 +14,6 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-# pylint: disable=E1101
 """Urlconf for the NAV REST api"""
 
 from django.urls import re_path, include
@@ -53,6 +52,7 @@ router.register(
 )
 router.register(r'auditlog', auditlogapi.LogEntryViewSet, basename='auditlog')
 router.register(r'module', views.ModuleViewSet, basename='module')
+router.register(r'netboxentity', views.NetboxEntityViewSet, basename='netboxentity')
 
 
 urlpatterns = [
@@ -73,4 +73,6 @@ urlpatterns = [
         name="prefix-usage-detail",
     ),
     re_path(r'^', include(router.urls)),
+    re_path(r'^vendor/?$', views.VendorLookup.as_view(), name='vendor'),
+    re_path(r'^jwt/refresh/$', views.JWTRefreshViewSet.as_view(), name='jwt-refresh'),
 ]

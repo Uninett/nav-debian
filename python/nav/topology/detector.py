@@ -15,7 +15,6 @@
 #
 """NAV network topology detection program"""
 
-
 from argparse import ArgumentParser
 from functools import wraps
 import inspect
@@ -79,7 +78,7 @@ def int_list(value):
 def make_option_parser():
     """Sets up and returns a command line option parser."""
     parser = ArgumentParser(
-        description=("Detects and updates the network topology in your NAV " "database")
+        description=("Detects and updates the network topology in your NAV database")
     )
     parser.add_argument(
         '--version', action='version', version='NAV ' + buildconf.VERSION
@@ -105,7 +104,7 @@ def with_exception_logging(func):
     def _decorator(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except Exception:
+        except Exception:  # noqa: BLE001
             stacktrace = inspect.trace()[1:]
             _logger = logging.getLogger(__name__)
             _logger.exception("An unhandled exception occurred")

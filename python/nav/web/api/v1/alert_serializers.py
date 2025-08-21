@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Serializers for status API data"""
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.template.defaultfilters import urlize
 from django.urls import reverse
@@ -144,7 +145,7 @@ class AlertSerializerBase(serializers.ModelSerializer):
             netbox = obj.netbox
             values = netbox.groups.values_list('id', flat=True)
             return list(values) if values else None
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass
 
 

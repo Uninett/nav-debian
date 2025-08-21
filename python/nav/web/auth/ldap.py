@@ -17,7 +17,6 @@
 Contains ldap authentication functionality for NAV web.
 """
 
-
 import logging
 from os.path import join
 
@@ -28,9 +27,9 @@ _logger = logging.getLogger(__name__)
 
 
 # Set default config params and read rest from file
-class WebfrontConfigParser(NAVConfigParser):
+class LdapWebfrontConfigParser(NAVConfigParser):
     DEFAULT_CONFIG_FILES = [join('webfront', 'webfront.conf')]
-    DEFAULT_CONFIG = u"""
+    DEFAULT_CONFIG = """
 [ldap]
 enabled=no
 port=389
@@ -52,9 +51,8 @@ encoding=utf-8
 """
 
 
-_config = WebfrontConfigParser()
+_config = LdapWebfrontConfigParser()
 
-# pylint: disable=C0103
 try:
     import ldap
 except ImportError as err:
@@ -85,8 +83,7 @@ def open_ldap():
     # Revert to no encryption if none of the valid settings are found
     if encryption not in ('ssl', 'tls', 'none'):
         _logger.warning(
-            'Unknown encryption setting %r in config file, '
-            'using no encryption instead',
+            'Unknown encryption setting %r in config file, using no encryption instead',
             _config.get('ldap', 'encryption'),
         )
         encryption = 'none'
@@ -109,7 +106,7 @@ def open_ldap():
             lconn.start_tls_s()
         except ldap.PROTOCOL_ERROR:
             _logger.error(
-                'LDAP server %s does not support the STARTTLS ' 'extension.  Aborting.',
+                'LDAP server %s does not support the STARTTLS extension.  Aborting.',
                 server,
             )
             raise NoStartTlsError(server)
@@ -145,7 +142,7 @@ def authenticate(login, password):
         raise TimeoutError(error)
     except ldap.LDAPError:
         _logger.exception(
-            "An LDAP error occurred when authenticating user %s " "against server %s",
+            "An LDAP error occurred when authenticating user %s against server %s",
             login,
             server,
         )

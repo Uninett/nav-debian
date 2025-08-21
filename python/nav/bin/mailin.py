@@ -131,7 +131,7 @@ def add_mailin_subsystem():
 
     cursor.execute("select * from subsystem where name='mailin'")
     if cursor.rowcount == 0:
-        cursor.execute("INSERT INTO subsystem (name, descr) " "VALUES ('mailin', '')")
+        cursor.execute("INSERT INTO subsystem (name, descr) VALUES ('mailin', '')")
     conn.commit()
 
 
@@ -146,7 +146,7 @@ def load_plugins(paths):
             mod = __import__(path, globals(), locals(), [parent])
         except ImportError:
             _logger.error('Plugin not found: %s', path)
-        except Exception:
+        except Exception:  # noqa: BLE001
             _logger.exception('Failed to load plugin %s', path)
             continue
 

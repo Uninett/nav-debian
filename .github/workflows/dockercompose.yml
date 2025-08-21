@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: docker compose build
         run: |
@@ -37,7 +37,7 @@ jobs:
       - name: Send GitHub Action trigger data to Slack workflow
         id: slack
         if: failure()
-        uses: slackapi/slack-github-action@v2.0.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           payload: |
             {

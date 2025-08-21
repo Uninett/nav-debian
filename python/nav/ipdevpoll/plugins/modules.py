@@ -25,6 +25,7 @@ entity and an interface from IF-MIB is kept.  For each mapping found,
 the interface will have its module set to be whatever the ancestor
 module of the physical entity is.
 """
+
 import configparser
 import re
 
@@ -69,7 +70,7 @@ class Modules(Plugin):
         yield self.stampcheck.collect([self.entitymib.get_last_change_time()])
 
         result = yield self.stampcheck.is_changed()
-        defer.returnValue(result)
+        return result
 
     def _device_from_entity(self, ent):
         serial_column = 'entPhysicalSerialNum'

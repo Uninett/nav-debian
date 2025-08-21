@@ -32,9 +32,7 @@ NODES = MIB['nodes']
 TRAPS = MIB['notifications']
 
 
-# pylint: disable=unused-argument
 def handleTrap(trap, config=None):
-
     # Two interesting traps:
     # bsnAPAssociated and bsnAPDisassociated
 
@@ -84,7 +82,7 @@ def handleTrap(trap, config=None):
 
     try:
         e.post()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         _logger.error(e)
         return False
 

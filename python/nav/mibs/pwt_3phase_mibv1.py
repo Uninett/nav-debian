@@ -25,6 +25,7 @@ Please note!
 -- not a complete implementation of the mib --
 
 """
+
 from twisted.internet import defer
 
 from nav.mibs import reduce_index
@@ -237,4 +238,4 @@ class Pwt3PhaseV1Mib(mibretriever.MibRetriever):
                 method = getattr(self, handler)
                 result.extend(method(sensors))
 
-        defer.returnValue(result)
+        return result

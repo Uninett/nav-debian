@@ -40,9 +40,9 @@ UNRESOLVED = Q(end_time__gte=INFINITY)
 class DateTimeInfinityField(models.DateTimeField):
     def get_db_prep_value(self, value, connection, prepared=False):
         if value == datetime.max:
-            value = u'infinity'
+            value = 'infinity'
         elif value == datetime.min:
-            value = u'-infinity'
+            value = '-infinity'
         else:
             return super(DateTimeInfinityField, self).get_db_prep_value(
                 value, connection, prepared=prepared
@@ -71,7 +71,6 @@ class DictAsJsonField(models.TextField):
     def db_type(self, connection):
         return 'varchar'
 
-    # pylint: disable=unused-argument
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)
 
@@ -144,9 +143,6 @@ class PointField(models.CharField):
         return super(PointField, self).formfield(**defaults)
 
 
-# this interfaces with Django model protocols, which generates unnecessary
-# pylint violations:
-# pylint: disable=W0201,W0212
 class LegacyGenericForeignKey(FieldCacheMixin):
     """Generic foreign key for legacy NAV database.
 
@@ -228,7 +224,7 @@ class LegacyGenericForeignKey(FieldCacheMixin):
 
     def __set__(self, instance, value):
         if instance is None:
-            raise AttributeError(u"%s must be accessed via instance" % self.name)
+            raise AttributeError("%s must be accessed via instance" % self.name)
 
         table_name = None
         fkey = None
