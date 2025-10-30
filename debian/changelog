@@ -1,3 +1,9 @@
+nav (5.15.0-3trixie) trixie; urgency=medium
+
+  * Repackaged for Debian trixie.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 30 Oct 2025 15:40:42 +0000
+
 nav (5.15.0-2bookworm) bookworm; urgency=high
 
   * Repackaged for Debian bookworm.
