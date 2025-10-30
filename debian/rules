@@ -45,3 +45,6 @@ override_dh_shlibdeps:
 	dh_shlibdeps --exclude=/site-packages/
 
 override_dh_auto_test:
+
+# Uncomment this to save time during testing/development:
+# override_dh_strip_nondeterminism:
