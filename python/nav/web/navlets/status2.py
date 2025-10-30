@@ -20,6 +20,7 @@ from operator import itemgetter
 
 from django.http import QueryDict, JsonResponse
 from django.test.client import RequestFactory
+from django.utils.datastructures import MultiValueDictKeyError
 from django.utils.dateparse import parse_datetime
 
 from nav.models.profiles import Account
@@ -67,7 +68,11 @@ class Status2Widget(Navlet):
         factory = RequestFactory()
         view = AlertHistoryViewSet.as_view({'get': 'list'})
         request = factory.get("?%s" % query_string)
-        request.account = Account.objects.get(pk=1)
+        account = Account.objects.get(pk=Account.ADMIN_ACCOUNT)
+        # Fake request! This is safe
+        # We cannot know whether the user is sudo'ed...
+        # but since we operate as admin it is irrelevant
+        request.account = request.user = account
         response = view(request)
         return response.data.get('results')
 
@@ -118,7 +123,7 @@ class Status2Widget(Navlet):
                 navlet.preferences['refresh_interval'] = (
                     int(request.POST['interval']) * 1000
                 )
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, MultiValueDictKeyError):
                 pass
             navlet.save()
             return JsonResponse(self.preferences)

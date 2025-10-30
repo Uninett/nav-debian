@@ -11,7 +11,6 @@ define(function(require, exports, module) {
   var _ = require("libs/underscore");
   var Backbone = require("backbone");
   var Marionette = require("marionette");
-  var Foundation = require("libs/foundation.min");
   var debug = require("src/ipam/util").ipam_debug.new("views:available_subnets");
 
   var Models = require("src/ipam/models");
@@ -128,6 +127,8 @@ define(function(require, exports, module) {
         height: 200,
         selectNodeCallBack: notify
       });
+      // Ensure htmx processes the opened tree to enable hx-* attributes
+      htmx.process(self.$el.get(0));
     },
 
     hidingTreemap: function(self) {
@@ -317,11 +318,6 @@ define(function(require, exports, module) {
           }
         }
       });
-    },
-
-    onAttach: function() {
-      // make Foundation detect slider
-      $(document).foundation();
     },
 
     cancelReservation: function() {

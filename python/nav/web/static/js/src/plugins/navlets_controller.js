@@ -83,15 +83,18 @@ define(['plugins/navlet_controller'], function (NavletController) {
             });
         },
         addAddNavletListener: function () {
-            var that = this;
-            $('.add-user-navlet').submit(function (event) {
+            const that = this;
+            $(document).on('submit', '.add-user-navlet', function (event) {
                 event.preventDefault();
-                var request = $.post($(this).attr('action'), $(this).serialize(), 'json');
+                const $form = $(this);
+                const request = $.post($form.attr('action'), $form.serialize(), 'json');
+
                 request.done(function (data) {
                     that.addNavlet(data, true);
                     that.saveOrder(that.findOrder());
-                    $('#navlet-list').foundation('reveal', 'close');
+                    $('#navlet-list').remove();
                 });
+
                 request.fail(function () {
                     alert('Failed to add widget');
                 });
@@ -145,7 +148,19 @@ define(['plugins/navlet_controller'], function (NavletController) {
             return orderings;
         },
         saveOrder: function (ordering) {
-            $.post(this.save_ordering_url, JSON.stringify(ordering));
+            // Get csrf token from #navlets-action-form
+            const csrfToken = $('#navlets-action-form input[name="csrfmiddlewaretoken"]').val();
+            $.ajax({
+               url: this.save_ordering_url,
+               type: 'POST',
+               data: JSON.stringify(ordering),
+               contentType: 'application/json',
+               headers: {
+                   'X-CSRFToken': csrfToken
+               }
+            }).fail(function() {
+               console.error('Failed to save widget order');
+            });
         },
         getNavlets: function (column) {
             if (column) {

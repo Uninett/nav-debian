@@ -11,7 +11,14 @@
 
   <p><a href="{% url 'threshold-index' %}">Back to thresholds</a></p>
 
-  <a href="#" class="button small secondary" data-reveal-id="add-threshold-help" data-reveal>Help</a>
+  <button
+          class="button small secondary"
+          hx-get="{% url 'threshold-help-modal' %}"
+          hx-target="body"
+          hx-swap="beforeend"
+  >
+      Help
+  </button>
 
   <div class="row">
 
@@ -23,14 +30,24 @@
         {% include 'custom_crispy_templates/flat_form.html' %}
       </div>
       {% if id %}
-      <a href="#" data-dropdown="confirm-delete" class="button alert">Delete</a>
-      <div id="confirm-delete" data-dropdown-content class="f-dropdown content">
-          <h5>Delete this rule?</h5>
-          <form action="{% url 'threshold-delete' id %}" method="POST">
-              {% csrf_token %}
-              <input type="submit" value="Yes" class="button small alert left">
-          </form>
-          <span class="button small secondary close-button left">No way!</span>
+      <div id="confirm-delete" class="popover with-arrow">
+          <button
+              data-popover-target="#confirm-delete"
+              aria-haspopup="true"
+              aria-expanded="false"
+              class="button alert"
+              style="margin-bottom: 0;"
+          >
+              Delete
+          </button>
+          <div class="popover-content tiny" style="width: 200px;">
+              <h5>Delete this rule?</h5>
+              <form action="{% url 'threshold-delete' id %}" method="POST">
+                  {% csrf_token %}
+                  <input type="submit" value="Yes" class="button small alert left">
+                  <button type="button" class="button small secondary close-button left" close-popover>No way!</button>
+              </form>
+          </div>
       </div>
       {% endif %}
     </div>
@@ -41,59 +58,4 @@
     </div>
 
   </div>
-
-  <div id="add-threshold-help" class="reveal-modal" data-reveal>
-    <h4>How to create a threshold rule</h4>
-
-    <h4 class="subheader">Finding the target</h4>
-    <p>
-      To create a threshold rule you need to find the target of the threshold.
-      The target is the value you want to create a threshold for, for instance
-      memory and cpu usage, response time and so on.
-    </p>
-
-    <p>
-      To find the target, start typing in the target field. All devices in NAV
-      are located under 'nav.devices'. Use that as a starting point. Then use a
-      dot (.) to list the devices we collect statistics from. A star (*)
-      indicates a wildcard.
-    </p>
-
-    <p>
-      Continue searching until you find the target you are looking for. When
-      you select a valid target, a graph will be displayed showing the last
-      values for the selected target.
-
-      <strong>Examples:</strong>
-    <ul class="inside">
-      <li><code>nav.devices.*.ping.roundTripTime</code> - matches all
-        roundtriptimes of all the devices.
-      </li>
-      <li><code>nav.devices.*.sensors.*Temp*</code> - matches all temperature
-        sensors of all the devices.
-      </li>
-    </ul>
-    </p>
-
-    <h4 class="subheader">Setting the threshold</h4>
-
-    <p>
-      When you have found the target you must set a threshold. We also
-      recommend setting a clear-value. The clear-value determines when a value
-      is considered 'back to normal'.
-    </p>
-
-    <p>
-      <strong>Example:</strong> The graph shows us that the cpu usage of a
-      switch is normally
-      between 5-10%. We set a threshold of >30%. We will then get an alert when
-      this threshold is surpassed. We set a clear-value of <20%. This means
-      that when the cpu usage goes below 20% a clear alert is sent and the
-      value is considered back to normal. If we do not set a clear-value it
-      will automatically be set to the negation of the threshold, in this case
-      <30%.
-    </p>
-
-  </div>
-
 {% endblock %}

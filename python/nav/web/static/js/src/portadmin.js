@@ -4,42 +4,45 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
      * Helper object to manipulate the modal and give feedback
      */
     function Feedbacker(modal) {
-        var self = this;
-        this.modal = modal;
+        this.modal = null;
         this.isOpen = false;
-        this.list = modal.find('ul');
-
-        modal.on('open opened', function () {
-            self.isOpen = true;
-        });
-
-        modal.on('close closed', function (event) {
-            self.isOpen = false;
-        });
-
+        this.list = null;
+        this.closeButton = null;
     }
 
     Feedbacker.prototype = {
-        modalOpen: function() {
-            if (!this.isOpen) {
-                this.modal.foundation('reveal', 'open', {
-                    'close_on_background_click': false
-                });
+        modalOpen: async function() {
+            if (this.isOpen) {
+                return Promise.resolve();
             }
+            return htmx.ajax('GET', '/portadmin/feedback_modal', {
+                target: 'body',
+                swap: 'beforeend'
+            }).then(() => {
+                this.modal = document.getElementById('portadmin-feedback-modal');
+                this.list = this.modal.querySelector('ul');
+                this.isOpen = true;
+            })
         },
         modalClose: function() {
-            this.modal.foundation('reveal', 'close');
+            this.modal.remove();
             this.closeButton.remove();
-            this.list.empty();
+            this.isOpen = false;
+            this.modal = null;
+            this.list = null;
+            this.closeButton = null;
         },
         addCloseButton: function() {
-            var self = this;
-            var $button = $('<button class="button small">Close</button>');
-            this.modal.append($button);
-            $button.on('click', function() {
+            const self = this;
+            const button = document.createElement('button');
+            button.className = 'button small';
+            button.textContent = 'Close';
+            button.style.marginBottom = '0';
+            button.onclick = function() {
                 self.modalClose();
-            });
-            this.closeButton = $button;
+            };
+            this.modal.querySelector('.modal-content').appendChild(button);
+            this.closeButton = button;
         },
         /**
          * The cancel button will empty the queue of interfaces to handle, but
@@ -57,9 +60,9 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
             });
             this.cancelButton = $button;
         },
-        addFeedback: function(text, status, message) {
-            this.modalOpen();
-            var listItem = $('<li>').appendTo(this.list).html(text);
+        addFeedback: async function(text, status, message) {
+            await this.modalOpen();
+            const listItem = $('<li>').appendTo(this.list).html(text);
             if (typeof status !== 'undefined') {
                 listItem.append(this.createAlert(status, message));
             }
@@ -81,28 +84,53 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
             return $('<progress style="margin-left: 1em; width: 50px; vertical-align: sub"></progress>');
         },
         savingInterface: function($row) {
+            var self = this;
             return this.addFeedback('Configuring interface ' + $row.find('.port-name').text())
-                .append(this.createProgress());
+                .then(function(listItem) {
+                    if (listItem) {
+                        listItem.append(self.createProgress());
+                    }
+                    return listItem;
+                });
         },
-        restartingInterfaces: function() {
-            var restartReason = "<p>A computer connected to a port does not detect that the vlan changes. When that happens the computer will have the IP-address from the old vlan and it will lose connectivity. But if the link goes down and up (a 'restart') the computer will send a request for a new address.</p> 'Restarting' interfaces is only done when changing vlans.";
-            var why = $('<span data-tooltip class="has-tip" title="' + restartReason + '">(why?)</span>');
-            var listItem = this.addFeedback('Restarting interfaces ').append(why, this.createProgress());
-            $(document).foundation('tooltip', 'reflow');
+        restartingInterfaces: async function() {
+            const restartReason = "A computer connected to a port does not detect that the vlan changes. When that happens the computer will have the IP-address from the old vlan and it will lose connectivity. But if the link goes down and up (a 'restart') the computer will send a request for a new address. 'Restarting' interfaces is only done when changing vlans.";
+            const why = $('<span aria-describedby="restart-tooltip">(why?)</span>');
+            why.on('click', () => {
+                $('#restart-reason').toggleClass('hidden');
+            })
+            const listItem = await this.addFeedback('Restarting interfaces ');
+            listItem.append(why, this.createProgress());
+            const restartReasonElement = $(
+                '<div id="restart-reason" class="hidden panel">' +
+                '<small>' + restartReason + '</small' +
+                '</div>'
+            );
+            listItem.append(restartReasonElement);
             return listItem;
         },
         committingConfig: function() {
+            const self = this;
             return this.addFeedback('Committing configuration changes')
-                .append(this.createProgress());
+                .then(function(listItem) {
+                    if (listItem) {
+                        listItem.append(self.createProgress());
+                    }
+                    return listItem;
+                });
         },
         endProgress: function(listItem, status, message) {
             status = typeof status === 'undefined' ? 'success' : status;
             message = typeof message === 'undefined' ? '' : message;
-            listItem.append(this.createAlert(status));
+
+            const alertElement = this.createAlert(status);
+            const progressElement = listItem.find('progress');
+            progressElement.replaceWith(alertElement);
+
             if (status !== 'success') {
-                listItem.append($('<small style="margin-left: 1em">').text(message));
+                const errorElement = $('<small style="margin-left: 1em">').text(message);
+                errorElement.insertAfter(alertElement);
             }
-            listItem.find('progress').remove();
         }
     };
 
@@ -134,15 +162,19 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
     var feedback;
 
     $(document).ready(function(){
-        var $wrapper = $('#portadmin-wrapper');
-        feedback = new Feedbacker($('#portadmin-modal-feedback'));
+        feedback = new Feedbacker();
 
-        if ($wrapper.length) {
-            addTrunkSelectedListener($wrapper);
-            addChangeListener($wrapper);
-            addSaveListener($wrapper);
-            addSaveAllListener($wrapper);
-        }
+        // Initialize listeners after htmx has swapped in new content
+        $(document).on("htmx:afterSwap", "#port-details", function() {
+            var $wrapper = $('#portadmin-wrapper');
+
+            if ($wrapper.length) {
+                addTrunkSelectedListener($wrapper);
+                addChangeListener($wrapper);
+                addSaveListener($wrapper);
+                addSaveAllListener($wrapper);
+            }
+        });
     });
 
     /*
@@ -194,9 +226,9 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
 
     function addSaveListener($wrapper) {
         /* Save when clicking on the save buttons. */
-        $wrapper.on('click', '.changed .portadmin-save', function (event) {
+        $wrapper.on('click', '.changed .portadmin-save', async function (event) {
             var $row = $(event.target).parents(parentSelector);
-            saveRow($row);
+            await saveRow($row);
         });
     }
 
@@ -205,8 +237,8 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
     }
 
     function bulkSave() {
-        $(".changed").each(function (index, card) {
-            saveRow($(card));
+        $(".changed").each(async function (index, card) {
+            await saveRow($(card));
         });
     }
 
@@ -274,7 +306,7 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
         markAsUnchanged(row);
     }
 
-    function saveRow($row) {
+    async function saveRow($row) {
         /*
          * This funcion does an ajax call to save the information given by the user
          * when the save-button is clicked.
@@ -287,7 +319,7 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
         }
 
         // Post data and wait for json-formatted returndata. Display status information to user
-        saveInterface(create_ajax_data($row));
+        await saveInterface(create_ajax_data($row));
     }
 
     function create_ajax_data($row) {
@@ -322,7 +354,7 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
         return data;
     }
 
-    function saveInterface(interfaceData) {
+    async function saveInterface(interfaceData) {
         var rowid = interfaceData.interfaceid;
         // If a save on this card is already in progress, do nothing.
         if (nav_ajax_queue.indexOf(rowid) > -1) {
@@ -337,89 +369,114 @@ require(['libs/spin.min', 'libs/jquery-ui.min'], function (Spinner) {
             return;
         }
 
-        doAjaxRequest(rowid);
+        await doAjaxRequest(rowid);
     }
 
-    function doAjaxRequest(rowid) {
+    async function doAjaxRequest(rowid) {
         console.log('Saving interface with id ' + rowid);
-        var $row = $('#' + rowid);
-        var interfaceData = queue_data[rowid];
-        var listItem = feedback.savingInterface($row);
-        $.ajax({url: "save_interfaceinfo",
-            data: interfaceData,
-            dataType: 'json',
-            type: 'POST',
-            beforeSend: function () {
-                disableButtons($row);
-                // spinner.spin($row);
-            },
-            success: function () {
-                clearChangedState($row);
-                updateDefaults($row, interfaceData);
-                feedback.endProgress(listItem);
-                // Restart the interface if a vlan change was made.
-                if (interfaceData.hasOwnProperty('vlan')) {
-                    restart_queue.push(interfaceData.interfaceid);
+        const $row = $('#' + rowid);
+        const interfaceData = queue_data[rowid];
+
+        let listItem = null;
+
+        try {
+            // Wait for the feedback modal to open and get the list item
+            listItem = await feedback.savingInterface($row);
+            const csrfToken = $('#save-changes-form input[name="csrfmiddlewaretoken"]').val();
+
+            // Perform the AJAX request
+            await $.ajax({
+                url: "save_interfaceinfo",
+                data: interfaceData,
+                dataType: 'json',
+                type: 'POST',
+                beforeSend: function () {
+                    disableButtons($row);
+                },
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                success: function () {
+                    clearChangedState($row);
+                    updateDefaults($row, interfaceData);
+                    feedback.endProgress(listItem);
+                    // Restart the interface if a vlan change was made.
+                    if (interfaceData.hasOwnProperty('vlan')) {
+                        restart_queue.push(interfaceData.interfaceid);
+                    }
+                    $(document).trigger('nav-portadmin-ajax-success');
+                },
+                error: function (jqXhr) {
+                    console.log(jqXhr.responseText);
+                    var messages;
+                    try {
+                        messages = $.parseJSON(jqXhr.responseText).messages;
+                    } catch (error) {
+                        messages = [{'message': 'Error saving changes'}];
+                    }
+                    indicateError($row, messages);
+                    feedback.endProgress(listItem, 'alert', messages.map(function(message){
+                        return message['message'];
+                    }).join(', '));
                 }
-                $(document).trigger('nav-portadmin-ajax-success');
-            },
-            error: function (jqXhr) {
-                console.log(jqXhr.responseText);
-                var messages;
-                try {
-                    messages = $.parseJSON(jqXhr.responseText).messages;
-                } catch (error) {
-                    messages = [{'message': 'Error saving changes'}];
-                }
-                indicateError($row, messages);
-                feedback.endProgress(listItem, 'alert', messages.map(function(message){
-                    return message['message'];
-                }).join(', '));
-            },
-            complete: function (jqXhr) {
-                removeFromQueue(rowid);
-                enableButtons($row);
-                // spinner.stop();
-                if (nav_ajax_queue.length === 0) {
-                    enableSaveallButtons();
-                    commitConfig(interfaceData.interfaceid);
-                } else {
-                    // Process next entry in queue
-                    doAjaxRequest(nav_ajax_queue[0]);
-                }
+            });
+
+        } catch (error) {
+            console.error('Error in doAjaxRequest:', error);
+            // Handle any errors that occurred during the process
+            feedback.endProgress(listItem, 'alert', 'An unexpected error occurred');
+        } finally {
+            // Always execute cleanup code
+            removeFromQueue(rowid);
+            enableButtons($row);
+
+            if (nav_ajax_queue.length === 0) {
+                enableSaveallButtons();
+                await commitConfig(interfaceData.interfaceid);
+            } else {
+                // Process next entry in queue
+                await doAjaxRequest(nav_ajax_queue[0]);
             }
-        });
+        }
     }
 
     /**
      * Commits configuration changes and then link cycles / restarts all
      * interfaces that had their access VLAN changed.
      */
-    function commitConfig(interfaceid) {
+    async function commitConfig(interfaceid) {
         /** Do a request to commit changes to startup config */
         console.log('Sending commit configuration request');
 
-        var status = feedback.committingConfig();
-        var request = $.post('commit_configuration', {'interfaceid': interfaceid});
+        const status = await feedback.committingConfig();
+        const csrfToken = $('#save-changes-form input[name="csrfmiddlewaretoken"]').val();
+        const request = $.ajax({
+            url: 'commit_configuration',
+            type: 'POST',
+            data: {'interfaceid': interfaceid},
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+        });
         request.done(function() {
             feedback.endProgress(status, 'success', request.responseText);
             restartInterfaces();
         });
-        request.fail(function() {
+        request.fail(function(err) {
             feedback.endProgress(status, 'alert', request.responseText);
             feedback.addCloseButton();
         });
     }
 
-    function restartInterfaces() {
+    async function restartInterfaces() {
         // Sends a request to restart all interfaces in the restart queue, if any, and then add
         if (restart_queue.length == 0) {
             feedback.addCloseButton();
             return;
         }
 
-        var listItem = feedback.restartingInterfaces();
-        var request = $.post('restart_interfaces', {'interfaceid': restart_queue});
+        const listItem = await feedback.restartingInterfaces();
+        const request = $.post('restart_interfaces', {'interfaceid': restart_queue});
         request.done(function() {
             console.log("Interfaces restarted: " + restart_queue)
             feedback.endProgress(listItem, 'success');

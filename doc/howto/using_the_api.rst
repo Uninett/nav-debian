@@ -21,8 +21,7 @@ support write operations*.
 How to get a token
 ------------------
 
-Tokens are administrated from the `User and API Administration
-</useradmin/tokens/>`_ page in NAV.
+Tokens are administrated from the ``User and API Administration`` page in NAV.
 
 .. _classic-token:
 How to use the token
@@ -56,12 +55,12 @@ JWTs must include valid ``exp``, ``nbf``, ``iss`` and ``aud`` claims in order to
 ``iss`` and ``aud`` must match the :doc:`configuration <../reference/jwt>`, while ``exp`` must
 be in the future and ``nbf`` must be in the past.
 
-The ``permissions`` and ``write`` claims are optional claims that are used to determine what
+The ``endpoints`` and ``write`` claims are optional claims that are used to determine what
 resources the token has access to.
-The ``permissions`` claim should contain a list of endpoints that the token has access to.
-If ``permissions`` is an empty list or omitted, the token will not have access to any endpoints.
+The ``endpoints`` claim should contain a list of endpoints that the token has access to.
+If ``endpoints`` is an empty list or omitted, the token will not have access to any endpoints.
 The ``write`` claim should be a boolean indicating whether the token has write access to the endpoints.
-If ``write`` is ``false`` or omitted, the token will only have read access to the endpoints listed in ``permissions``.
+If ``write`` is ``false`` or omitted, the token will only have read access to the endpoints listed in ``endpoints``.
 
 
 Locally issued JSON Web Tokens
@@ -163,8 +162,8 @@ At the moment there is no way of specifying wildcards in the filter.
 Using POST, PUT, PATCH and DELETE
 ---------------------------------
 
-To use these request methods you need a write-enabled token. Go to `User and API
-Administration </useradmin/tokens/>`_ to set token attributes.
+To use these request methods you need a write-enabled token. Go to ``User and API
+Administration`` to set token attributes.
 
 CRUD-methods are enabled for a limited number of endpoints. These endpoints can
 be found by querying the endpoint with the ``OPTIONS`` header and see if POST is
