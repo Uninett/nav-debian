@@ -24,12 +24,14 @@ from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django_htmx.http import reswap, retarget, HttpResponseClientRefresh
+from django_htmx.http import HttpResponseClientRefresh
 
 from nav.django.templatetags.thresholds import find_rules
 from nav.event2 import EventFactory
 from nav.metrics.errors import GraphiteUnreachableError
 from nav.metrics.graphs import get_simple_graph_url
+from nav.web.auth.utils import get_account
+from nav.web.modals import render_modal
 
 from nav.models.manage import (
     Netbox,
@@ -287,6 +289,7 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
     system_metrics = netbox_availability = []
     sensor_metrics = []
     graphite_error = False
+    mac = None
 
     # Invalid IP address
     if not name and not addr_valid:
@@ -331,6 +334,8 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
         netboxgroups = netbox.netboxcategory_set.all()
         navpath = NAVPATH + [(netbox.sysname, '')]
         job_descriptions = get_job_descriptions()
+        if arp := get_arp_info(netbox.ip):
+            mac = arp.mac
 
         try:
             system_metrics = netbox.get_system_metrics()
@@ -400,6 +405,7 @@ def ipdev_details(request, name=None, addr=None, netbox_id=None):
             'future_maintenance_tasks': relevant_future_tasks,
             'sensor_metrics': sensor_metrics,
             'display_services_tab': display_services_tab,
+            'mac': mac,
         },
     )
 
@@ -665,6 +671,26 @@ def port_details(request, netbox_sysname, port_type=None, port_id=None, port_nam
     )
 
 
+def poe_status_hint_modal(request):
+    """Render PoE status info hint modal"""
+    return render_modal(
+        request,
+        'ipdevinfo/_poe_status_hint_modal.html',
+        modal_id='poe-status-hint',
+        size="small",
+    )
+
+
+def poe_classification_hint_modal(request):
+    """Render PoE classification info hint modal"""
+    return render_modal(
+        request,
+        'ipdevinfo/_poe_classification_hint_modal.html',
+        modal_id='poe-classification-hint',
+        size="small",
+    )
+
+
 def get_recent_alerts_interface(interface, days_back=7):
     """Returns the most recent linkState events for this interface"""
     lowest_end_time = dt.datetime.now() - dt.timedelta(days=days_back)
@@ -808,10 +834,11 @@ def render_affected(request, netboxid):
 
 def render_host_info(request, identifier):
     """Controller for getting host info"""
-    return render(
+    return render_modal(
         request,
         'ipdevinfo/frag-hostinfo.html',
         {'host_info': get_host_info(identifier)},
+        modal_id='hostinfo',
     )
 
 
@@ -900,7 +927,7 @@ def sensor_details(request, identifier):
 
 def save_port_layout_pref(request):
     """Save the ipdevinfo port layout preference"""
-    account = request.account
+    account = get_account(request)
     key = Account.PREFERENCE_KEY_IPDEVINFO_PORT_LAYOUT
     account.preferences[key] = request.GET.get('layout')
     account.save()
@@ -961,7 +988,9 @@ def refresh_ipdevinfo_job_status_query(
     """
 
     def show_error_message(
-        request, alert_level: str, alert_message: str
+        request,
+        alert_level: str,
+        alert_message: str,
     ) -> HttpResponse:
         """
         Returns a HTTPResponse showing an alert box indicating a problem with running
@@ -969,14 +998,14 @@ def refresh_ipdevinfo_job_status_query(
         """
         response = render(
             request,
-            "ipdevinfo/frag-ipdevinfo-alert-box.html",
+            "ipdevinfo/frag-ipdevinfo-refresh-error.html",
             context={
+                "netbox_sysname": netbox_sysname,
+                "job_name": job_name,
                 "alert_level": alert_level,
                 "alert_message": alert_message,
             },
         )
-        retarget(response, ".row")
-        reswap(response, "beforeend")
         return response
 
     def check_if_job_is_running_longer_than_expected(

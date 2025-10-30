@@ -29,7 +29,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_http_methods
 
 import nav.maintengine
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
 from nav.models.manage import Location, Netbox, NetboxGroup, Room
 from nav.models.msgmaint import MaintenanceComponent, MaintenanceTask
 from nav.models.service import Service
@@ -61,7 +61,7 @@ _logger = logging.getLogger(__name__)
 
 def redirect_to_calendar(_request):
     """Redirect to main page for this tool"""
-    return redirect(reverse('maintenance'))
+    return redirect(reverse('maintenance-calendar'))
 
 
 def calendar(request, year=None, month=None):

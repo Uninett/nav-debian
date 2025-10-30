@@ -52,6 +52,7 @@ from nav.macaddress import MacAddress
 from nav.models import manage, event, cabling, rack, profiles
 from nav.models.api import JWTRefreshToken
 from nav.models.fields import INFINITY, UNRESOLVED
+from nav.web.auth.utils import get_account
 from nav.web.servicecheckers import load_checker_classes
 from nav.util import auth_token, is_valid_cidr
 
@@ -524,7 +525,7 @@ class InterfaceViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     Example: `/api/1/interface/?netbox=91&ifclass=trunk&ifclass=swport`
     """
 
-    queryset = manage.Interface.objects.all()
+    queryset = manage.Interface.objects.prefetch_related('swport_vlans__vlan').all()
     search_fields = ('ifalias', 'ifdescr', 'ifname')
 
     # NaturalIfnameFilter returns a list, so IfClassFilter needs to come first
@@ -1138,11 +1139,12 @@ def get_or_create_token(request):
 
     :type request: django.http.HttpRequest
     """
-    if request.account.is_admin():
+    account = get_account(request)
+    if account.is_admin():
         from nav.models.api import APIToken
 
         token, _ = APIToken.objects.get_or_create(
-            client=request.account,
+            client=account,
             expires__gte=datetime.now(),
             defaults={'token': auth_token(), 'expires': datetime.now() + EXPIRE_DELTA},
         )

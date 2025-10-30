@@ -32,6 +32,28 @@ ACCOUNT_ID_VAR = 'account_id'
 PASSWORD_ISSUES_CACHE_KEY = "auth:accounts_password_issues"
 
 
+def default_account():
+    """
+    Returns the user representing an unauthenticated account
+
+    default_account().is_anonymous is always True.
+    default_account().is_default_account() always returns True.
+    """
+    return Account.objects.get(id=Account.DEFAULT_ACCOUNT)
+
+
+def get_account(request):
+    """Returns the account associated with the request"""
+    try:
+        return request.account
+    except AttributeError:
+        pass
+    try:
+        return request.user
+    except AttributeError:
+        return default_account()
+
+
 def set_account(request, account, cycle_session_id=True):
     """Updates request with new account.
     Cycles the session ID by default to avoid session fixation.
@@ -61,13 +83,13 @@ def ensure_account(request):
     account_id = session.get(ACCOUNT_ID_VAR, Account.DEFAULT_ACCOUNT)
     account = Account.objects.get(id=account_id)
 
-    if account.locked:
+    if account.locked and not account.is_default_account():
         # logout of locked account
         clear_session(request)
 
         # Switch back to fallback, the anonymous user
         # Assumes nobody has locked it..
-        account = Account.objects.get(id=Account.DEFAULT_ACCOUNT)
+        account = default_account()
 
     # Do not cycle to avoid session_id being changed on every request
     set_account(request, account, cycle_session_id=False)
@@ -84,6 +106,7 @@ def authorization_not_required(fullpath):
         '/doc/',  # No auth/different auth system
         '/about/',
         '/index/login/',
+        '/index/audit-logging-modal/',
         '/refresh_session',
     ]
     for url in auth_not_required:
