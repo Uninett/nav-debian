@@ -14,12 +14,13 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Machine tracker forms"""
-from datetime import date, timedelta
 
 from django import forms
 
 from nav.macaddress import MacPrefix
 from nav.web.machinetracker import iprange
+
+from ..utils import validate_timedelta_for_overflow
 
 
 class MachineTrackerForm(forms.Form):
@@ -33,6 +34,9 @@ class MachineTrackerForm(forms.Form):
         widget=forms.TextInput(attrs={'size': 3}),
         help_text="Days back in time to search",
     )
+    vendor = forms.BooleanField(
+        required=False, initial=False, help_text="Show vendor name (if any)"
+    )
 
     def clean_days(self):
         """Clean the days fields"""
@@ -41,13 +45,10 @@ class MachineTrackerForm(forms.Form):
             # -1 has a specific meaning of "only active", for backwards
             # compatibility. Anything else is an error.
             raise forms.ValidationError(
-                "I can't see into the future. " "Please enter a positive number."
+                "I can't see into the future. Please enter a positive number."
             )
 
-        try:
-            date.today() - timedelta(days=data)
-        except OverflowError:
-            raise forms.ValidationError("They didn't have computers %s days ago" % data)
+        validate_timedelta_for_overflow(days=data)
 
         return data
 
@@ -107,6 +108,9 @@ class SwitchTrackerForm(forms.Form):
     module = forms.CharField(required=False, widget=forms.TextInput(attrs={'size': 3}))
     port = forms.CharField(required=False, widget=forms.TextInput(attrs={'size': 16}))
     days = forms.IntegerField(initial=7, widget=forms.TextInput(attrs={'size': 3}))
+    vendor = forms.BooleanField(
+        required=False, initial=False, help_text="Show vendor name (if any)"
+    )
 
 
 class NetbiosTrackerForm(MachineTrackerForm):

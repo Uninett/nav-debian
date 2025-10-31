@@ -29,11 +29,7 @@ order.
 
 """
 
-
 import re
-
-# This module is NOT deprecated, even though many of the functions in it are
-# pylint: disable=W0402
 import string
 
 # A range of left shift values for the 6 bytes in a MAC address
@@ -66,7 +62,6 @@ class MacAddress(object):
     _addr = None
 
     def __init__(self, addr):
-        # pylint: disable=W0212
         if isinstance(addr, MacAddress):
             self._addr = addr._addr
         elif isinstance(addr, int):
@@ -145,7 +140,6 @@ class MacAddress(object):
     def __ge__(self, other):
         return self._compare(other, lambda s, o: s >= o)
 
-    # pylint: disable=W0212
     def _compare(self, other, method):
         try:
             other = self.__class__(other)
@@ -259,7 +253,7 @@ class MacPrefix(object):
         digitpos = [pos for pos, char in enumerate(base) if char in string.hexdigits]
         digitpos = digitpos[self._mask_len - 1]
         base = base[: digitpos + 1]
-        return base.rstrip(u''.join(DELIMS_AND_STEPS.keys()))
+        return base.rstrip(''.join(DELIMS_AND_STEPS.keys()))
 
     def __repr__(self):
         return "MacPrefix(%r)" % str(self)

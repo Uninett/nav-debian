@@ -14,11 +14,12 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-""""LLDP-MIB handling"""
+""" "LLDP-MIB handling"""
+
 import socket
 from collections import namedtuple
 
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks
 
 from nav.ip import IP
 from nav.mibs.if_mib import IfMib
@@ -49,7 +50,7 @@ class LLDPMib(mibretriever.MibRetriever):
         else:
             result = []
 
-        returnValue(result)
+        return result
 
     def _retrieve_rem_table(self):
         return self.retrieve_columns(
@@ -92,7 +93,7 @@ class LLDPMib(mibretriever.MibRetriever):
         """
         if self._is_remote_table_index_broken(remote_table):
             self._logger.warning("lldpRemTable has broken row indexes on this device")
-            returnValue([])
+            return []
 
         remotes = remote_table.values()
         local_ports = yield self._retrieve_local_ports()
@@ -141,7 +142,7 @@ class LLDPMib(mibretriever.MibRetriever):
             _timemark, local_portnum, _index = remote[0]
             remote[0] = lookup.get(local_portnum, local_portnum)
 
-        returnValue(remotes)
+        return remotes
 
     @staticmethod
     def _is_remote_table_index_broken(remote_table):
@@ -164,7 +165,7 @@ class LLDPMib(mibretriever.MibRetriever):
             index: IdSubtypes.get(row['lldpLocPortIdSubtype'], row['lldpLocPortId'])
             for index, row in ports.items()
         }
-        returnValue(result)
+        return result
 
     @inlineCallbacks
     def _make_interface_lookup_dict(self):
@@ -174,10 +175,9 @@ class LLDPMib(mibretriever.MibRetriever):
         for ifindex, (ifname, ifdescr) in ifnames.items():
             lookup[ifdescr] = ifindex
             lookup[ifname] = ifindex
-        returnValue(lookup)
+        return lookup
 
 
-# pylint: disable=C0103
 LLDPNeighbor = namedtuple(
     "LLDPNeighbor", "ifindex chassis_id port_id port_desc sysname"
 )
@@ -188,7 +188,6 @@ LLDPNeighbor = namedtuple(
 #
 
 
-# pylint: disable=C0111,C0103,R0904,R0903
 class IdType(str):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, str(self))
@@ -254,7 +253,6 @@ class NetworkAddress(IdType):
         return IdType.__new__(cls, arg)
 
 
-# pylint: disable=C0111,C0103,R0904,R0903
 class IdSubtypes(object):
     @classmethod
     def get(cls, typename, value):

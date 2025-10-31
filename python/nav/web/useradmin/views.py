@@ -16,9 +16,10 @@
 """Controller functions for the useradmin interface"""
 
 import copy
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.contrib import messages
+from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -29,10 +30,14 @@ from django.views.decorators.debug import sensitive_post_parameters
 from nav.auditlog.models import LogEntry
 from nav.models.profiles import Account, AccountGroup, Privilege
 from nav.models.manage import Organization
-from nav.models.api import APIToken
+from nav.models.api import APIToken, JWTRefreshToken
 
 from nav.web.auth.sudo import sudo
+from nav.web.auth.utils import get_account
 from nav.web.useradmin import forms
+from nav.web.jwtgen import generate_refresh_token, hash_token, decode_token
+from nav.config import ConfigurationError
+from nav.django.settings import LOCAL_JWT_IS_CONFIGURED
 
 
 DEFAULT_NAVPATH = {'navpath': [('Home', '/'), ('User Administration',)]}
@@ -166,7 +171,8 @@ def save_account(request, account_form, old_account):
         account.set_password(account_form.cleaned_data['password1'])
 
     account.save()
-    log_account_change(request.account, old_account, account)
+    logged_in_account = get_account(request)
+    log_account_change(logged_in_account, old_account, account)
 
     messages.success(request, '"%s" has been saved.' % (account))
     return HttpResponseRedirect(reverse('useradmin-account_detail', args=[account.id]))
@@ -179,7 +185,7 @@ def save_account_org(request, account, org_form):
     try:
         account.organizations.get(id=organization.id)
         messages.warning(
-            request, 'Organization was not added as it has ' 'already been added.'
+            request, 'Organization was not added as it has already been added.'
         )
     except Organization.DoesNotExist:
         account.organizations.add(organization)
@@ -197,7 +203,7 @@ def save_account_group(request, account, group_form):
 
     special_case = (
         group.is_admin_group() or group.is_protected_group()
-    ) and account.is_default_account()
+    ) and account.is_anonymous
 
     if special_case:
         messages.error(request, 'Default user may not be added to "%s" group.' % group)
@@ -205,7 +211,7 @@ def save_account_group(request, account, group_form):
         try:
             account.groups.get(id=group.id)
             messages.warning(
-                request, 'Group was not added as it has already ' 'been added.'
+                request, 'Group was not added as it has already been added.'
             )
         except AccountGroup.DoesNotExist:
             account.groups.add(group)
@@ -238,17 +244,21 @@ def account_delete(request, account_id):
     if account.is_system_account():
         messages.error(
             request,
-            'Account %s can not be deleted as it is a system '
-            'account.' % (account.name),
+            'Account %s can not be deleted as it is a system account.' % (account.name),
         )
         return HttpResponseRedirect(
             reverse('useradmin-account_detail', args=[account.id])
         )
 
     if request.method == 'POST':
+        from nav.web.auth.utils import PASSWORD_ISSUES_CACHE_KEY
+
         account.delete()
-        LogEntry.add_delete_entry(request.account, account)
+        logged_in_account = get_account(request)
+        LogEntry.add_delete_entry(logged_in_account, account)
         messages.success(request, 'Account %s has been deleted.' % (account.name))
+        # Delete cache entry of how many accounts have password issues
+        cache.delete(PASSWORD_ISSUES_CACHE_KEY)
         return HttpResponseRedirect(reverse('useradmin-account_list'))
 
     context = {
@@ -289,10 +299,11 @@ def account_organization_remove(request, account_id, org_id):
             % (organization, account),
         )
 
+        logged_in_account = get_account(request)
         LogEntry.add_log_entry(
-            request.account,
-            u'edit-account-remove-org',
-            u'{actor} removed user {object} from organization {target}',
+            logged_in_account,
+            'edit-account-remove-org',
+            '{actor} removed user {object} from organization {target}',
             target=organization,
             object=account,
         )
@@ -358,10 +369,11 @@ def account_group_remove(request, account_id, group_id, caller='account'):
         account.groups.remove(group)
         messages.success(request, '%s has been removed from %s.' % (account, group))
 
+        logged_in_account = get_account(request)
         LogEntry.add_log_entry(
-            request.account,
-            u'edit-account-remove-group',
-            u'{actor} removed user {object} from group {target}',
+            logged_in_account,
+            'edit-account-remove-group',
+            '{actor} removed user {object} from group {target}',
             target=group,
             object=account,
         )
@@ -422,7 +434,7 @@ def group_detail(request, group_id=None):
                 try:
                     group.privileges.get(type=message_type, target=target)
                     messages.warning(
-                        request, 'Privilege was not added as it ' 'already exists.'
+                        request, 'Privilege was not added as it already exists.'
                     )
                 except Privilege.DoesNotExist:
                     group.privileges.create(type=message_type, target=target)
@@ -475,7 +487,7 @@ def group_delete(request, group_id):
 
     if group.is_system_group():
         messages.error(
-            request, 'Group %s is a system group and can not be ' 'deleted.' % (group)
+            request, 'Group %s is a system group and can not be deleted.' % (group)
         )
         return HttpResponseRedirect(reverse('useradmin-group_detail', args=[group.id]))
 
@@ -515,8 +527,9 @@ def group_privilege_remove(request, group_id, privilege_id):
             'Privilege %s does not exist or it is not associated '
             'with %s.' % (privilege_id, group),
         )
+        account = get_account(request)
         return HttpResponseRedirect(
-            reverse('useradmin-account_detail', args=[request.account.id])
+            reverse('useradmin-account_detail', args=[account.id])
         )
 
     if request.method == 'POST':
@@ -534,10 +547,6 @@ def group_privilege_remove(request, group_id, privilege_id):
     }
     context.update(DEFAULT_NAVPATH)
     return render(request, 'useradmin/delete.html', context)
-
-
-# The Django generic views are heavy on mixins - disable warning about ancestors
-# pylint: disable=too-many-ancestors
 
 
 class NavPathMixin(object):
@@ -569,7 +578,8 @@ class TokenCreate(NavPathMixin, generic.CreateView):
     def post(self, request, *args, **kwargs):
         response = super(TokenCreate, self).post(request, *args, **kwargs)
         messages.success(request, 'New token created')
-        LogEntry.add_create_entry(request.account, self.object)
+        account = get_account(request)
+        LogEntry.add_create_entry(account, self.object)
         return response
 
 
@@ -584,8 +594,9 @@ class TokenEdit(NavPathMixin, generic.UpdateView):
         old_object = copy.deepcopy(self.get_object())
         response = super(TokenEdit, self).post(request, *args, **kwargs)
         messages.success(request, 'Token saved')
+        account = get_account(request)
         LogEntry.compare_objects(
-            request.account,
+            account,
             old_object,
             self.get_object(),
             ['expires', 'permission', 'endpoints', 'comment'],
@@ -605,7 +616,8 @@ class TokenDelete(generic.DeleteView):
         old_object = copy.deepcopy(self.get_object())
         response = super(TokenDelete, self).delete(self, request, *args, **kwargs)
         messages.success(request, 'Token deleted')
-        LogEntry.add_delete_entry(request.account, old_object)
+        account = get_account(request)
+        LogEntry.add_delete_entry(account, old_object)
         return response
 
 
@@ -627,8 +639,9 @@ def token_expire(request, pk):
     token.expires = datetime.now()
     token.save()
 
+    account = get_account(request)
     LogEntry.add_log_entry(
-        request.account,
+        account,
         'edit-apitoken-expiry',
         '{actor} expired {object}',
         object=token,
@@ -650,20 +663,185 @@ def log_account_change(actor, old, new):
 
 
 def log_add_account_to_group(request, group, account):
+    logged_in_account = get_account(request)
     LogEntry.add_log_entry(
-        request.account,
-        u'edit-account-add-group',
-        u'{actor} added user {object} to group {target}',
+        logged_in_account,
+        'edit-account-add-group',
+        '{actor} added user {object} to group {target}',
         target=group,
         object=account,
     )
 
 
 def log_add_account_to_org(request, organization, account):
+    logged_in_account = get_account(request)
     LogEntry.add_log_entry(
-        request.account,
-        u'edit-account-add-org',
-        u'{actor} added user {object} to organization {target}',
+        logged_in_account,
+        'edit-account-add-org',
+        '{actor} added user {object} to organization {target}',
         target=organization,
         object=account,
     )
+
+
+class JWTList(NavPathMixin, generic.ListView):
+    """Class based view for a token listing"""
+
+    model = JWTRefreshToken
+    template_name = 'useradmin/jwt_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(JWTList, self).get_context_data(**kwargs)
+        context['is_configured'] = LOCAL_JWT_IS_CONFIGURED
+        context['active'] = {'jwt_list': True}
+        return context
+
+
+class JWTCreate(NavPathMixin, generic.View):
+    """Class based view for creating a new token"""
+
+    model = JWTRefreshToken
+    form_class = forms.JWTRefreshTokenCreateForm
+    template_name = 'useradmin/jwt_edit.html'
+
+    def post(self, request, *args, **kwargs):
+        form = self.form_class(request.POST)
+        if form.is_valid():
+            token = form.save(commit=False)
+            try:
+                encoded_token = generate_refresh_token_from_model(token)
+            except ConfigurationError:
+                return render(
+                    request,
+                    'useradmin/jwt_not_enabled.html',
+                )
+            claims = decode_token(encoded_token)
+            token.expires = datetime.fromtimestamp(claims['exp'], tz=timezone.utc)
+            token.activates = datetime.fromtimestamp(claims['nbf'], tz=timezone.utc)
+            token.hash = hash_token(encoded_token)
+            token.save()
+            return render(
+                request,
+                'useradmin/jwt_created.html',
+                {"object": token, "token": encoded_token},
+            )
+        return render(request, self.template_name, {"form": form})
+
+    def get(self, request):
+        form = self.form_class()
+        context = {
+            'form': form,
+        }
+        return render(request, self.template_name, context)
+
+
+class JWTEdit(NavPathMixin, generic.View):
+    """Class based view for creating a new token"""
+
+    model = JWTRefreshToken
+    form_class = forms.JWTRefreshTokenEditForm
+    template_name = 'useradmin/jwt_edit.html'
+
+    def post(self, request, *args, **kwargs):
+        token = get_object_or_404(JWTRefreshToken, pk=kwargs['pk'])
+        form = self.form_class(request.POST, instance=token)
+        if form.is_valid():
+            form.save()
+            return redirect('useradmin-jwt_detail', pk=token.pk)
+        return render(request, self.template_name, {"form": form, "object": token})
+
+    def get(self, request, *args, **kwargs):
+        token = JWTRefreshToken.objects.get(pk=kwargs['pk'])
+        form = self.form_class(instance=token)
+        return render(request, self.template_name, {"form": form, "object": token})
+
+
+class JWTDetail(NavPathMixin, generic.DetailView):
+    """Display details for a token"""
+
+    model = JWTRefreshToken
+    template_name = 'useradmin/jwt_detail.html'
+
+
+class JWTDelete(generic.DeleteView):
+    """Delete a token"""
+
+    model = JWTRefreshToken
+
+    def get_success_url(self):
+        return reverse_lazy('useradmin-jwt_list')
+
+    def delete(self, request, *args, **kwargs):
+        old_object = copy.deepcopy(self.get_object())
+        response = super(JWTDelete, self).delete(self, request, *args, **kwargs)
+        messages.success(request, 'Token deleted')
+        account = get_account(request)
+        LogEntry.add_delete_entry(account, old_object)
+        return response
+
+
+@require_POST
+def jwt_revoke(request, pk):
+    """Revoke a jwt token
+    :param pk: Primary key
+    :type request: django.http.request.HttpRequest
+    """
+    token = get_object_or_404(JWTRefreshToken, pk=pk)
+    token.revoked = True
+    token.save()
+
+    account = get_account(request)
+    LogEntry.add_log_entry(
+        account,
+        'edit-jwttoken-revoked',
+        '{actor} revoked {object}',
+        object=token,
+    )
+    messages.success(request, 'Token has been manually revoked')
+    return redirect('useradmin-jwt_detail', pk=token.pk)
+
+
+@require_POST
+def jwt_recreate(request, pk):
+    """Recreate a jwt token. This will invalidate the old token
+    related to this object.
+    :param pk: Primary key
+    :type request: django.http.request.HttpRequest
+    """
+    token = get_object_or_404(JWTRefreshToken, pk=pk)
+    try:
+        encoded_token = generate_refresh_token_from_model(token)
+    except ConfigurationError:
+        return render(
+            request,
+            'useradmin/jwt_not_enabled.html',
+        )
+    claims = decode_token(encoded_token)
+    token.expires = datetime.fromtimestamp(claims['exp'], tz=timezone.utc)
+    token.activates = datetime.fromtimestamp(claims['nbf'], tz=timezone.utc)
+    token.hash = hash_token(encoded_token)
+    token.revoked = False
+    token.save()
+
+    account = get_account(request)
+    LogEntry.add_log_entry(
+        account,
+        'edit-jwttoken-expiry',
+        '{actor} recreated {object}',
+        object=token,
+    )
+    messages.success(request, 'Token has been manually recreated')
+    return render(
+        request, 'useradmin/jwt_created.html', {"object": token, "token": encoded_token}
+    )
+
+
+def generate_refresh_token_from_model(token: JWTRefreshToken):
+    endpoint_list = [endpoint for endpoint in token.endpoints.values()]
+    encoded_token = generate_refresh_token(
+        {
+            "write": True if token.permission == 'write' else False,
+            "endpoints": endpoint_list,
+        }
+    )
+    return encoded_token

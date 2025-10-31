@@ -13,7 +13,6 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-# pylint: disable=E1101
 """Navlets - the NAV version of portlets
 
 To use create a Navlet do the following:
@@ -53,13 +52,14 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django.views.generic.base import TemplateView
 
 from nav.models.profiles import AccountNavlet, AccountDashboard
 from nav.models.manage import Sensor
 from nav.web.auth.sudo import get_sudoer
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
+from nav.web.modals import render_modal, render_modal_alert, resolve_modal
 from nav.web.utils import require_param
 from nav.web.webfront import find_dashboard
 
@@ -86,6 +86,7 @@ class Navlet(TemplateView):
     is_title_editable = False
     can_be_added = True
     is_deprecated = False
+    can_edit = False  # Set to true if user can edit this instance
 
     # Set to true if we are to reload only an image. This is useful for
     # loading charts that may take some time to display, thus making the
@@ -201,7 +202,8 @@ def get_navlet_from_name(navletmodule):
 
 def get_user_navlets(request, dashboard_id=None):
     """Gets all navlets that this user subscribes to for a given dashboard"""
-    dashboard = find_dashboard(request.account, dashboard_id)
+    account = get_account(request)
+    dashboard = find_dashboard(account, dashboard_id)
     usernavlets = dashboard.widgets.all()
 
     navlets = []
@@ -243,30 +245,47 @@ def dispatcher(request, navlet_id):
     The as_view method takes any attribute and adds it to the instance
     as long as it is defined on the Navlet class
     """
-    account = request.account
+    current_account = get_account(request)
+
     try:
-        account_navlet = AccountNavlet.objects.get(account=account, pk=navlet_id)
+        account_navlet = AccountNavlet.objects.get(pk=navlet_id)
     except AccountNavlet.DoesNotExist as error:
         _logger.error(
-            '%s tried to fetch widget with id %s: %s', account, navlet_id, error
+            '%s tried to fetch widget with id %s: %s', current_account, navlet_id, error
         )
         return HttpResponse(status=404)
-    else:
-        cls = get_navlet_from_name(account_navlet.navlet)
-        if not cls:
-            cls = get_navlet_from_name(ERROR_WIDGET)
-        view = cls.as_view(
-            preferences=account_navlet.preferences,
-            navlet_id=navlet_id,
-            account_navlet=account_navlet,
+
+    dashboard = account_navlet.dashboard
+    owner = account_navlet.account
+    can_access = dashboard.can_access(current_account)
+
+    if not can_access:
+        _logger.error(
+            '%s tried to fetch private widget with id %s owned by %s',
+            current_account,
+            navlet_id,
+            owner,
         )
-        return view(request)
+        return HttpResponse(status=403)
+
+    cls = get_navlet_from_name(account_navlet.navlet)
+    if not cls:
+        cls = get_navlet_from_name(ERROR_WIDGET)
+
+    can_edit = dashboard.can_edit(current_account)
+    view = cls.as_view(
+        preferences=account_navlet.preferences,
+        navlet_id=navlet_id,
+        account_navlet=account_navlet,
+        can_edit=can_edit,
+    )
+    return view(request)
 
 
 def add_user_navlet(request, dashboard_id=None):
     """Add a navlet subscription to this user"""
     if request.method == 'POST' and 'navlet' in request.POST:
-        account = request.account
+        account = get_account(request)
         dashboard = find_dashboard(account, dashboard_id=dashboard_id)
 
         if can_modify_navlet(account, request):
@@ -275,6 +294,20 @@ def add_user_navlet(request, dashboard_id=None):
             return JsonResponse(create_navlet_object(navlet))
 
     return HttpResponse(status=400)
+
+
+def add_navlet_modal(request, dashboard_id):
+    """Render modal with list of available navlets"""
+
+    return render_modal(
+        request,
+        'navlets/_add_navlet_modal.html',
+        context={
+            'dashboard_id': dashboard_id,
+            'navlets': list_navlets(),
+        },
+        modal_id='navlet-list',
+    )
 
 
 def add_navlet(account, navlet, preferences=None, dashboard=None):
@@ -321,7 +354,7 @@ def find_new_placement():
 
 def can_modify_navlet(account, request):
     """Determine if this account can modify navlets"""
-    return not (account.is_default_account() and not get_sudoer(request))
+    return not (account.is_anonymous and not get_sudoer(request))
 
 
 def modify_navlet(func, account, request, error_message):
@@ -337,20 +370,45 @@ def modify_navlet(func, account, request, error_message):
         return HttpResponse(status=403)
 
 
+@require_GET
+def remove_user_navlet_modal(request, navlet_id):
+    """Render modal asking user to confirm removal of a navlet"""
+    return render_modal(
+        request,
+        'navlets/_remove_modal_form.html',
+        {'navlet_id': navlet_id},
+        _get_remove_modal_id(navlet_id),
+    )
+
+
+@require_POST
 def remove_user_navlet(request):
     """Remove a navlet-subscription from this user"""
-    if request.method == 'POST' and 'navletid' in request.POST:
-        account = get_account(request)
-        return modify_navlet(remove_navlet, account, request, "Error removing Navlet")
+    if 'navletid' not in request.POST:
+        return HttpResponse(status=400)
 
-    return HttpResponse(status=400)
-
-
-def remove_navlet(account, request):
-    """Remove accountnavlet based on request data"""
+    account = get_account(request)
     navlet_id = int(request.POST.get('navletid'))
-    accountnavlet = AccountNavlet(pk=navlet_id, account=account)
-    accountnavlet.delete()
+    modal_id = _get_remove_modal_id(navlet_id)
+
+    if not can_modify_navlet(account, request):
+        return render_modal_alert(
+            request, 'You are not permitted to remove this widget', modal_id
+        )
+
+    try:
+        account_navlet = AccountNavlet.objects.get(pk=navlet_id, account=account)
+        account_navlet.delete()
+        return resolve_modal(request, modal_id=modal_id)
+    except AccountNavlet.DoesNotExist:
+        return render_modal_alert(
+            request, 'This widget no longer exists. Try refreshing the page.', modal_id
+        )
+
+
+def _get_remove_modal_id(navlet_id):
+    """Get the modal id for the remove navlet modal"""
+    return "remove-navlet-modal-" + str(navlet_id)
 
 
 def save_navlet_order(request):
@@ -408,8 +466,9 @@ def add_user_navlet_graph(request):
         url = request.POST.get('url')
         target = request.POST.get('target')
         if url:
+            account = get_account(request)
             add_navlet(
-                request.account,
+                account,
                 'nav.web.navlets.graph.GraphWidget',
                 {'url': url, 'target': target},
             )
@@ -436,12 +495,15 @@ def add_user_navlet_sensor(request):
                 'on_message': sensor.on_message,
                 'off_message': sensor.off_message,
                 'on_state': sensor.on_state,
-                'alert_type': ALERT_TYPES[sensor.alert_type],
+                'alert_type': ALERT_TYPES.get(
+                    sensor.alert_type, ALERT_TYPES[Sensor.ALERT_TYPE_WARNING]
+                ),
             }
         else:
             navlet = 'nav.web.navlets.sensor.SensorWidget'
             preferences = {'sensor_id': sensor.pk, 'title': sensor.netbox.sysname}
-        add_navlet(request.account, navlet, preferences)
+        account = get_account(request)
+        add_navlet(account, navlet, preferences)
         return HttpResponse(status=200)
 
     return HttpResponse(status=400)
@@ -451,9 +513,10 @@ def set_navlet_preferences(request):
     """Set preferences for a NAvlet"""
     if request.method == 'POST':
         try:
+            account = get_account(request)
             preferences = json.loads(request.POST.get('preferences'))
             navletid = request.POST.get('id')
-            navlet = AccountNavlet.objects.get(pk=navletid, account=request.account)
+            navlet = AccountNavlet.objects.get(pk=navletid, account=account)
         except AccountNavlet.DoesNotExist:
             return HttpResponse(status=400)
         else:
@@ -469,9 +532,10 @@ def set_navlet_preferences(request):
 @require_param('dashboard_id')
 def set_navlet_dashboard(request, navlet_id):
     """Set the dashboard the navlet should appear in"""
-    navlet = get_object_or_404(AccountNavlet, account=request.account, pk=navlet_id)
+    account = get_account(request)
+    navlet = get_object_or_404(AccountNavlet, account=account, pk=navlet_id)
     dashboard = get_object_or_404(
-        AccountDashboard, account=request.account, pk=request.POST.get('dashboard_id')
+        AccountDashboard, account=account, pk=request.POST.get('dashboard_id')
     )
     navlet.dashboard = dashboard
     navlet.save()

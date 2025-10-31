@@ -15,6 +15,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Alert stream export functionality"""
+
 import logging
 import json
 import subprocess
@@ -63,7 +64,7 @@ class StreamExporter(object):
             )
             try:
                 self.run()
-            except Exception as error:
+            except Exception as error:  # noqa: BLE001
                 _logger.error("Cannot restart dead export script: %s", error)
                 return False
 

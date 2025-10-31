@@ -13,7 +13,7 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-""""handling of CISCO-VLAN-IFTABLE-RELATIONSHIP-MIB"""
+""" "handling of CISCO-VLAN-IFTABLE-RELATIONSHIP-MIB"""
 
 from collections import namedtuple
 
@@ -41,8 +41,7 @@ class CiscoVlanIftableRelationshipMib(mibretriever.MibRetriever):
             RoutedVlan(vlan, physical, virtual)
             for (vlan, physical), virtual in routed_vlans.items()
         ]
-        defer.returnValue(result)
+        return result
 
 
-# pylint: disable=C0103
 RoutedVlan = namedtuple('RoutedVlan', 'vlan physical virtual')

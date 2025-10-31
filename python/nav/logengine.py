@@ -42,7 +42,6 @@ files, one of which this program will have exclusive access to.
 # TODO: Possible future enhancement is the ability to tail a log file
 # continually, instead of reading and truncating as a cron job.
 
-
 import re
 import fcntl
 import sys
@@ -65,7 +64,6 @@ _logger = logging.getLogger("nav.logengine")
 
 
 def get_exception_dicts(config):
-
     options = config.options("priorityexceptions")
 
     exceptionorigin = {}
@@ -139,7 +137,6 @@ _type_match_re = re.compile(r"\w+-\d+-?\S*:")
 
 
 def create_message(line, database=None):
-
     typicalmatch = _typical_match_re.search(line)
     match = typicalmatch or _not_so_typical_match_re.search(line)
 
@@ -166,7 +163,7 @@ def create_message(line, database=None):
     # if this message shows sign of cisco format, put it in the error log
     typematch = _type_match_re.search(line)
     if typematch and database:
-        database.execute("INSERT INTO errorerror (message) " "VALUES (%s)", (line,))
+        database.execute("INSERT INTO errorerror (message) VALUES (%s)", (line,))
 
 
 class Message(object):
@@ -328,7 +325,6 @@ def read_log_lines(config):
 
     # if the file exists
     if logfile:
-
         # lock logfile
         fcntl.flock(logfile, fcntl.LOCK_EX)
 
@@ -347,7 +343,6 @@ def read_log_lines(config):
             yield line
 
 
-# pylint: disable=W0703
 def parse_and_insert(
     line,
     database,
@@ -362,7 +357,7 @@ def parse_and_insert(
 
     try:
         message = create_message(line, database)
-    except Exception:
+    except Exception:  # noqa: BLE001
         _logger.exception("Unhandled exception during message parse: %s", line)
         return False
 
@@ -378,7 +373,7 @@ def parse_and_insert(
                 exceptiontype,
                 exceptiontypeorigin,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001
             _logger.exception("Unhandled exception during message insert: %s", line)
             raise
 
@@ -438,7 +433,7 @@ def insert_message(
 
 
 def add_category(category, categories, database):
-    database.execute("INSERT INTO category (category) " "VALUES (%s)", (category,))
+    database.execute("INSERT INTO category (category) VALUES (%s)", (category,))
     categories[category] = category
 
 
@@ -447,7 +442,7 @@ def add_origin(origin, category, origins, database):
     originid = database.fetchone()[0]
     assert isinstance(originid, int)
     database.execute(
-        "INSERT INTO origin (origin, name, " "category) VALUES (%s, %s, %s)",
+        "INSERT INTO origin (origin, name, category) VALUES (%s, %s, %s)",
         (originid, origin, category),
     )
     origins[origin] = originid
@@ -506,12 +501,11 @@ def logengine(config, options):
 
 def swallow_all_but_db_exceptions(func):
     def _swallow(*args, **kwargs):
-        # pylint: disable=try-except-raise
         try:
             return func(*args, **kwargs)
         except db.driver.Error:
             raise
-        except Exception:
+        except Exception:  # noqa: BLE001
             _logger.exception("Unhandled exception occurred, ignoring.")
 
     return _swallow

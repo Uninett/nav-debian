@@ -14,6 +14,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Views for /info"""
+
 import importlib
 import logging
 
@@ -21,9 +22,11 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.conf import settings
+from django_htmx.http import trigger_client_event
 
 from nav.web.info.forms import SearchForm
 from nav.web.info import searchproviders as providers
+from nav.web.modals import render_modal
 from nav.web.utils import create_title
 
 _logger = logging.getLogger(__name__)
@@ -66,6 +69,57 @@ def index(request):
     )
 
 
+def index_search_preview(request):
+    """
+    Renders a preview of search results for the navbar search form.
+
+    Returns an HTTP response with the rendered search results and triggers
+    the appropriate client event for the popover.
+    """
+    query = request.GET.get("query")
+    form = SearchForm(request.GET, auto_id=False)
+    if not (query and form.is_valid()):
+        return _render_search_results(request, query=query, show_results=False)
+
+    search_providers, failed_providers = process_form(form)
+    if has_only_one_result(search_providers) and not failed_providers:
+        provider = search_providers[0]
+        if provider.name == 'Fallback':
+            return _render_search_results(request, query=query)
+
+    for provider in search_providers:
+        count = len(provider.results)
+        provider.count = count
+        if count > 5:
+            provider.results = provider.results[:5]
+            provider.truncated = True
+            provider.truncated_count = count - 5
+
+    return _render_search_results(
+        request,
+        results=search_providers,
+        query=query,
+    )
+
+
+def _render_search_results(request, results=None, query=None, show_results=True):
+    """Render search results"""
+
+    response = render(
+        request,
+        "info/_navbar_search_results.html",
+        {"results": results, "query": query or '', "show_results": show_results},
+    )
+    event = "popover.open" if show_results else "popover.close"
+    return trigger_client_event(
+        response,
+        event,
+        {
+            'id': 'navbar-search-form',
+        },
+    )
+
+
 def process_form(form):
     """Processor for searchform on main page"""
     query = form.cleaned_data['query']
@@ -84,7 +138,7 @@ def process_form(form):
         except (AttributeError, ImportError) as error:
             providers_with_errors.append((providerpath, error))
             _logger.error('Could not import %s', providerpath)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             providers_with_errors.append((providerpath, error))
             _logger.exception(
                 "Search provider raised unhandled exception: %s", providerpath
@@ -115,3 +169,10 @@ def has_only_one_result(searchproviders):
     for provider in searchproviders:
         results += len(provider.results)
     return results == 1
+
+
+def image_help_modal(request):
+    """View for image help modal"""
+    return render_modal(
+        request, "info/_image_help_modal.html", modal_id="image-help", size="small"
+    )

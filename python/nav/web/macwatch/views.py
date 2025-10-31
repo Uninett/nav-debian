@@ -18,7 +18,7 @@
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
 
 from nav.web.macwatch.forms import MacWatchForm
 from nav.web.macwatch.models import MacWatch
@@ -79,7 +79,7 @@ def delete_macwatch(request, macwatchid):
         macwatchid = int(macwatchid)
         try:
             m = MacWatch.objects.get(id=macwatchid)
-        except Exception as e:
+        except MacWatch.DoesNotExist as e:
             messages = [e]
             return do_list(request, messages)
 
@@ -88,7 +88,7 @@ def delete_macwatch(request, macwatchid):
                 try:
                     m.delete()
                     return HttpResponseRedirect('/macwatch/')
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     messages = [e]
                     return do_list(request, messages)
             else:

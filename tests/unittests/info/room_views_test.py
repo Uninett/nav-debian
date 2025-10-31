@@ -14,7 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 
-""" Unittests for web/info/room """
+"""Unittests for web/info/room"""
 
 import unittest
 
@@ -24,8 +24,6 @@ from nav.models.manage import Netbox
 
 class RoomViewsTest(unittest.TestCase):
     """Testclass for helper functions in roominfo's views module"""
-
-    # pylint: disable=R0904
 
     def setUp(self):
         """Test setup"""

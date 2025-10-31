@@ -20,6 +20,14 @@
 @import "nav/select2";
 @import "nav/footer";
 @import "nav/rickshaw";
+@import "nav/lightbox";
+@import "nav/modal";
+@import "nav/tooltip";
+@import "nav/popover";
+
+// Custom css for libraries
+@import "libs/driver";
+@import "libs/flatpickr";
 
 // Overriding classes and mixins
 @import "overrides";

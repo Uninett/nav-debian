@@ -21,6 +21,7 @@ from nav.models.profiles import (
     TimePeriod,
 )
 from nav.web.alertprofiles.views import set_active_profile
+from nav.web.auth.utils import set_account
 
 
 @pytest.mark.parametrize(
@@ -55,6 +56,12 @@ class TestsOverview:
         assert response.status_code == 200
         assert activated_dummy_profile.name in smart_str(response.content)
 
+    def test_when_no_active_profile_is_set_show_message(self, db, client):
+        response = client.get(reverse('alertprofiles-overview'))
+
+        assert response.status_code == 200
+        assert "There is no active profile set" in smart_str(response.content)
+
     def test_show_subscriptions(
         self,
         db,
@@ -69,14 +76,27 @@ class TestsOverview:
         assert dummy_alert_address.address in smart_str(response.content)
         assert str(dummy_filter_group) in smart_str(response.content)
 
+    def test_should_include_modal_trigger(self, client):
+        url = reverse('alertprofiles-overview')
+        modal_url = reverse('alertprofiles-groups-and-permissions')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert f'hx-get="{modal_url}"' in smart_str(response.content)
+
+    def test_should_render_permissions_modal(self, client):
+        url = reverse('alertprofiles-groups-and-permissions')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert 'id="groups-and-permissions"' in smart_str(response.content)
+
 
 class TestsAlertProfiles:
     def test_profile_with_nonascii_name_should_be_saved(self, db, admin_account):
         factory = RequestFactory()
         request = factory.get(reverse('alertprofiles-profile-save'))
-        request.account = admin_account
         request.session = MagicMock()
-        profile = AlertProfile(account=request.account, name=u'ÆØÅ')
+        set_account(request, admin_account)
+        profile = AlertProfile(account=admin_account, name='ÆØÅ')
         profile.save()
 
         assert set_active_profile(request, profile) is None
@@ -448,7 +468,8 @@ class TestsAddExpressions:
                 "filter": dummy_filter.pk,
                 "match_field": ip_match_field.pk,
                 "operator": Operator.IN,
-                "value": "172.0.0.1 2001:db8:3333:4444:5555:6666:7777:8888 129.241.190.0/24",
+                "value": "172.0.0.1 2001:db8:3333:4444:5555:6666:7777:8888 "
+                "129.241.190.0/24",
             }
             response = client.post(url, data=data, follow=True)
             assert response.status_code == 200
@@ -791,6 +812,14 @@ class TestsAddExpressions:
         )
 
 
+class TestsAddExpressionsHelpModal:
+    def test_should_render_add_expression_help_modal(self, client):
+        url = reverse('alertprofiles-filters-addexpression-operator-help')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert 'id="operator-help"' in smart_str(response.content)
+
+
 class TestsPermissions:
     def test_set_accountgroup_permissions_should_not_crash(self, db, client):
         """Regression test for #2281"""
@@ -804,6 +833,19 @@ class TestsPermissions:
             },
         )
         assert response.status_code == 200
+
+    def test_should_include_permissions_help_trigger(self, client):
+        url = reverse('alertprofiles-permissions')
+        modal_url = reverse('alertprofiles-permissions-help')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert f'hx-get="{modal_url}"' in smart_str(response.content)
+
+    def test_should_render_permissions_help_modal(self, client):
+        url = reverse('alertprofiles-permissions-help')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert 'id="permissions-help"' in smart_str(response.content)
 
 
 class TestsAlertAddresses:
@@ -826,7 +868,7 @@ class TestsAlertAddresses:
         ).exists()
         assert f"Saved address {valid_url}" in smart_str(response.content)
 
-    def test_alertprofiles_add_slack_address_with_a_valid_but_not_absolute_url_should_fail(
+    def test_alertprofiles_add_slack_address_with_a_valid_but_not_absolute_url_should_fail(  # noqa: E501
         self,
         client,
     ):
@@ -919,7 +961,7 @@ class TestsAlertAddresses:
         ).exists()
         assert f"Saved address {valid_phone_number}" in smart_str(response.content)
 
-    def test_alertprofiles_add_valid_non_norwegian_phone_number_without_country_code_should_succeed(
+    def test_alertprofiles_add_valid_non_norwegian_phone_number_without_country_code_should_succeed(  # noqa: E501
         self,
         client,
     ):
@@ -958,13 +1000,13 @@ class TestsAlertAddresses:
         ).exists()
         assert f"Saved address {valid_phone_number}" in smart_str(response.content)
 
-    def test_alertprofiles_add_valid_phone_number_with_double_zero_country_code_should_succeed(
+    def test_alertprofiles_add_valid_phone_number_with_double_zero_country_code_should_succeed(  # noqa: E501
         self,
         client,
     ):
         """
-        Tests that a valid phone number with a country code with double zero (00xx) can be
-        added"""
+        Tests that a valid phone number with a country code with double zero (00xx) can
+        be added"""
         valid_phone_number = "004747474747"
         sms = AlertSender.objects.get(name=AlertSender.SMS)
         url = reverse("alertprofiles-address-save")
@@ -1045,6 +1087,21 @@ class TestsFilterGroups:
         )
         assert response.status_code in (200, 404)
 
+    def test_should_include_operator_help_trigger(self, client, dummy_filter_group):
+        url = reverse(
+            'alertprofiles-filter_groups-detail', args=[dummy_filter_group.pk]
+        )
+        modal_url = reverse('alertprofiles-filter_groups-operator-help')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert f'hx-get="{modal_url}"' in smart_str(response.content)
+
+    def test_should_render_operator_help_modal(self, client):
+        url = reverse('alertprofiles-filter_groups-operator-help')
+        response = client.get(url)
+        assert response.status_code == 200
+        assert 'id="operator-help"' in smart_str(response.content)
+
 
 #
 # fixtures and helpers
@@ -1054,7 +1111,7 @@ class TestsFilterGroups:
 @pytest.fixture(scope='function')
 def dummy_profile(admin_account):
     account = admin_account
-    profile = AlertProfile(account=account, name=u'ÆØÅ Profile %d' % randint(1, 1000))
+    profile = AlertProfile(account=account, name='ÆØÅ Profile %d' % randint(1, 1000))
     profile.save()
     return profile
 

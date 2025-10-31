@@ -11,6 +11,351 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [5.15.0] - 2025-10-30
+
+### Security
+
+- In preparation for properly protecting against CSRF attacks throughout NAV:
+  - Added CSRF tokens to AJAX POST requests
+    ([#3465](https://github.com/Uninett/nav/issues/3465))
+  - Removed CSRF tokens from GET requests
+    ([#3472](https://github.com/Uninett/nav/issues/3472))
+
+### Removed
+
+- Removed unused vendored Foundation CSS stylesheets
+  ([#3479](https://github.com/Uninett/nav/issues/3479))
+- Removed vendored Foundation JavaScript library from codebase
+  ([#3542](https://github.com/Uninett/nav/issues/3542))
+
+### Added
+
+- Show VLAN netident in ipdevinfo port list
+  ([#2160](https://github.com/Uninett/nav/issues/2160))
+- Dashboards are now shareable between users
+  ([#2344](https://github.com/Uninett/nav/issues/2344))
+- Show device MAC address in the Device Info tab of ipdevinfo
+  ([#3222](https://github.com/Uninett/nav/issues/3222))
+- Added Django 5.2 and Python 3.13 to default test matrix
+  ([#3467](https://github.com/Uninett/nav/issues/3467))
+- Improved user feedback in PortAdmin by loading live port details in
+  background, after initial page load
+  ([#3544](https://github.com/Uninett/nav/issues/3544))
+- Added search results preview in navbar
+  ([#3577](https://github.com/Uninett/nav/issues/3577))
+- Documented how to enable IPv6 connectivity inside devcontainer (Docker)
+
+### Changed
+
+- Updated NAPALM dependency to 5.1.0
+  ([#3495](https://github.com/Uninett/nav/issues/3495))
+- Replaced SeedDB IP Device "check connectivity" JavaScript with HTMX,
+  including improved user feedback
+  ([#3560](https://github.com/Uninett/nav/issues/3560))
+
+#### Non-visible and developer-centric changes
+
+- The dated Foundation JavaScript libraries and CSS stylesheets are being
+  replaced by a combination of HTMX-based features, new internal libraries and
+  newer alternative libraries. The goal is to keep the outward user interface
+  more or less unchanged:
+
+  - Use HTMX modals in SeedDB Patch tool
+    ([#3461](https://github.com/Uninett/nav/issues/3461))
+  - Replaced tooltip in status actions with accessible help text toggle
+    ([#3463](https://github.com/Uninett/nav/issues/3463))
+  - Replaced Foundation Joyride with `Driver.js` implementation
+    ([#3468](https://github.com/Uninett/nav/issues/3468))
+  - Replaced Foundation Topbar JS with JQuery
+    ([#3476](https://github.com/Uninett/nav/issues/3476))
+  - Replaced Foundation Equalizer with JQuery
+    ([#3477](https://github.com/Uninett/nav/issues/3477))
+  - Replaced foundation alert plugin with custom JavaScript
+    ([#3481](https://github.com/Uninett/nav/issues/3481))
+  - Replaced native tooltips with NAV tooltips
+    ([#3482](https://github.com/Uninett/nav/issues/3482))
+  - Replaced navlet modals with HTMX implementation
+    ([#3487](https://github.com/Uninett/nav/issues/3487))
+  - Replaced search hint modals in Radius tool with HTMX
+    ([#3494](https://github.com/Uninett/nav/issues/3494))
+  - Replaced radius detail modals with HTMX
+    ([#3514](https://github.com/Uninett/nav/issues/3514))
+  - Added fit-content size to modals to support large content
+  - Replace IPAM subnet diagram help modal with HTMX
+  - Replaced "about logging" modal with HTMX
+  - Replaced Foundation dropdowns with custom implementation
+  - Replaced "import dashboard" modal with HTMX
+  - Replaced Machine Tracker modals with HTMX
+  - Replaced modals in ipdevinfo tool with HTMX
+  - Replaced threshold form help modal with HTMX
+  - Added custom NAV tooltip as replacement for Foundation JS
+    ([#3449](https://github.com/Uninett/nav/issues/3449))
+  - Added reusable HTMX modal utilities and styles
+    ([#3461](https://github.com/Uninett/nav/issues/3461))
+  - Added modal closing behaviour controls for close button visibility and
+    outside click handling
+    ([#3537](https://github.com/Uninett/nav/issues/3537))
+  - Added support for positioning popover on multiple sides
+    ([#3550](https://github.com/Uninett/nav/issues/3550))
+  - Replaced feedback modal in Portadmin with HTMX
+    ([#3540](https://github.com/Uninett/nav/issues/3540))
+  - Replaced Foundation dropdowns with popovers
+    ([#3531](https://github.com/Uninett/nav/issues/3531))
+  - Upgraded tinysort dependency
+    ([#3580](https://github.com/Uninett/nav/issues/3580))
+  - Replaced Foundation Clearing Lightbox with custom Lightbox plugin for
+    room/location picture gallery
+    ([#3530](https://github.com/Uninett/nav/issues/3530))
+  - Use fixed position tooltips in status widgets and SeedDB list tree
+    ([#3576](https://github.com/Uninett/nav/issues/3576))
+  - Added support for controlling popovers with client side events
+    ([#3578](https://github.com/Uninett/nav/issues/3578))
+  - Replaced outdated timepicker library with flatpickr
+    ([#3587](https://github.com/Uninett/nav/issues/3587))
+
+- Modernized Django URL config, mostly by replacing usage of `re_path()` with
+  `path()` ([#3515](https://github.com/Uninett/nav/issues/3515),
+  ([#3548](https://github.com/Uninett/nav/issues/3548),
+  ([#3631](https://github.com/Uninett/nav/issues/3631))
+
+### Fixed
+
+- Protect against unexpected NUL bytes in SNMP strings by stripping them
+  ([#2479](https://github.com/Uninett/nav/issues/2479))
+- Fixed bug where status widget tooltip gets stuck
+  ([#3301](https://github.com/Uninett/nav/issues/3301))
+- Show friendly error message in Arnold when attempting to block ports on
+  switches that do not feature a writeable management profile
+  ([#3383](https://github.com/Uninett/nav/issues/3383))
+- Fixed bug where ipdevinfo job refresh does not display error messages properly
+  ([#3385](https://github.com/Uninett/nav/issues/3385))
+- Made it possible to un-revoke JWT refresh token by recreating the token
+  ([#3457](https://github.com/Uninett/nav/issues/3457))
+- Fixed broken all-time searches in Radius tool
+  ([#3500](https://github.com/Uninett/nav/issues/3500))
+- Removed "no racks" alert after adding a new rack to a room
+  ([#3506](https://github.com/Uninett/nav/issues/3506))
+- Show distinct filter groups in Groups and Permissions modal in Alert Profiles
+  ([#3523](https://github.com/Uninett/nav/issues/3523))
+- Show errors on invalid IP in Network Explorer search
+  ([#3534](https://github.com/Uninett/nav/issues/3534))
+- Fixed saving rooms/locations with active alerts widgets after editing
+  ([#3561](https://github.com/Uninett/nav/issues/3561))
+- Fixed sudo-ing to the default (anonymous) account
+  ([#3571](https://github.com/Uninett/nav/issues/3571))
+- Fixed PortAdmin bug where restarting interfaces fails
+  ([#3589](https://github.com/Uninett/nav/issues/3589))
+- Fixed tooltips in Device History and Subnet Matrix tools
+  ([#3591](https://github.com/Uninett/nav/issues/3591))
+- Enabled GetBulk / bulkwalk operations under synchronous SNMP v3
+  communication (enormously speeding up PortAdmin SNMPv3 queries)
+  ([#3594](https://github.com/Uninett/nav/issues/3594))
+- Adjusted size and position of "close modal" icon to avoid overlap with text
+- Fixed bug where QR Code button is not clickable
+
+
+## [5.14.1] - 2025-09-01
+
+### Fixed
+
+- Correctly display current chosen filter in Status tool
+  ([#3442](https://github.com/Uninett/nav/issues/3442))
+- Fixed showing activity graphs in port details in ipdevinfo
+  ([#3484](https://github.com/Uninett/nav/issues/3484))
+
+
+## [5.14.0] - 2025-08-21
+
+### Added
+
+#### User-visible additions
+
+- New SQL reports in the *Report* tool:
+  - Added an `operational entities` SQL report.
+    ([#1947](https://github.com/Uninett/nav/issues/1947))
+  - Added an `Events detected last 24 hours` SQL report.
+    ([#3305](https://github.com/Uninett/nav/issues/3305))
+- Collection job refreshing from web UI:
+  - Added button to refresh `ipdevpoll` background jobs directly from *IP
+    Device Info* tool. ([#3350](https://github.com/Uninett/nav/issues/3350))
+  - `ipdevpoll` can now immediately reschedule jobs on incoming refresh events
+    on the NAV event queue. Refreshes can be ordered from the command line
+    using the `navrefresh` program.
+    ([#2626](https://github.com/Uninett/nav/issues/2626))
+- Added QR code link features:
+  - Added link to "My Stuff" menu to generate QR code link to current page.
+    ([#2897](https://github.com/Uninett/nav/issues/2897))
+  - Added button to SeedDB that downloads a ZIP file with QR Codes linking to the
+    selected netboxes/rooms. ([#2899](https://github.com/Uninett/nav/issues/2899))
+  - Added config option to switch between generating SVG or PNG QR codes.
+    ([#2916](https://github.com/Uninett/nav/issues/2916))
+- API additions:
+  - Added API endpoint for looking up vendor of MAC address.
+    ([#3337](https://github.com/Uninett/nav/issues/3337))
+  - Added API endpoint for the `NetboxEntity` model.
+    ([#3378](https://github.com/Uninett/nav/issues/3378))
+  - JWT token signing features:
+    - Added API endpoint for JWT refresh tokens.
+      ([#3270](https://github.com/Uninett/nav/issues/3270))
+    - Added new tab to *User and API administration* tool for managing JWT refresh tokens.
+      ([#3273](https://github.com/Uninett/nav/issues/3273))
+    - Expiration times for issued JWT refresh tokens can be configured via
+      `jwt.conf`. ([#3016](https://github.com/Uninett/nav/issues/3016))
+    - Added support for including API endpoint read/write permission claims to
+      JWT tokens.
+- Added password security warnings:
+  - Show a banner if the logged in user's password is insecure or old and it
+    should be changed. ([#3345](https://github.com/Uninett/nav/issues/3345))
+  - Show a banner to admins if other users' passwords are insecure or old.
+    ([#3346](https://github.com/Uninett/nav/issues/3346))
+- Added support for the *T3611* sensor from Comet.
+  ([#3307](https://github.com/Uninett/nav/issues/3307))
+- Added support for fetching DHCP pool statistics from Kea DHCP API.
+  ([#2931](https://github.com/Uninett/nav/issues/2931))
+
+
+#### Developer-centric additions
+
+- Added HTMX as new front-end library.
+  ([#3386](https://github.com/Uninett/nav/issues/3386))
+- Document practical usage of devcontainer for developers.
+  ([#3398](https://github.com/Uninett/nav/issues/3398))
+- Added developer utilities for easily dumping/loading production data into
+  devcontainer.
+
+### Changed
+
+#### User-visible changes
+
+- Replaced QuickSelect component picker with dynamic HTMX-based search in
+  Maintenance tool.  ([#3425](https://github.com/Uninett/nav/issues/3425))
+- Replaced QuickSelect component picker with dynamic HTMX-based search in
+  Device history tool.  ([#3434](https://github.com/Uninett/nav/issues/3434))
+- Dependency changes:
+  - Updated NAPALM dependency to 5.0
+    ([#2358](https://github.com/Uninett/nav/issues/2358))
+  - Updated `django-rest-framework` to version 3.14+, for proper compatibility
+    Django 4.2 ([#3403](https://github.com/Uninett/nav/issues/3403))
+
+#### Developer-centric changes
+
+- Replaced usage of `twisted.internet.defer.returnValue` with regular Python
+  `return`, due to deprecation in newest Twisted version.
+  ([#2955](https://github.com/Uninett/nav/issues/2955))
+- Redefined NAV account model to be usable as a Django user model.
+  ([#3332](https://github.com/Uninett/nav/issues/3332))
+- Remove unused `ColumnsForm`
+  ([#3243](https://github.com/Uninett/nav/issues/3243))
+
+
+### Fixed
+
+- Fixed missing ARP API endpoint documentation for IP address filtering.
+  ([#3215](https://github.com/Uninett/nav/issues/3215))
+- Fixed broken location *history* searches from location view page.
+  ([#3360](https://github.com/Uninett/nav/issues/3360))
+- Restored ISO timestamps in the web UI (as they were before NAV 5.13)
+  ([#3369](https://github.com/Uninett/nav/issues/3369))
+- Fixed broken `Add to dashboard` functionality for boolean value sensors
+  ([#3394](https://github.com/Uninett/nav/issues/3394))
+- Fixed sorting by timestamp columns in threshold rule table and Useradmin
+  API-token table. ([#3410](https://github.com/Uninett/nav/pull/3410))
+- Take advantage of auxiliary `end_time` indexes on ARP table to improve prefix
+  usage lookups in API. ([#3413](https://github.com/Uninett/nav/pull/3413))
+- Made Docker test environment usable for devs on Apple silicon Macs.
+
+
+## [5.13.2] - 2025-05-16
+
+### Fixed
+
+- Relax API permissions for endpoints used by NAV web GUI tools intended for
+  non-admin users.  Several tools stopped working for non-admin users as a
+  result of the permissions lockdown in the 5.13.1 security fix.
+  - Relax permissions for API interface view endpoint
+    ([#3373](https://github.com/Uninett/nav/issues/3373))
+  - Relax permissions for API prefix usage view endpoint
+    ([#3374](https://github.com/Uninett/nav/issues/3374))
+  - Relax permissions for API list room endpoint
+    ([#3375](https://github.com/Uninett/nav/issues/3375))
+
+
+## [5.13.1] - 2025-05-12
+
+### Security
+
+- Lock down API access for unprivileged users
+
+  By default, NAV granted full API access to logged-in users, regardless of
+  their configured privilege level.  This would give unprivileged users access
+  to manipulate NAV configuration and even elevate their own user privileges to
+  administrator level.  [Read the full security advisory
+  here.](https://github.com/Uninett/nav/security/advisories/GHSA-gprr-5vvf-582g)
+
+### Changed
+
+- Update NAPALM dependency to 5.0 to keep NAV web GUI working
+  ([#2358](https://github.com/Uninett/nav/issues/2358))
+
+### Fixed
+
+- Fix filtering of 'Last seen' and sorting by 'Last active' in netbox
+  interfaces view in room info
+  ([#3329](https://github.com/Uninett/nav/issues/3329))
+
+
+## [5.13.0] - 2025-03-07
+
+### Security
+
+- Omit Palo Alto API keys from ARP plugin log output
+  ([#3251](https://github.com/Uninett/nav/issues/3251))
+
+### Added
+
+- Add option for showing OUI vendor name in Machine Tracker searches
+  ([#3292](https://github.com/Uninett/nav/issues/3292))
+- Add cronjob for populating database with OUI data nightly
+  ([#3320](https://github.com/Uninett/nav/issues/3320))
+- Run test suite by default on Python 3.11 and Django 4.2
+  ([#2850](https://github.com/Uninett/nav/issues/2850))
+- Added tests for device history search
+  ([#3261](https://github.com/Uninett/nav/issues/3261))
+
+### Changed
+
+- Upgraded Django requirement to 4.2
+  ([#2789](https://github.com/Uninett/nav/issues/2789))
+- Upgraded and cleaned up various Docker environments used for development and
+  testing to Debian Bookworm / Python 3.11
+  ([#3284](https://github.com/Uninett/nav/issues/3284))
+
+### Fixed
+
+- Fix minor incompatibilities with Django 4.2
+  ([#2850](https://github.com/Uninett/nav/issues/2850))
+- Fixed non-responsive search function in room map widget
+  ([#3207](https://github.com/Uninett/nav/issues/3207))
+- Validate interval inputs in several search forms to avoid unhandled overflow
+  errors (switch port activity, radius top talkers report, radius error log
+  search, radius account log search)
+  ([#3242](https://github.com/Uninett/nav/issues/3242),
+  [#3245](https://github.com/Uninett/nav/issues/3245),
+  [#3246](https://github.com/Uninett/nav/issues/3246),
+  [#3247](https://github.com/Uninett/nav/issues/3247))
+- Verify that multiple quarantine rules cannot be added with identical VLANs in
+  Arnold ([#3244](https://github.com/Uninett/nav/issues/3244))
+- Fixed broken module history view in device history
+  ([#3258](https://github.com/Uninett/nav/issues/3258))
+- Stop sending error mails to site admins from graphite-web proxy endpoint when
+  graphite response code is in the 5XX range
+  ([#3259](https://github.com/Uninett/nav/issues/3259))
+- Ignore case of sysname in IP device info
+  ([#3262](https://github.com/Uninett/nav/issues/3262))
+- Add user-agent header when downloading OUI text file
+  ([#3291](https://github.com/Uninett/nav/issues/3291))
+
+
 ## [5.12.0] - 2024-12-16
 
 ### Removed

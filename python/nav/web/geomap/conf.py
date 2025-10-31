@@ -331,8 +331,7 @@ def interpret_configuration(config, filename):
 
     def warn_unknown_object(c_obj):
         _logger.warning(
-            'Error in configuration file %s: Unknown object "%s" '
-            'starting on line %d',
+            'Error in configuration file %s: Unknown object "%s" starting on line %d',
             filename,
             c_obj['text'],
             c_obj['linenr'],
@@ -361,7 +360,7 @@ def interpret_configuration(config, filename):
 def conf_eval(expr, filename, linenr):
     try:
         return eval(expr, {})
-    except Exception as err:
+    except Exception as err:  # noqa: BLE001
         raise ConfigurationEvaluationError(expr, err, filename, linenr)
 
 

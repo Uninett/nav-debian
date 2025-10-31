@@ -153,6 +153,23 @@ def localhost(management_profile):
 
 
 @pytest.fixture()
+def netbox_type(localhost):
+    from nav.models.manage import NetboxType, Vendor
+
+    vendor = Vendor(id="testvendor")
+    vendor.save()
+    netbox_type = NetboxType(
+        description='Test device type',
+        vendor=vendor,
+        name='testtype',
+    )
+    netbox_type.save()
+    yield netbox_type
+    netbox_type.delete()
+    vendor.delete()
+
+
+@pytest.fixture()
 def localhost_using_legacy_db():
     """Alternative to the Django-based localhost fixture, for tests that operate on
     code that uses legacy database connections.
@@ -335,3 +352,14 @@ def admin_account(db):
     from nav.models.profiles import Account
 
     yield Account.objects.get(id=Account.ADMIN_ACCOUNT)
+
+
+@pytest.fixture()
+def non_admin_account(db):
+    from nav.models.profiles import Account
+
+    account = Account(login="other_user", name="Other User")
+    account.set_password("password")
+    account.save()
+    yield account
+    account.delete()

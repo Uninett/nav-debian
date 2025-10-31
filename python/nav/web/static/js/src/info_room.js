@@ -12,7 +12,8 @@ require(
         "dt_plugins/modulesort",
         "libs/jquery",
         "libs/jquery-ui.min",
-        "libs/datatables.min"
+        "libs/datatables.min",
+        "plugins/lightbox"
     ],
     function(tab_navigation, global_dt_filters, table_info_converter, RoomMapper, SensorsController, JUIHelpers) {
         /* Run javascript at document ready */
@@ -67,8 +68,8 @@ require(
             enrich_tables();
             add_filters();
             add_csv_download();
-            $(document).foundation('reveal');  // Apply reveal after ajax request
-            $(document).foundation('tooltip');  // Apply tooltip after ajax request
+            // Necessary for HTMX to process content added by AJAX request
+            htmx.process(document.getElementById("netboxes"))
         }
 
         /* Add navigation to jQuery ui tabs */

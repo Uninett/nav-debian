@@ -29,7 +29,6 @@ server.  It has been written to not require any NAV libraries.
 It will require psycopg, a PostgreSQL driver for Python.
 """
 
-
 import psycopg2
 import sys
 import os
@@ -64,12 +63,11 @@ def main(args=None):
     try:
         db_params = (dbhost, dbport, dbname, dbuser, dbpasswd)
         connection = psycopg2.connect(
-            "host=%s port=%s dbname=%s user=%s " "password=%s" % db_params
+            "host=%s port=%s dbname=%s user=%s password=%s" % db_params
         )
     except psycopg2.OperationalError as e:
         print(
-            "An error occured while connecting to the database:\n\n\'%s\'"
-            % (str(e)[:-1])
+            "An error occured while connecting to the database:\n\n'%s'" % (str(e)[:-1])
         )
         sys.exit(1)
 
@@ -94,7 +92,6 @@ def main(args=None):
         f.write("\n\n\n\n****************** Script restarted *****************\n")
 
         for line in t:
-
             # Check if the line is parseable
             try:
                 row = Row(parse_line(line))
@@ -146,8 +143,9 @@ def main(args=None):
             if row.message != "rlm_eap_mschapv2: Issuing Challenge":
                 if row.status != "Login OK":
                     sqlQuery = (
-                        "INSERT INTO %s (time, type, message, status, username, client, port) VALUES (timestamp '%%s', %%s, %%s, %%s, %%s, %%s, %%s)"
-                        % (db_radiuslog_table)
+                        "INSERT INTO %s (time, type, message, status, username, "
+                        "client, port) VALUES (timestamp '%%s', %%s, %%s, %%s, %%s, "
+                        "%%s, %%s)" % (db_radiuslog_table)
                     )
                     sqlParameters = (
                         row.time,
@@ -399,9 +397,10 @@ class Tail(object):
 ###############################################################################
 
 auth_pattern = re.compile(
-    '^(?P<time>.*) : (?P<type>Auth): (?P<message>(?P<status>.*?): \[(?P<user>.*?)\] \(from client (?P<client>[^ ]+) port (?P<port>[^ ]+)( cli (?P<cli>[^ ]+)|)\))\s*$'
+    r'^(?P<time>.*) : (?P<type>Auth): (?P<message>(?P<status>.*?): \[(?P<user>.*?)\] '
+    r'\(from client (?P<client>[^ ]+) port (?P<port>[^ ]+)( cli (?P<cli>[^ ]+)|)\))\s*$'
 )
-other_pattern = re.compile('^(?P<time>.*) : (?P<type>[^:]+): (?P<message>.*?)\s*$')
+other_pattern = re.compile(r'^(?P<time>.*) : (?P<type>[^:]+): (?P<message>.*?)\s*$')
 ignore_rlmsql = re.compile('Error: rlm_sql')
 
 unknown = []

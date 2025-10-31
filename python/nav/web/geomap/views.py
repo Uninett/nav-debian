@@ -16,7 +16,6 @@
 
 """Views for Geomap."""
 
-
 import logging
 from decimal import Decimal
 
@@ -30,7 +29,7 @@ from django.shortcuts import render
 from django.urls import reverse
 
 import nav.db
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
 
 from nav.web.geomap.conf import get_configuration
 from nav.web.geomap.db import (

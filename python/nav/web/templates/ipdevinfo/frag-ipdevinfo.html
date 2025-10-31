@@ -21,8 +21,10 @@
               <td>
                 {{ netbox.sysname }}
                 <button class="table-button secondary right"
-                        data-reveal-id="dns-modal"
-                        data-reveal-ajax="{% url 'ipdevinfo-hostinfo' netbox.sysname %}" >
+                    hx-get="{% url 'ipdevinfo-hostinfo' netbox.sysname %}"
+                    hx-target="body"
+                    hx-swap="beforeend"
+                >
                   DNS
                 </button>
               </td>
@@ -103,10 +105,13 @@
                           (serial: {{ chass.device.serial|default:"N/A" }},
                           {% if chass.model_name %}
                             model:
-                            <span data-tooltip
-                                  class="has-tip"
-                                  title="{{ chass.descr }}">
-                              {{ chass.model_name }}
+                            <span class="nav-tooltip">
+                                <span aria-describedby="model-description-tooltip">
+                                  {{ chass.model_name }}
+                                </span>
+                                <span id="model-description-tooltip" role="tooltip">
+                                    {{ chass.descr }}
+                                </span>
                             </span>,
                           {% endif %}
                           software: {{ chass.get_software_revision|default:"N/A" }})
@@ -133,6 +138,17 @@
               <th>IP address</th>
               <td><a href="{% url 'ipdevinfo-details-by-addr' netbox.ip %}">
                 {{ netbox.ip }}</a></td>
+            </tr>
+
+            <tr>
+              <th>MAC address</th>
+              <td>
+                {% if mac %}
+                    {{ mac }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
             </tr>
 
             <tr>
@@ -341,15 +357,15 @@
                             {{ task.end_time }}
                           {% endif %})
                           {% if not netbox.is_on_maintenance %}
-                            <i class="fa fa-exclamation-triangle has-tip" style="color:#8a6d3b;" data-tooltip
-                               title="
-                                      &lt;ul style=&quot;list-style-type:none;&quot;&gt;
-                                      &lt;li&gt;Task not yet active&lt;/li&gt;
-                                      &lt;li&gt;(Maintenance tasks are activated by default in 5 minute intervals)&lt;/li&gt;
-                                      &lt;/ul&gt;
-                                      "
-                            >
-                            </i>
+                            <div class="nav-tooltip">
+                                <i class="fa fa-exclamation-triangle" aria-describedby="task-not-yet-active" style="color:#8a6d3b;"></i>
+                                <div id="task-not-yet-active" role="tooltip">
+                                    <ul style="list-style-type:none">
+                                        <li>Task not yet active</li>
+                                        <li>(Maintenance tasks are activated by default in 5 minute intervals)</li>
+                                    </ul>
+                                </div>
+                            </div>
                           {% endif %}
                         </div>
                       </li>
@@ -422,6 +438,7 @@
                   <th>End time</th>
                   <th>Duration</th>
                   <th class="cell-center">Status</th>
+                  <th class="cell-center">Actions</th>
                 </tr>
               </thead>
 
@@ -458,10 +475,14 @@
                         {% endif %}
                       {% endif %}
                     </td>
+                    <td class="cell-center">
+                        {% include "ipdevinfo/frag-ipdevinfo-refresh-button.html" with netbox_sysname=netbox.sysname job_name=job.job_name %}
+                    </td>
                   </tr>
                 {% endfor %}
               </tbody>
             </table>
+            <div id="ipdevpoll-jobs-alert"></div>
           {% else %}
             <p>No jobs have run on this netbox</p>
           {% endif %}
@@ -616,6 +637,3 @@
 
   </div>
 </div>
-
-
-<div id="dns-modal" class="reveal-modal small" data-reveal aria-hidden="true" role="dialog"></div>

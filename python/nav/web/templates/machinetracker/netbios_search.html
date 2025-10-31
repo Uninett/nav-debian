@@ -20,7 +20,7 @@
 
       </div>
 
-      <div class="medium-2 column machinetracker-filter">
+      <div class="medium-1 column machinetracker-filter">
         <div>
           <label for="{{ form.dns.auto_id }}"
                  title="{{ form.dns.help_text }}">{{ form.dns.label }}
@@ -29,7 +29,17 @@
         </div>
       </div>
 
-      <div class="medium-2 column machinetracker-filter">
+      <div class="medium-1 column machinetracker-filter">
+        <div>
+          <label for="{{ form.vendor.auto_id }}" title="{{ form.vendor.help_text }}">
+            {{ form.vendor.label }}
+            {{ form.vendor }}
+          </label>
+        </div>
+      </div>
+
+
+      <div class="medium-1 column machinetracker-filter">
         <div class="machinetracker-filter-days">
           <label for="{{ form.days.auto_id }}"
                  title="{{ form.days.help_text }}">{{ form.days.label }}
@@ -42,9 +52,7 @@
       </div>
 
       <div class="medium-2 column">
-        <a href="#" data-reveal-id="valid-search-terms" data-reveal
-           title="Help"
-           class="button secondary small right">Help</a>
+        {% include 'machinetracker/_search_help_trigger.html' with tab_name='netbios' %}
       </div>
 
     </div>
@@ -61,18 +69,5 @@
       <div class="alert-box">No results for "{{ form_data.search }}"</div>
     {% endif %}
   {% endif %}
-
-  <div id="valid-search-terms" class="reveal-modal" data-reveal>
-    <h4>Search Hints</h4>
-    <ul>
-      <li>Search for NetBIOS-name, MAC or IP</li>
-      <li>NetBIOS Search does not use the ARP and CAM information
-        collected by NAV, but utilize the <code>netbscan</code>
-        tool to collect NetBIOS over TCP/IP information over the
-        network
-      </li>
-    </ul>
-  </div>
-
 
 {% endblock %}

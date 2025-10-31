@@ -23,7 +23,7 @@ from IPy import IP
 
 from django.db.models import Q
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 
 from nav.django.utils import reverse_with_query
 from nav.models.manage import Arp, Cam, Netbios, Prefix
@@ -38,7 +38,9 @@ from nav.web.machinetracker.utils import (
     ProcessInput,
     normalize_ip_to_string,
     get_last_job_log_from_netboxes,
+    get_vendor_query,
 )
+from nav.web.modals import render_modal
 
 NAVBAR = [('Home', '/'), ('Machinetracker', None)]
 IP_TITLE = 'NAV - Machinetracker - IP Search'
@@ -49,6 +51,7 @@ IP_DEFAULTS = {'title': IP_TITLE, 'navpath': NAVBAR, 'active': {'ip': True}}
 MAC_DEFAULTS = {'title': MAC_TITLE, 'navpath': NAVBAR, 'active': {'mac': True}}
 SWP_DEFAULTS = {'title': SWP_TITLE, 'navpath': NAVBAR, 'active': {'swp': True}}
 NBT_DEFAULTS = {'title': NBT_TITLE, 'navpath': NAVBAR, 'active': {'netbios': True}}
+VALID_HELP_TAB_NAMES = ['ip', 'mac', 'switch', 'netbios']
 
 ADDRESS_LIMIT = 4096  # Value for when inactive gets disabled
 
@@ -104,7 +107,11 @@ def ip_do_search(request):
             inactive = False
 
         ip_result = get_result(
-            form.cleaned_data['days'], from_ip, to_ip, form.cleaned_data['netbios']
+            form.cleaned_data['days'],
+            from_ip,
+            to_ip,
+            form.cleaned_data['netbios'],
+            form.cleaned_data['vendor'],
         )
         ip_range = create_ip_range(inactive, from_ip, to_ip, ip_result)
         tracker = create_tracker(
@@ -126,15 +133,15 @@ def ip_do_search(request):
     return render(request, 'machinetracker/ip_search.html', info_dict)
 
 
-def get_result(days, from_ip, to_ip, get_netbios=False):
+def get_result(days, from_ip, to_ip, get_netbios=False, get_vendor=False):
     """Gets and formats search result"""
-    records = get_arp_records(days, from_ip, to_ip, get_netbios)
+    records = get_arp_records(days, from_ip, to_ip, get_netbios, get_vendor)
     flag_as_fishy(records)
     ip_result = ip_dict(records)
     return ip_result
 
 
-def get_arp_records(days, from_ip, to_ip, get_netbios=False):
+def get_arp_records(days, from_ip, to_ip, get_netbios=False, get_vendor=False):
     """Gets the result from ARP based on input parameters"""
     from_time = date.today() - timedelta(days=days)
     extra_args = {
@@ -149,6 +156,9 @@ def get_arp_records(days, from_ip, to_ip, get_netbios=False):
         .extra(**extra_args)
         .order_by('ip', 'mac', '-start_time')
     )
+
+    if get_vendor:
+        result = result.extra(select={'vendor': get_vendor_query()})
 
     return result
 
@@ -223,17 +233,20 @@ def create_inactive_row(tracker, dns, dns_lookups, ip_key):
 
 def find_colspan(view, form):
     """Find correct colspan for the view"""
-    defaults = {'ip': 5, 'netbios': 7}
+    defaults = {'ip': 5, 'netbios': 7, 'mac': 8}
     colspan = defaults[view]
     netbios = form.data.get('netbios', False)
     dns = form.data.get('dns', False)
     source = form.data.get('source', False)
+    vendor = dns = form.data.get('vendor', False)
 
     if netbios:
         colspan += 1
     if dns:
         colspan += 1
     if source:
+        colspan += 1
+    if vendor:
         colspan += 1
     return colspan
 
@@ -265,6 +278,7 @@ def mac_do_search(request):
         mac = form.cleaned_data['mac']
         days = form.cleaned_data['days']
         dns = form.cleaned_data['dns']
+        vendor = form.cleaned_data['vendor']
         from_time = date.today() - timedelta(days=days)
 
         mac_min, mac_max = min_max_mac(mac)
@@ -285,6 +299,10 @@ def mac_do_search(request):
         )
         if form.cleaned_data['netbios']:
             arp_result = arp_result.extra(select={'netbiosname': get_netbios_query()})
+
+        if vendor:
+            cam_result = cam_result.extra(select={'vendor': get_vendor_query()})
+            arp_result = arp_result.extra(select={'vendor': get_vendor_query()})
 
         # Get last ip2mac and topo jobs on netboxes
         netboxes_ip2mac = get_last_job_log_from_netboxes(arp_result, 'ip2mac')
@@ -312,8 +330,8 @@ def mac_do_search(request):
             ('mac', 'sysname', 'module', 'port'), cam_result, dns=False
         )
         _logger.debug("mac_do_search: track_mac finished")
-        uplink_tracker = UplinkTracker(mac_min, mac_max)
-        interface_tracker = InterfaceTracker(mac_min, mac_max)
+        uplink_tracker = UplinkTracker(mac_min, mac_max, vendor=vendor)
+        interface_tracker = InterfaceTracker(mac_min, mac_max, vendor=vendor)
         ip_tracker = track_mac(('ip', 'mac'), arp_result, dns)
 
         info_dict.update(
@@ -325,7 +343,8 @@ def mac_do_search(request):
                 'ip_tracker': ip_tracker,
                 'mac_tracker_count': mac_count,
                 'ip_tracker_count': ip_count,
-                'colspan': find_colspan('ip', form),
+                'ip_tracker_colspan': find_colspan('ip', form),
+                'mac_tracker_colspan': find_colspan('mac', form),
             }
         )
 
@@ -390,6 +409,9 @@ def switch_do_search(request):
             .order_by('sysname', 'module', 'mac', '-start_time')
         )
 
+        if form.cleaned_data['vendor']:
+            cam_result = cam_result.extra(select={'vendor': get_vendor_query()})
+
         # Get last topo jobs on netboxes
         netboxes_topo = get_last_job_log_from_netboxes(cam_result, 'topo')
 
@@ -410,6 +432,7 @@ def switch_do_search(request):
                 'form_data': form.cleaned_data,
                 'mac_tracker': swp_tracker,
                 'mac_tracker_count': swp_count,
+                'mac_tracker_colspan': find_colspan('mac', form),
             }
         )
 
@@ -473,6 +496,9 @@ def netbios_do_search(request):
         result = Netbios.objects.filter(filters, end_time__gt=from_time)
         result = result.order_by('name', 'mac', 'start_time')
 
+        if form.cleaned_data['vendor']:
+            result = result.extra(select={'vendor': get_vendor_query()})
+
         nbt_count = len(result)
 
         netbios_tracker = track_mac(
@@ -492,3 +518,15 @@ def netbios_do_search(request):
 
     info_dict.update(NBT_DEFAULTS)
     return render(request, 'machinetracker/netbios_search.html', info_dict)
+
+
+def render_search_help_modal(request, tab_name):
+    """Render the search help modal for the given tab name."""
+
+    if tab_name not in VALID_HELP_TAB_NAMES:
+        return HttpResponse(status=400)  # Bad Request
+
+    template_name = f'machinetracker/_{tab_name}_search_help_modal.html'
+    modal_id = f'{tab_name}-search-help'
+
+    return render_modal(request, template_name, modal_id=modal_id, size="large")

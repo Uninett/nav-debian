@@ -1,14 +1,10 @@
 require([
     'plugins/seeddb_datatables',
     'plugins/checkbox_selector',
-    'plugins/quickselect',
     'plugins/seeddb_hstore',
     'plugins/seeddb_management_profile',
-    'plugins/netbox_connectivity_checker',
-    'plugins/ip_chooser',
-    'plugins/seeddb_map',
-    'libs/modernizr'],
-function (datatables, CheckboxSelector, QuickSelect, FormFuck, ManagementProfile, connectivityChecker, IpChooser, seedDBRoomMap) {
+    'plugins/seeddb_map'],
+function (datatables, CheckboxSelector, FormFuck, ManagementProfile, seedDBRoomMap) {
 
     function executeOnLoad() {
         /**
@@ -30,8 +26,6 @@ function (datatables, CheckboxSelector, QuickSelect, FormFuck, ManagementProfile
             initSearchForIpDevice();
         }
 
-        initJoyride();  /* Start joyride if url endswith #joyride */
-
         if ($('#map').length && $('#id_position').length) {
             seedDBRoomMap('map', 'id_position', 'get_location_trigger');
         }
@@ -49,8 +43,6 @@ function (datatables, CheckboxSelector, QuickSelect, FormFuck, ManagementProfile
         }
 
         new CheckboxSelector('#select', '.selector').add();
-        var _quickselect = new QuickSelect('.quickselect');
-
 
         /* Add form to hstore fields in room */
         var $textarea = $('textarea#id_data');
@@ -120,48 +112,21 @@ function (datatables, CheckboxSelector, QuickSelect, FormFuck, ManagementProfile
         });
     }
 
-    function initJoyride() {
-        /* Start joyride if url endswith #joyride */
-        if (location.hash === '#joyride') {
-            $(document).foundation({
-                'joyride': {
-                    'pre_ride_callback': function () {
-                        var cards = $('.joyride-tip-guide').find('.joyride-content-wrapper');
-                        cards.each(function (index, element) {
-                            var counter = $('<small>')
-                                    .attr('style', 'position:absolute;bottom:1.5rem;right:1.25rem')
-                                    .html(index + 1 + ' of ' + cards.length);
-                            $(element).append(counter);
-                        });
-                    },
-                    'modal': false
-                }
-            });
-            $(document).foundation('joyride', 'start');
-        }
-    }
-
-
     function activateIpDeviceFormPlugins() {
         // The connectivity checker
         var $form = $('#seeddb-netbox-form'),
-            $addressField = $('#id_ip'),
-            $feedbackElement = $('#verify-address-feedback');
-
-        var chooser = new IpChooser($feedbackElement, $addressField);
-
-        // Initialize connectivitychecker with a chooser as we only wants one.
-        connectivityChecker(chooser);
+            $addressField = $('#id_ip');
 
         $form.on('submit', function (event, validated) {
             if (!validated) {
                 event.preventDefault();
-                var deferred = chooser.getAddresses();
-                deferred.done(function () {
-                    if (chooser.isSingleAddress) {
-                        $form.trigger('submit', true);
-                    }
-                });
+                const verification = $.get(
+                    NAV.urls.seeddb.validateIpAddress,
+                    {'address': $addressField.val()}
+                );
+                verification.done(function () {
+                    $form.trigger('submit', true);
+                })
             }
         });
     }

@@ -1,0 +1,69 @@
+services:
+  nav:
+    networks:
+      - nav_ipv6
+
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        DEBIAN_VERSION: "bookworm"
+        MAIN_PYTHON_VERSION: "3.11"
+
+    volumes:
+      # MacOS users may want to add a :cached flag to the volume
+      - ../..:/workspaces
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    # Runs app on the same network as the database container, allows "forwardPorts" in devcontainer.json function.
+    #network_mode: service:db
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+    environment:
+      PGHOST: db
+      PGUSER: nav
+      PGPASSWORD: nav
+
+  db:
+    networks:
+      - nav_ipv6
+
+    image: postgres:latest
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: nav
+      POSTGRES_DB: nav
+      POSTGRES_PASSWORD: nav
+
+    # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+  # The graphite service does not use a permanent volume, so data will be lost when the container is removed
+  graphite:
+    networks:
+      - nav_ipv6
+
+    build: ../tools/docker/graphite
+    volumes:
+      # This mounts the default graphite config as provided by NAV
+      - ../python/nav/etc/graphite/storage-schemas.conf:/etc/carbon/storage-schemas.conf
+      - ../python/nav/etc/graphite/storage-aggregation.conf:/etc/carbon/storage-aggregation.conf
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+
+networks:
+  nav_ipv6:
+    # driver: bridge  # Use the default bridge network
+    enable_ipv6: true
+    driver_opts:
+      com.docker.network.enable_ipv6: "true"
+      # Use masquerading to avoid exposing the devcontainer network to the world
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.name: "docker-nav"

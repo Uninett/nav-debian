@@ -123,14 +123,20 @@ define([
 
 
         },
-
         toggleNetmapViewPanel: function (e) {
-            $('#netmap-view-panel').toggle(function () {
-                $(document).foundation('equalizer', 'reflow');
-            });
+            $('#netmap-view-panel').toggle(this.updateEqualizers);
             this.$(e.currentTarget.children).toggleClass('fa-caret-down fa-caret-up');
         },
-
+        updateEqualizers: function () {
+            $('[data-equalizer]').each(function () {
+                const $watched = $(this).find('[data-equalizer-watch]');
+                $watched.css('height', 'auto');
+                const maxHeight = $watched.toArray().reduce((max, element) => {
+                    return Math.max(max, $(element).outerHeight());
+                }, 0);
+                $watched.css('height', maxHeight);
+            });
+        },
         fireZoomToExtent: function () {
             Backbone.EventBroker.trigger('netmap:zoomToExtent');
         },
@@ -223,9 +229,18 @@ define([
             this.currentView.baseZoom = this.currentView.get('zoom');
             var isNew = this.currentView.isNew();
 
+            // Get CSRF token from the appropriate form
+            const csrfToken = isNew
+                ? $('#netmap-view-create-form input[name=csrfmiddlewaretoken]').val()
+                : $('#netmap-view-edit-form input[name=csrfmiddlewaretoken]').val();
+            this.currentView.set('csrfmiddlewaretoken', csrfToken);
+
             var self = this;
             this.currentView.save(this.currentView.attributes,
                 {
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                    },
                     success: function (model) {
                         Backbone.EventBroker.trigger('netmap:saveNodePositions', model, {'isNew': isNew}, self.middleAlertContainer);
                     },
@@ -288,8 +303,11 @@ define([
             if(confirm('Delete this view?')) {
                 if (!this.currentView.isNew()) {
                     var self = this;
-                    console.log('We want to delete view with id ' + this.currentView.id);
+                    const csrfToken = $('#netmap-view-delete-form input[name=csrfmiddlewaretoken]').val();
                     this.currentView.destroy({
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                        },
                         success: function () {
                             self.deleteSuccessful.call(self, false);
                         },

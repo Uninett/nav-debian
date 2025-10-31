@@ -90,7 +90,7 @@ def fetch_history(selection, form):
                 'room__location',
                 'organization',
                 'category',
-                'module',
+                'modules',
                 'groups',
             )
             if selection[arg]
@@ -125,7 +125,7 @@ def fetch_history(selection, form):
 
     # Find device ids that belongs to
     #   - selected devices
-    device = Device.objects.filter(modules__in=selection['module'])
+    device = Device.objects.filter(modules__in=selection['modules'])
 
     # Find alert history that belongs to the netbox and device ids we found in
     # the previous two queries.
@@ -208,7 +208,7 @@ def group_history_and_messages(history, messages, group_by=None):
 def describe_search_params(selection):
     data = {}
     for arg, model in (
-        ('room__location', Location),
+        ('loc', Location),
         ('room', Room),
         ('netbox', Netbox),
         ('groups', NetboxGroup),

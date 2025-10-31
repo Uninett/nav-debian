@@ -13,7 +13,7 @@
 # details.  You should have received a copy of the GNU General Public License
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 
-""" Module containing different searchproviders used for searching in NAV """
+"""Module containing different searchproviders used for searching in NAV"""
 
 from collections import namedtuple
 
@@ -70,7 +70,8 @@ class SearchProvider(object):
     def fetch_results(self):
         """Fetches and returns results based on ``self.query``.
 
-        :returns: A list of :py:class:`nav.web.info.searchproviders.SearchResult` instances.
+        :returns: A list of :py:class:`nav.web.info.searchproviders.SearchResult`
+        instances.
         """
         raise NotImplementedError
 
@@ -244,7 +245,7 @@ class PrefixSearchProvider(SearchProvider):
 class UnrecognizedNeighborSearchProvider(SearchProvider):
     """Search provider for Unrecognized neighbor entries"""
 
-    name = u"Unrecognized neighbors"
+    name = "Unrecognized neighbors"
     headers = [
         ('Remote id', 'remote_id'),
         ('Remote name', 'remote_name'),
@@ -267,7 +268,7 @@ class UnrecognizedNeighborSearchProvider(SearchProvider):
 class DevicegroupSearchProvider(SearchProvider):
     """Searchprovider for device group entries"""
 
-    name = u"Device groups"
+    name = "Device groups"
     headers = [('Device Group', 'id'), ('# netboxes', 'num_netboxes')]
     link = 'Device Group'
 

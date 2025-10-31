@@ -24,6 +24,7 @@ from nav.web.crispyforms import (
     SubmitField,
     set_flat_form_attributes,
 )
+from ..utils import validate_timedelta_for_overflow
 
 
 class SearchForm(forms.Form):
@@ -82,12 +83,25 @@ class ActivityIntervalForm(forms.Form):
             ]
         )
 
+    def clean_interval(self):
+        interval = self.cleaned_data["interval"]
+        validate_timedelta_for_overflow(days=interval)
+        return interval
+
 
 class SensorRangesForm(forms.Form):
     """Form for setting display ranges for a sensor"""
 
     minimum = forms.FloatField(label='Minimum', required=False)
     maximum = forms.FloatField(label='Maximum', required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(SensorRangesForm, self).__init__(*args, **kwargs)
+
+        self.attrs = set_flat_form_attributes(
+            form_method="post",
+            submit_field=SubmitField(value="Update range", css_classes='small'),
+        )
 
 
 class BooleanSensorForm(forms.Form):
@@ -106,3 +120,11 @@ class BooleanSensorForm(forms.Form):
     alert_type = forms.ChoiceField(
         label='What to display in "on" state', choices=Sensor.ALERT_TYPE_CHOICES
     )
+
+    def __init__(self, *args, **kwargs):
+        super(BooleanSensorForm, self).__init__(*args, **kwargs)
+
+        self.attrs = set_flat_form_attributes(
+            form_method="post",
+            submit_field=SubmitField(value="Update settings", css_classes='small'),
+        )

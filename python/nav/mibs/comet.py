@@ -22,15 +22,14 @@ implementation for multiple MIBs must be implemented.
 """
 
 from twisted.internet import defer
-from twisted.internet.defer import returnValue
 
 from nav.Snmp import safestring
 from nav.smidumps import get_mib
 from nav.mibs.mibretriever import MibRetriever
 from nav.models.manage import Sensor
 
-DEGREES_CELSIUS = u"\xb0C"
-DEGREES_FAHRENHEIT = u"\xb0F"
+DEGREES_CELSIUS = "\xb0C"
+DEGREES_FAHRENHEIT = "\xb0F"
 UNIT_MAP = {
     DEGREES_CELSIUS: Sensor.UNIT_CELSIUS,
     DEGREES_FAHRENHEIT: Sensor.UNIT_FAHRENHEIT,
@@ -49,7 +48,7 @@ class Comet(MibRetriever):
         """
         channels = yield self.get_channels()
         bin_inputs = yield self.get_binary_inputs()
-        returnValue(channels + bin_inputs)
+        return channels + bin_inputs
 
     @defer.inlineCallbacks
     def get_channels(self):
@@ -81,7 +80,7 @@ class Comet(MibRetriever):
                     mib=self.get_module_name(),
                 )
             )
-        returnValue(result)
+        return result
 
     @defer.inlineCallbacks
     def get_binary_inputs(self):
@@ -131,7 +130,7 @@ class Comet(MibRetriever):
                     on_state=1,
                 )
             )
-        returnValue(result)
+        return result
 
 
 class CometMS(MibRetriever):
@@ -145,7 +144,7 @@ class CometMS(MibRetriever):
         device.
         """
         channels = yield self.get_channels()
-        returnValue(channels)
+        return channels
 
     @defer.inlineCallbacks
     def get_channels(self):
@@ -172,4 +171,4 @@ class CometMS(MibRetriever):
                     mib=self.get_module_name(),
                 )
             )
-        returnValue(result)
+        return result

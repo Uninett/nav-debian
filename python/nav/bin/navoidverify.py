@@ -21,7 +21,6 @@ A command line program to verify support for SNMP subtrees in sets of
 NAV-monitored devices.
 """
 
-
 import platform
 import sys
 from itertools import cycle
@@ -67,14 +66,13 @@ def reactor_main(boxes, baseoid):
     return df.addCallback(endit)
 
 
-@defer.inlineCallbacks
-def verify(netbox, oid):
+async def verify(netbox, oid):
     """Verifies a GETNEXT response from below the oid subtree"""
     agent = _create_agentproxy(netbox)
     if not agent:
-        defer.returnValue(False)
+        return False
 
-    result = yield agent.walk(str(oid))
+    result = await agent.walk(str(oid))
     agent.close()
 
     if hasattr(result, 'items'):
@@ -82,8 +80,8 @@ def verify(netbox, oid):
     for key, _value in result:
         if oid.is_a_prefix_of(key):
             print(netbox.sysname)
-            defer.returnValue(True)
-    defer.returnValue(False)
+            return True
+    return False
 
 
 def endit(_result):
@@ -114,7 +112,7 @@ def parse_args():
 def parallel(iterable, count, func, *args, **kwargs):
     """Limits the number of parallel requests to count"""
     coop = task.Cooperator()
-    work = (func(elem, *args, **kwargs) for elem in iterable)
+    work = (defer.ensureDeferred(func(elem, *args, **kwargs)) for elem in iterable)
     return defer.DeferredList(
         [coop.coiterate(work) for _ in range(count)], consumeErrors=True
     )

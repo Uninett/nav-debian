@@ -14,6 +14,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """View controller for PortAdmin"""
+
 import logging
 import json
 
@@ -26,13 +27,15 @@ from django.contrib import messages
 from django.db.models import Q
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from jnpr.junos.exception import ConnectRefusedError
 
 from nav.auditlog.models import LogEntry
 
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
 from nav.util import is_valid_ip
 from nav.web.utils import create_title
 from nav.models.manage import Netbox, Interface
+from nav.web.modals import render_modal
 from nav.web.portadmin.utils import (
     get_and_populate_livedata,
     find_and_populate_allowed_vlans,
@@ -135,135 +138,146 @@ def search_by_sysname(request, sysname):
     return search_by_kwargs(request, sysname=sysname)
 
 
+def search_by_interfaceid(request, interfaceid):
+    """View for showing a search done by interface id"""
+    return search_by_kwargs(request, interfaceid=interfaceid)
+
+
+def load_portadmin_data(request, **kwargs):
+    """Universal data loading endpoint for all search types"""
+    return load_portadmin_data_by_kwargs(request, **kwargs)
+
+
 def search_by_kwargs(request, **kwargs):
-    """Search by keyword arguments"""
+    """Search by keyword arguments and show netbox page with loading indicator"""
+    netbox, interfaces = _get_netbox_and_interfaces(request, **kwargs)
+    if not netbox:
+        return default_render(request)
+
+    load_data_url = _get_load_data_url(**kwargs)
+
+    context = get_base_context([(netbox.sysname,)], form=get_form(request))
+    context.update(
+        {
+            'netbox': netbox,
+            'interfaces': interfaces,
+            'load_data_url': load_data_url,
+            'loading': True,
+            'readonly': True,
+        }
+    )
+
+    return render(request, 'portadmin/netbox.html', context)
+
+
+def _get_netbox_and_interfaces(request, **kwargs):
+    """Get netbox and interfaces based on search parameters"""
+    if 'interfaceid' in kwargs:
+        return _get_interface_and_netbox(request, kwargs['interfaceid'])
+    else:
+        return _get_netbox_and_ports(request, **kwargs)
+
+
+def _get_interface_and_netbox(request, interfaceid):
+    """Get single interface and its netbox"""
+    try:
+        interface = Interface.objects.get(id=interfaceid)
+        return interface.netbox, [interface]
+    except Interface.DoesNotExist as error:
+        _logger.error("Interface %s not found; DoesNotExist = %s", interfaceid, error)
+        messages.error(request, f'Could not find interface with id {interfaceid}')
+        return None, None
+
+
+def _get_netbox_and_ports(request, **kwargs):
+    """Get netbox and all its ports"""
     try:
         netbox = Netbox.objects.get(**kwargs)
-    except Netbox.DoesNotExist as do_not_exist_ex:
+    except Netbox.DoesNotExist as error:
         _logger.error(
-            "Netbox %s not found; DoesNotExist = %s",
+            "IP device %s not found; DoesNotExist = %s",
             kwargs.get('sysname') or kwargs.get('ip'),
-            do_not_exist_ex,
+            error,
         )
         messages.error(request, 'Could not find IP device')
-        return default_render(request)
+        return None, None
+
+    if not netbox.type:
+        messages.error(request, 'IP device found but has no type')
+        return None, None
+
+    interfaces = netbox.get_swports_sorted()
+    if not interfaces:
+        messages.error(request, 'IP device has no ports (yet)')
+        return None, None
+
+    return netbox, interfaces
+
+
+def _get_load_data_url(**kwargs):
+    """Get the appropriate data loading URL"""
+    if 'sysname' in kwargs:
+        return reverse('portadmin-sysname-data', kwargs=kwargs)
+    elif 'ip' in kwargs:
+        return reverse('portadmin-ip-data', kwargs=kwargs)
+    elif 'interfaceid' in kwargs:
+        return reverse('portadmin-interface-data', kwargs=kwargs)
     else:
-        if not netbox.type:
-            messages.error(request, 'IP device found but has no type')
-            return default_render(request)
+        raise ValueError(f"Unsupported search parameter: {list(kwargs.keys())}")
+
+
+def load_portadmin_data_by_kwargs(request, **kwargs):
+    """Load port data by keyword arguments"""
+    if 'interfaceid' in kwargs:
+        try:
+            interface = Interface.objects.select_related('netbox').get(
+                id=kwargs['interfaceid']
+            )
+        except Interface.DoesNotExist:
+            return HttpResponse(
+                '<div class="alert-box error">Interface not found</div>'
+            )
+
+        netbox = interface.netbox
+        interfaces = [interface]
+    else:
+        try:
+            netbox = Netbox.objects.get(**kwargs)
+        except Netbox.DoesNotExist:
+            return HttpResponse(
+                '<div class="alert-box error">IP device not found</div>'
+            )
 
         interfaces = netbox.get_swports_sorted()
         if not interfaces:
-            messages.error(request, 'IP device has no ports (yet)')
-            return default_render(request)
-        return render(
-            request,
-            'portadmin/netbox.html',
-            populate_infodict(request, netbox, interfaces),
-        )
+            return HttpResponse(
+                '<div class="alert-box error">No interfaces found</div>'
+            )
 
-
-def search_by_interfaceid(request, interfaceid):
-    """View for showing a search done by interface id"""
-    try:
-        interface = Interface.objects.get(id=interfaceid)
-    except Interface.DoesNotExist as do_not_exist_ex:
-        _logger.error(
-            "Interface %s not found; DoesNotExist = %s", interfaceid, do_not_exist_ex
-        )
-        messages.error(
-            request, 'Could not find interface with id %s' % str(interfaceid)
-        )
-        return default_render(request)
-    else:
-        netbox = interface.netbox
-        if not netbox.type:
-            messages.error(request, 'IP device found but has no type')
-            return default_render(request)
-
-        interfaces = [interface]
-        return render(
-            request,
-            'portadmin/netbox.html',
-            populate_infodict(request, netbox, interfaces),
-        )
+    context = populate_infodict(request, netbox, interfaces)
+    return render(request, 'portadmin/portlist.html', context)
 
 
 def populate_infodict(request, netbox, interfaces):
     """Populate a dictionary used in every http response"""
+    has_error, handler = _initialize_handler_and_error_state(
+        request, netbox, interfaces
+    )
+
     allowed_vlans = []
     voice_vlan = None
-    readonly = False
-    handler = None
     supports_poe = False
     poe_options = []
 
-    try:
-        handler = get_and_populate_livedata(netbox, interfaces)
+    if not has_error:
+        account = get_account(request)
         allowed_vlans = find_and_populate_allowed_vlans(
-            request.account, netbox, interfaces, handler
+            account, netbox, interfaces, handler
         )
-        voice_vlan = fetch_voice_vlan_for_netbox(request, handler)
-        if voice_vlan:
-            if CONFIG.is_cisco_voice_enabled() and is_cisco(netbox):
-                set_voice_vlan_attribute_cisco(voice_vlan, interfaces, handler)
-            else:
-                set_voice_vlan_attribute(voice_vlan, interfaces)
+        voice_vlan = _setup_voice_vlan(request, netbox, interfaces, handler)
         mark_detained_interfaces(interfaces)
-        if CONFIG.is_dot1x_enabled():
-            add_dot1x_info(interfaces, handler)
-        try:
-            poe_options = handler.get_poe_state_options()
-            add_poe_info(interfaces, handler)
-            # Tag poe as being supported if at least one interface supports poe
-            for interface in interfaces:
-                if interface.supports_poe:
-                    supports_poe = True
-                    break
-        except NotImplementedError:
-            # Only Cisco and Juniper has PoE support currently
-            pass
-    except NoResponseError:
-        readonly = True
-        messages.error(
-            request,
-            "%s did not respond within the set timeouts. Values displayed are from database"
-            % netbox.sysname,
-        )
-        if (
-            isinstance(handler, SNMPHandler)
-            and not netbox.get_preferred_snmp_management_profile()
-        ):
-            messages.error(request, "Read only management profile not set")
-    except ProtocolError:
-        readonly = True
-        messages.error(
-            request,
-            "Protocol error when contacting %s. Values displayed are from database"
-            % netbox.sysname,
-        )
-    except DeviceNotConfigurableError as error:
-        readonly = True
-        messages.error(request, str(error))
-
-    except (
-        XMLParseError,
-        POEStateNotSupportedError,
-    ) as error:
-        supports_poe = False
-        _logger.error(
-            'Error getting PoE information from netbox %s: %s', str(netbox), str(error)
-        )
-
-    if handler and not handler.is_configurable():
-        add_readonly_reason(request, handler)
-        readonly = True
-
-    ifaliasformat = CONFIG.get_ifaliasformat()
-    aliastemplate = ''
-    if ifaliasformat:
-        tmpl = get_aliastemplate()
-        aliastemplate = tmpl.render({'ifaliasformat': ifaliasformat})
+        _setup_dot1x_if_enabled(interfaces, handler)
+        supports_poe, poe_options = _setup_poe_if_supported(interfaces, handler)
 
     save_to_database(interfaces)
 
@@ -273,23 +287,125 @@ def populate_infodict(request, netbox, interfaces):
         'subsystem': 'portadmin',
     }
 
-    info_dict = get_base_context([(netbox.sysname,)], form=get_form(request))
-    info_dict.update(
-        {
-            'handlertype': type(handler).__name__,
-            'interfaces': interfaces,
-            'netbox': netbox,
-            'voice_vlan': voice_vlan,
-            'allowed_vlans': allowed_vlans,
-            'readonly': readonly,
-            'aliastemplate': aliastemplate,
-            'trunk_edit': CONFIG.get_trunk_edit(),
-            'auditlog_api_parameters': json.dumps(auditlog_api_parameters),
-            'supports_poe': supports_poe,
-            'poe_options': poe_options,
-        }
-    )
-    return info_dict
+    context = {
+        'handlertype': type(handler).__name__,
+        'interfaces': interfaces,
+        'netbox': netbox,
+        'voice_vlan': voice_vlan,
+        'allowed_vlans': allowed_vlans,
+        'readonly': has_error,
+        'aliastemplate': _get_alias_template(),
+        'trunk_edit': CONFIG.get_trunk_edit(),
+        'auditlog_api_parameters': json.dumps(auditlog_api_parameters),
+        'supports_poe': supports_poe,
+        'poe_options': poe_options,
+    }
+
+    if handler:
+        context['handlertype'] = handler.__class__.__name__
+
+    return context
+
+
+def _initialize_handler_and_error_state(request, netbox, interfaces):
+    """Initialize management handler and determine error state"""
+    has_error = False
+    handler = None
+
+    try:
+        handler = get_and_populate_livedata(netbox, interfaces)
+        if handler and not handler.is_configurable():
+            add_readonly_reason(request, handler)
+            has_error = True
+    except NoResponseError:
+        has_error = True
+        messages.error(
+            request,
+            "%s did not respond within the set timeouts. Values displayed are from "
+            "database" % netbox.sysname,
+        )
+        if (
+            isinstance(handler, SNMPHandler)
+            and not netbox.get_preferred_snmp_management_profile()
+        ):
+            messages.error(request, "Read only management profile not set")
+    except ProtocolError:
+        has_error = True
+        messages.error(
+            request,
+            "Protocol error when contacting %s. Values displayed are from database"
+            % netbox.sysname,
+        )
+    except DeviceNotConfigurableError as error:
+        has_error = True
+        messages.error(request, str(error))
+    except ConnectRefusedError:
+        has_error = True
+        messages.error(
+            request,
+            "Connection refused when contacting %s. Values displayed are from database"
+            % netbox.sysname,
+        )
+    except Exception as error:  # noqa: BLE001
+        has_error = True
+        messages.error(
+            request,
+            "Unknown error when contacting %s: %s. Values displayed are from database"
+            % (netbox.sysname, error),
+        )
+
+    return has_error, handler
+
+
+def _setup_voice_vlan(request, netbox, interfaces, handler):
+    """Setup voice VLAN configuration"""
+    voice_vlan = fetch_voice_vlan_for_netbox(request, handler)
+    if voice_vlan:
+        if CONFIG.is_cisco_voice_enabled() and is_cisco(netbox):
+            set_voice_vlan_attribute_cisco(voice_vlan, interfaces, handler)
+        else:
+            set_voice_vlan_attribute(voice_vlan, interfaces)
+    return voice_vlan
+
+
+def _setup_dot1x_if_enabled(interfaces, handler):
+    """Setup dot1x information if enabled"""
+    if handler:
+        try:
+            add_dot1x_info(interfaces, handler)
+        except (NotImplementedError, ManagementError) as error:
+            _logger.debug('Dot1x not supported or error getting dot1x info: %s', error)
+
+
+def _setup_poe_if_supported(interfaces, handler):
+    """Setup PoE configuration if supported"""
+    supports_poe = False
+    poe_options = []
+
+    try:
+        poe_options = handler.get_poe_state_options()
+        add_poe_info(interfaces, handler)
+        supports_poe = any(interface.supports_poe for interface in interfaces)
+    except (XMLParseError, POEStateNotSupportedError) as error:
+        _logger.error(
+            'Error getting PoE information from IP device %s: %s',
+            handler.netbox,
+            error,
+        )
+    except NotImplementedError:
+        # Only Cisco and Juniper have PoE support currently
+        pass
+
+    return supports_poe, poe_options
+
+
+def _get_alias_template():
+    """Get the alias template rendered with the current ifaliasformat"""
+    ifaliasformat = CONFIG.get_ifaliasformat()
+    if not ifaliasformat:
+        return ''
+    tmpl = get_aliastemplate()
+    return tmpl.render({'ifaliasformat': ifaliasformat})
 
 
 def fetch_voice_vlan_for_netbox(request: HttpRequest, handler: ManagementHandler):
@@ -308,7 +424,7 @@ def fetch_voice_vlan_for_netbox(request: HttpRequest, handler: ManagementHandler
         # Should this be reported? At the moment I do not think so.
         return
     if len(voice_vlans_on_netbox) > 1:
-        messages.error(request, 'Multiple voice vlans configured on this ' 'netbox')
+        messages.error(request, 'Multiple voice vlans configured on this netbox')
         return
 
     return voice_vlans_on_netbox[0]
@@ -431,9 +547,9 @@ def set_ifalias(account, handler: ManagementHandler, interface, request):
                 interface.ifalias = ifalias
                 LogEntry.add_log_entry(
                     account,
-                    u'set-ifalias',
-                    u'{actor}: {object} - ifalias set to "%s"' % ifalias,
-                    subsystem=u'portadmin',
+                    'set-ifalias',
+                    '{actor}: {object} - ifalias set to "%s"' % ifalias,
+                    subsystem='portadmin',
                     object=interface,
                 )
                 _logger.info(
@@ -477,9 +593,9 @@ def set_vlan(account, handler: ManagementHandler, interface, request):
             interface.vlan = vlan
             LogEntry.add_log_entry(
                 account,
-                u'set-vlan',
-                u'{actor}: {object} - vlan set to "%s"' % vlan,
-                subsystem=u'portadmin',
+                'set-vlan',
+                '{actor}: {object} - vlan set to "%s"' % vlan,
+                subsystem='portadmin',
                 object=interface,
             )
             _logger.info(
@@ -556,7 +672,7 @@ def set_admin_status(handler: ManagementHandler, interface, request: HttpRequest
     """Set admin status for the interface"""
     status_up = '1'
     status_down = '2'
-    account = request.account
+    account = get_account(request)
 
     if 'ifadminstatus' in request.POST:
         adminstatus = request.POST['ifadminstatus']
@@ -564,9 +680,9 @@ def set_admin_status(handler: ManagementHandler, interface, request: HttpRequest
             if adminstatus == status_up:
                 LogEntry.add_log_entry(
                     account,
-                    u'enable-interface',
-                    u'{actor} enabled interface {object}',
-                    subsystem=u'portadmin',
+                    'enable-interface',
+                    '{actor} enabled interface {object}',
+                    subsystem='portadmin',
                     object=interface,
                 )
                 _logger.info(
@@ -579,9 +695,9 @@ def set_admin_status(handler: ManagementHandler, interface, request: HttpRequest
             elif adminstatus == status_down:
                 LogEntry.add_log_entry(
                     account,
-                    u'disable-interface',
-                    u'{actor} disabled interface {object}',
-                    subsystem=u'portadmin',
+                    'disable-interface',
+                    '{actor} disabled interface {object}',
+                    subsystem='portadmin',
                     object=interface,
                 )
                 _logger.info(
@@ -620,7 +736,7 @@ def render_trunk_edit(request, interfaceid):
         else:
             messages.success(request, 'Trunk edit successful')
 
-    account = request.account
+    account = get_account(request)
     netbox = interface.netbox
     add_readonly_reason(request, handler)
     try:
@@ -682,12 +798,13 @@ def handle_trunk_edit(request, agent, interface):
     _logger.info(
         'Interface %s - native: %s, trunk: %s', interface, native_vlan, trunked_vlans
     )
+    account = get_account(request)
     LogEntry.add_log_entry(
-        request.account,
-        u'set-vlan',
-        u'{actor}: {object} - native vlan: "%s", trunk vlans: "%s"'
+        account,
+        'set-vlan',
+        '{actor}: {object} - native vlan: "%s", trunk vlans: "%s"'
         % (native_vlan, trunked_vlans),
-        subsystem=u'portadmin',
+        subsystem='portadmin',
         object=interface,
     )
 
@@ -774,3 +891,15 @@ def get_management_handler(netbox: Netbox) -> ManagementHandler:
         return ManagementFactory.get_instance(netbox, timeout=timeout, retries=retries)
     except ManagementError as error:
         _logger.error('Error getting ManagementHandler instance %s: %s', netbox, error)
+
+
+def render_feedback_modal(request):
+    """Renders a modal that is used to display feedback when saving interface changes"""
+    return render_modal(
+        request,
+        'portadmin/_feedback_modal.html',
+        modal_id="portadmin-feedback-modal",
+        close_on_outside_click=False,
+        show_close_button=False,
+        size="small",
+    )

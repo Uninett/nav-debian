@@ -33,6 +33,7 @@ from the database can be executed in a separate thread to avoid
 interfering with the daemon's asynchronous operations.
 
 """
+
 from collections import defaultdict
 import logging
 
@@ -76,7 +77,6 @@ class NetboxLoader(dict):
         super(NetboxLoader, self).__init__()
         self.peak_count = 0
         # touch _logger to initialize logging context right away
-        # pylint: disable=W0104
         self._logger
 
     def load_all_s(self):

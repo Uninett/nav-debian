@@ -19,6 +19,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Cleans old data from the NAV database"""
+
 import argparse
 import sys
 
@@ -214,9 +215,6 @@ class RecordCleaner:
         sql = self.sql(expiry)
         cursor.execute(sql)
         return cursor.rowcount
-
-
-# pylint: disable=missing-docstring
 
 
 class ArpDeleter(RecordCleaner):

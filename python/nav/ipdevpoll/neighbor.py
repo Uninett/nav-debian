@@ -23,6 +23,7 @@ The classes and function within this module operate synchronously, and should
 therefore be run in the threadpool instead of the main reactor thread.
 
 """
+
 import re
 from datetime import timedelta
 import threading
@@ -95,9 +96,9 @@ INVALID_IPS = (
 )
 
 
-# pylint: disable=R0903
 class Neighbor(object):
     "Abstract base class for neigbor identification"
+
     _logger = ContextLogger()
 
     def __init__(self, record, local_address=None):
@@ -205,7 +206,7 @@ class Neighbor(object):
             return None
         except manage.Netbox.MultipleObjectsReturned:
             self._logger.info(
-                "found multiple matching neighbors on remote, " "cannot decide: %s",
+                "found multiple matching neighbors on remote, cannot decide: %s",
                 query,
             )
             return None
@@ -230,7 +231,7 @@ class Neighbor(object):
 
         if is_invalid_database_string(name):
             self._logger.warning(
-                "cannot search database for malformed " "neighboring port name %r", name
+                "cannot search database for malformed neighboring port name %r", name
             )
             return
 
@@ -250,7 +251,6 @@ class Neighbor(object):
         for ifc in manage.Interface.objects.values(
             'id', 'ifname', 'ifdescr', 'iftype'
         ).filter(netbox & query):
-
             ifc = shadows.Interface(**ifc)
             ifc.netbox = self.netbox
             result.append(ifc)

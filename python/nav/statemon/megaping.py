@@ -33,7 +33,6 @@ from .icmppacket import ICMP_MINLEN, PacketV4, PacketV6
 _logger = logging.getLogger(__name__)
 
 
-# pylint: disable=W0703
 def make_sockets():
     """Makes and returns the raw IPv6 and IPv4 ICMP sockets.
 
@@ -44,7 +43,7 @@ def make_sockets():
         socketv6 = socket.socket(
             socket.AF_INET6, socket.SOCK_RAW, socket.getprotobyname('ipv6-icmp')
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         _logger.error("Could not create v6 socket")
         raise
 
@@ -52,8 +51,8 @@ def make_sockets():
         socketv4 = socket.socket(
             socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname('icmp')
         )
-    except Exception:
-        _logger.error("Could not create v6 socket")
+    except Exception:  # noqa: BLE001
+        _logger.error("Could not create v4 socket")
         raise
 
     return [socketv6, socketv4]
@@ -156,12 +155,11 @@ class MegaPing(object):
     _requests = _sender = _getter = _sender_finished = None
 
     def __init__(self, sockets, conf=None):
-
         # Get config in /etc/pping.conf
         if conf is None:
             try:
                 self._conf = config.pingconf()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 _logger.critical("Failed to open config file. Using default values.")
                 self._conf = {}
         else:
@@ -196,7 +194,7 @@ class MegaPing(object):
         else:
             try:
                 sockets = make_sockets()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 _logger.error("Tried to create sockets without being root!")
 
             self._sock6 = sockets[0]
@@ -244,7 +242,6 @@ class MegaPing(object):
         return self._elapsedtime
 
     def _send_requests(self):
-
         # Get ip addresses to ping
         hosts = self._hosts.values()
 
@@ -261,7 +258,7 @@ class MegaPing(object):
                     self._sock4.sendto(packet, (host.ip, 0))
                 else:
                     self._sock6.sendto(packet, (host.ip, 0, 0, 0))
-            except Exception as error:
+            except Exception as error:  # noqa: BLE001
                 _logger.info("Failed to ping %s [%s]", host.ip, error)
 
             sleep(self._delay)
@@ -315,7 +312,7 @@ class MegaPing(object):
         packet_class = PacketV6 if is_ipv6 else PacketV4
         try:
             pong = packet_class(raw_pong)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             _logger.critical("could not disassemble packet from %r: %s", sender, error)
             return
 
@@ -326,7 +323,7 @@ class MegaPing(object):
 
         if not pong.id == self._pid:
             _logger.debug(
-                "packet from %r doesn't match our id (%s): %r (raw " "packet: %r)",
+                "packet from %r doesn't match our id (%s): %r (raw packet: %r)",
                 sender,
                 self._pid,
                 pong,

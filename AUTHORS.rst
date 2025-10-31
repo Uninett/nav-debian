@@ -28,6 +28,15 @@ Currently active contributors/maintainers
   Joined in 2022, working mainly as a front-end developer. Currently hacking
   away at open issues and learning the NAV codebase.
 
+* Jørund Hellebø <jorund.hellebo at sikt.no>
+  Joined part-time in 2024, working on DHCP statistics integration and building
+  HTTP/REST API management profiles for Palo Alto API implementations, among
+  other things.
+
+* Simen Abelsen <simen.abelsen at sikt.no>
+  Joined in August 2025, working on cleanup and modernization of the front-end
+  codebase.
+
 Other contributors and previous maintainers
 -------------------------------------------
 * Vidar Faltinsen <vidar.faltinsen at sikt.no>
@@ -43,6 +52,10 @@ Other contributors and previous maintainers
 * Sigmund Augdal
   Active from 2017, until he left Uninett in 2019. An experienced Python
   developer who, among other things, rewrote the ipdevpoll multiprocess mode.
+
+* Paulo Pamplona <paulo at nordu.net>
+  Works at SUNET. Contributed a bugfix to strip null-bytes from bytestrings being
+  made safe for PostgreSQL.
 
 * Joar Heimonen <contact at joar.me>
   Contributed Palo Alto ARP plugin to enable ipdevpoll fetch ARP data from Palo

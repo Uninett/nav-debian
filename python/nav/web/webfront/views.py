@@ -16,48 +16,56 @@
 #
 """Navbar (tools, preferences) and login related controllers"""
 
-
-from datetime import datetime
 import json
 import logging
+from datetime import datetime
 from operator import attrgetter
 from urllib.parse import quote as urlquote
 
+from django.db import models
+from django.db.models import Q
 from django.http import (
     HttpResponseBadRequest,
     HttpResponseForbidden,
     HttpResponseRedirect,
     HttpResponse,
+    HttpRequest,
     JsonResponse,
 )
-from django.views.decorators.http import require_POST
-from django.views.decorators.debug import sensitive_variables, sensitive_post_parameters
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.views.decorators.debug import sensitive_variables, sensitive_post_parameters
+from django.views.decorators.http import require_GET, require_POST
+from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh
 
 from nav.auditlog.models import LogEntry
-from nav.django.utils import get_account
-from nav.models.profiles import NavbarLink, AccountDashboard, AccountNavlet
-from nav.web.auth import logout as auth_logout
-from nav.web import auth
+from nav.models.profiles import (
+    AccountDashboard,
+    AccountDashboardSubscription,
+    AccountNavlet,
+    NavbarLink,
+)
+from nav.web import auth, webfrontConfig
 from nav.web.auth import ldap
-from nav.web.auth.utils import set_account
+from nav.web.auth import logout as auth_logout
+from nav.web.auth.utils import get_account, set_account
+from nav.web.message import new_message, Messages
+from nav.web.modals import render_modal, render_modal_alert
+from nav.web.navlets import can_modify_navlet
+from nav.web.utils import generate_qr_code_as_string
 from nav.web.utils import require_param
-from nav.web.webfront.utils import quick_read, tool_list
+from nav.web.webfront import (
+    find_dashboard,
+    get_dashboards_for_account,
+    WELCOME_ANONYMOUS_PATH,
+    WELCOME_REGISTERED_PATH,
+)
 from nav.web.webfront.forms import (
     LoginForm,
     NavbarLinkFormSet,
     ChangePasswordForm,
-    ColumnsForm,
 )
-from nav.web.navlets import list_navlets, can_modify_navlet
-from nav.web.message import new_message, Messages
-from nav.web.webfront import (
-    get_widget_columns,
-    find_dashboard,
-    WELCOME_ANONYMOUS_PATH,
-    WELCOME_REGISTERED_PATH,
-)
+from nav.web.webfront.utils import quick_read, tool_list
 
 _logger = logging.getLogger('nav.web.tools')
 
@@ -65,13 +73,18 @@ _logger = logging.getLogger('nav.web.tools')
 def index(request, did=None):
     """Controller for main page."""
     # Read files that will be displayed on front page
-    if request.account.is_default_account():
+    account = get_account(request)
+    if account.is_anonymous:
         welcome = quick_read(WELCOME_ANONYMOUS_PATH)
     else:
         welcome = quick_read(WELCOME_REGISTERED_PATH)
 
-    dashboard = find_dashboard(request.account, did)
-    dashboards = AccountDashboard.objects.filter(account=request.account)
+    dashboard = find_dashboard(account, did)
+    dashboards = get_dashboards_for_account(account)
+
+    dashboard_ids = [d.id for d in dashboards]
+    if dashboard.id not in dashboard_ids:
+        dashboards.append(dashboard)
 
     context = {
         'navpath': [('Home', '/')],
@@ -79,30 +92,133 @@ def index(request, did=None):
         'welcome': welcome,
         'dashboard': dashboard,
         'dashboards': dashboards,
-        'navlets': list_navlets(),
-        'title': u'NAV - {}'.format(dashboard.name),
+        'can_edit': dashboard.can_edit(account),
+        'is_subscribed': dashboard.is_subscribed(account),
+        'title': 'NAV - {}'.format(dashboard.name),
     }
-
-    if dashboards.count() > 1:
-        dashboard_ids = [d.pk for d in dashboards]
-        current_index = dashboard_ids.index(dashboard.pk)
-        previous_index = current_index - 1
-        next_index = current_index + 1
-        if current_index == len(dashboard_ids) - 1:
-            next_index = 0
-        context.update(
-            {
-                'previous_dashboard': dashboards.get(pk=dashboard_ids[previous_index]),
-                'next_dashboard': dashboards.get(pk=dashboard_ids[next_index]),
-            }
-        )
 
     return render(request, 'webfront/index.html', context)
 
 
+@require_POST
+def toggle_dashboard_shared(request, did):
+    """Toggle shared status for this dashboard"""
+    account = get_account(request)
+    dashboard = get_object_or_404(AccountDashboard, pk=did, account=account)
+
+    # Checkbox input returns 'on' if checked
+    is_shared = request.POST.get('is_shared') == 'on'
+    if is_shared == dashboard.is_shared:
+        return _render_share_form_response(
+            request,
+            dashboard,
+        )
+
+    dashboard.is_shared = is_shared
+    dashboard.save()
+
+    if not is_shared:
+        AccountDashboardSubscription.objects.filter(dashboard=dashboard).delete()
+
+    return _render_share_form_response(
+        request,
+        dashboard,
+        message="Dashboard sharing is now {}.".format(
+            "enabled" if is_shared else "disabled"
+        ),
+    )
+
+
+def _render_share_form_response(
+    request, dashboard: AccountDashboard, message: str = None
+):
+    """Render the share dashboard form response."""
+    return render(
+        request,
+        'webfront/_dashboard_settings_shared_form.html',
+        {
+            'dashboard': dashboard,
+            'message': message,
+            'changed': True,
+        },
+    )
+
+
+@require_POST
+def toggle_subscribe(request, did):
+    """Toggle subscription status for this dashboard"""
+    dashboard = get_object_or_404(AccountDashboard, pk=did, is_shared=True)
+    account = get_account(request)
+    if dashboard.is_subscribed(account):
+        AccountDashboardSubscription.objects.filter(
+            account=account, dashboard=dashboard
+        ).delete()
+    else:
+        AccountDashboardSubscription(account=account, dashboard=dashboard).save()
+
+    return HttpResponseClientRefresh()
+
+
+@require_GET
+def dashboard_search_modal(request):
+    """Render the dashboard search modal dialog"""
+
+    return render_modal(
+        request,
+        'webfront/_dashboard_search_form.html',
+        modal_id='dashboard-search-form',
+        size='small',
+    )
+
+
+@require_POST
+def dashboard_search(request):
+    """Search for shared dashboards"""
+    raw_search = request.POST.get('search', '')
+    search = raw_search.strip() if raw_search else ''
+    if not search:
+        return render(
+            request,
+            'webfront/_dashboard_search_results.html',
+            {
+                'dashboards': [],
+                'search': search,
+            },
+        )
+
+    account = get_account(request)
+    dashboards = (
+        AccountDashboard.objects.exclude(account=account)
+        .filter(
+            Q(name__icontains=search)
+            | Q(account__login__icontains=search)
+            | Q(account__name__icontains=search),
+            is_shared=True,
+        )
+        .select_related('account')
+        .annotate(
+            is_subscribed=models.Exists(
+                AccountDashboardSubscription.objects.filter(
+                    dashboard=models.OuterRef('pk'), account=account
+                )
+            )
+        )
+    )
+
+    return render(
+        request,
+        'webfront/_dashboard_search_results.html',
+        {
+            'dashboards': dashboards,
+            'search': search,
+        },
+    )
+
+
 def export_dashboard(request, did):
     """Export dashboard as JSON."""
-    dashboard = get_object_or_404(AccountDashboard, pk=did, account=request.account)
+    account = get_account(request)
+    dashboard = find_dashboard(account, did)
 
     response = JsonResponse(dashboard.to_json_dict())
     response['Content-Disposition'] = 'attachment; filename={name}.json'.format(
@@ -129,57 +245,64 @@ widget_fields = {
 @require_POST
 def import_dashboard(request):
     """Receive an uploaded dashboard file and store in database"""
-    if not can_modify_navlet(request.account, request):
+    account = get_account(request)
+    if not can_modify_navlet(account, request):
         return HttpResponseForbidden()
-    response = {}
-    if 'file' in request.FILES:
-        try:
-            # Ensure file is interpreted as utf-8 regardless of locale
-            blob = request.FILES['file'].read()
-            data = json.loads(blob.decode("utf-8"))
-            if not isinstance(data, dict):
-                raise ValueError()
-            for field, dtype in dashboard_fields.items():
-                if field not in data:
-                    raise ValueError()
-                if not isinstance(data[field], dtype):
-                    raise ValueError()
-            dashboard = AccountDashboard(account=request.account, name=data['name'])
-            dashboard.num_columns = data['num_columns']
-            widgets = []
-            for widget in data['widgets']:
-                if not isinstance(widget, dict):
-                    raise ValueError()
-                for field, dtype in widget_fields.items():
-                    if field not in widget:
-                        raise ValueError()
-                    if not isinstance(widget[field], dtype):
-                        raise ValueError()
-                    if widget['column'] > dashboard.num_columns:
-                        raise ValueError()
-                widget = {k: v for k, v in widget.items() if k in widget_fields}
-                widgets.append(widget)
-            dashboard.save()
-            for widget in widgets:
-                dashboard.widgets.create(account=request.account, **widget)
-            dashboard.save()
-            response['location'] = reverse('dashboard-index-id', args=(dashboard.id,))
-        except ValueError:
-            _logger.exception('Failed to parse dashboard file for import')
-            return JsonResponse(
-                {
-                    'error': "File is not a valid dashboard file",
-                },
-                status=400,
-            )
-    else:
-        return JsonResponse(
-            {
-                'error': "You need to provide a file",
-            },
-            status=400,
+
+    if 'file' not in request.FILES:
+        return render_modal_alert(
+            request, "You need to provide a file", modal_id="import-dashboard-form"
         )
-    return JsonResponse(response)
+
+    try:
+        # Ensure file is interpreted as utf-8 regardless of locale
+        blob = request.FILES['file'].read()
+        data = json.loads(blob.decode("utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError()
+        for field, dtype in dashboard_fields.items():
+            if field not in data:
+                raise ValueError()
+            if not isinstance(data[field], dtype):
+                raise ValueError()
+        dashboard = AccountDashboard(account=account, name=data['name'])
+        dashboard.num_columns = data['num_columns']
+        widgets = []
+        for widget in data['widgets']:
+            if not isinstance(widget, dict):
+                raise ValueError()
+            for field, dtype in widget_fields.items():
+                if field not in widget:
+                    raise ValueError()
+                if not isinstance(widget[field], dtype):
+                    raise ValueError()
+                if widget['column'] > dashboard.num_columns:
+                    raise ValueError()
+            widget = {k: v for k, v in widget.items() if k in widget_fields}
+            widgets.append(widget)
+        dashboard.save()
+        for widget in widgets:
+            dashboard.widgets.create(account=account, **widget)
+        dashboard.save()
+        dashboard_url = reverse('dashboard-index-id', args=(dashboard.id,))
+        return HttpResponseClientRedirect(dashboard_url)
+    except ValueError:
+        _logger.exception('Failed to parse dashboard file for import')
+        return render_modal_alert(
+            request,
+            "File is not a valid dashboard file",
+            modal_id="import-dashboard-form",
+        )
+
+
+def import_dashboard_modal(request):
+    """Render the import dashboard modal dialog"""
+    return render_modal(
+        request,
+        'webfront/_import_dashboard_form_modal.html',
+        modal_id="import-dashboard-form",
+        size="small",
+    )
 
 
 @sensitive_post_parameters('password')
@@ -190,7 +313,8 @@ def login(request):
 
     origin = request.GET.get('origin', '').strip()
     if 'noaccess' in request.GET:
-        if request.account.is_default_account():
+        account = get_account(request)
+        if account.is_anonymous:
             errors = ['You need to log in to access this resource']
         else:
             errors = [
@@ -211,8 +335,18 @@ def login(request):
     )
 
 
+def audit_logging_modal(request):
+    """Render the audit logging info modal"""
+    return render_modal(
+        request,
+        'webfront/_about_audit_logging_modal.html',
+        modal_id='about-audit-logging',
+        size="small",
+    )
+
+
 @sensitive_variables('password')
-def do_login(request):
+def do_login(request: HttpRequest) -> HttpResponse:
     """Do a login based on post parameters"""
     errors = []
     form = LoginForm(request.POST)
@@ -239,7 +373,7 @@ def do_login(request):
             else:
                 _logger.info("failed login: %r", username)
                 errors.append(
-                    'Username or password is incorrect, or the ' 'account is locked.'
+                    'Username or password is incorrect, or the account is locked.'
                 )
 
     # Something went wrong. Display login page with errors.
@@ -254,7 +388,7 @@ def do_login(request):
     )
 
 
-def logout(request):
+def logout(request: HttpRequest) -> HttpResponse:
     """Controller for doing a logout"""
     nexthop = auth_logout(request)
     return HttpResponseRedirect(nexthop)
@@ -274,7 +408,7 @@ def about(request):
 
 def toolbox(request):
     """Render the toolbox"""
-    account = request.account
+    account = get_account(request)
     tools = sorted(tool_list(account), key=attrgetter('name'))
 
     return render(
@@ -303,9 +437,6 @@ def _create_preference_context(request):
         'navpath': [('Home', '/'), ('Preferences', None)],
         'title': 'Personal NAV preferences',
         'password_form': password_form,
-        'columns_form': ColumnsForm(
-            initial={'num_columns': get_widget_columns(account)}
-        ),
         'account': account,
         'tool': {
             'name': 'My account',
@@ -326,13 +457,28 @@ def preferences(request):
     return render(request, 'webfront/preferences.html', context)
 
 
+def qr_code(request):
+    """Render a model with a qr code linking to current page"""
+    url = request.headers.get("referer")
+    file_format = webfrontConfig.get("qr_codes", "file_format")
+    qr_code = generate_qr_code_as_string(url=url, caption=url, file_format=file_format)
+
+    return render_modal(
+        request,
+        'webfront/_qr_code.html',
+        context={'qr_code': qr_code, 'file_format': file_format},
+        modal_id='qr-code',
+        size='small',
+    )
+
+
 @sensitive_post_parameters('old_password', 'new_password1', 'new_password2')
 def change_password(request):
     """Handles POST requests to change a users password"""
     context = _create_preference_context(request)
     account = get_account(request)
 
-    if account.is_default_account():
+    if account.is_anonymous:
         return render(request, 'useradmin/not-logged-in.html', {})
 
     if request.method == 'POST':
@@ -374,22 +520,9 @@ def save_links(request):
     return HttpResponseRedirect(reverse('webfront-preferences'))
 
 
-def set_widget_columns(request):
-    """Set the number of columns on the webfront"""
-    if request.method == 'POST':
-        form = ColumnsForm(request.POST)
-        if form.is_valid():
-            account = request.account
-            num_columns = form.cleaned_data.get('num_columns')
-            account.preferences[account.PREFERENCE_KEY_WIDGET_COLUMNS] = num_columns
-            account.save()
-            return HttpResponseRedirect(reverse('webfront-index'))
-    return HttpResponseRedirect(reverse('webfront-preferences'))
-
-
 def set_account_preference(request):
     """Set account preference using url attributes"""
-    account = request.account
+    account = get_account(request)
     account.preferences.update(request.GET.dict())
     account.save()
     return HttpResponse()
@@ -398,10 +531,11 @@ def set_account_preference(request):
 @require_POST
 def set_default_dashboard(request, did):
     """Set the default dashboard for the user"""
-    dash = get_object_or_404(AccountDashboard, pk=did, account=request.account)
+    account = get_account(request)
+    dash = get_object_or_404(AccountDashboard, pk=did, account=account)
 
     old_defaults = list(
-        AccountDashboard.objects.filter(account=request.account, is_default=True)
+        AccountDashboard.objects.filter(account=account, is_default=True)
     )
     for old_default in old_defaults:
         old_default.is_default = False
@@ -412,14 +546,15 @@ def set_default_dashboard(request, did):
         objs=old_defaults + [dash], fields=["is_default"]
     )
 
-    return HttpResponse(u'Default dashboard set to «{}»'.format(dash.name))
+    return HttpResponse('Default dashboard set to «{}»'.format(dash.name))
 
 
 @require_POST
 def add_dashboard(request):
     """Add a new dashboard to this user"""
     name = request.POST.get('dashboard-name', 'New dashboard')
-    dashboard = AccountDashboard(account=request.account, name=name)
+    account = get_account(request)
+    dashboard = AccountDashboard(account=account, name=name)
     dashboard.save()
     return JsonResponse({'dashboard_id': dashboard.pk})
 
@@ -427,11 +562,12 @@ def add_dashboard(request):
 @require_POST
 def delete_dashboard(request, did):
     """Delete this dashboard and all widgets on it"""
-    is_last = AccountDashboard.objects.filter(account=request.account).count() == 1
+    account = get_account(request)
+    is_last = AccountDashboard.objects.filter(account=account).count() == 1
     if is_last:
         return HttpResponseBadRequest('Cannot delete last dashboard')
 
-    dash = get_object_or_404(AccountDashboard, pk=did, account=request.account)
+    dash = get_object_or_404(AccountDashboard, pk=did, account=account)
 
     if dash.is_default:
         return HttpResponseBadRequest('Cannot delete default dashboard')
@@ -444,10 +580,11 @@ def delete_dashboard(request, did):
 @require_POST
 def rename_dashboard(request, did):
     """Rename this dashboard"""
-    dash = get_object_or_404(AccountDashboard, pk=did, account=request.account)
+    account = get_account(request)
+    dash = get_object_or_404(AccountDashboard, pk=did, account=account)
     dash.name = request.POST.get('dashboard-name', dash.name)
     dash.save()
-    return HttpResponse(u'Dashboard renamed to «{}»'.format(dash.name))
+    return HttpResponse('Dashboard renamed to «{}»'.format(dash.name))
 
 
 @require_POST
@@ -455,7 +592,8 @@ def save_dashboard_columns(request, did):
     """Save the number of columns for this dashboard"""
 
     # Explicit fetch on account to prevent other people to change settings
-    dashboard = get_object_or_404(AccountDashboard, pk=did, account=request.account)
+    account = get_account(request)
+    dashboard = get_object_or_404(AccountDashboard, pk=did, account=account)
     dashboard.num_columns = request.POST.get('num_columns', 3)
     dashboard.save()
     return HttpResponse()
@@ -465,11 +603,11 @@ def save_dashboard_columns(request, did):
 @require_param('widget_id')
 def moveto_dashboard(request, did):
     """Move a widget to this dashboard"""
-    account = request.account
+    account = get_account(request)
     dashboard = get_object_or_404(AccountDashboard, account=account, pk=did)
     widget = get_object_or_404(
         AccountNavlet, account=account, pk=request.POST.get('widget_id')
     )
     widget.dashboard = dashboard
     widget.save()
-    return HttpResponse(u'Widget moved to {}'.format(dashboard))
+    return HttpResponse('Widget moved to {}'.format(dashboard))

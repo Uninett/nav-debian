@@ -16,6 +16,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """syslogger view definitions"""
+
 import json
 import datetime
 from configparser import ConfigParser
@@ -27,12 +28,12 @@ from django.urls import reverse
 
 from nav.config import NAV_CONFIG, find_config_file
 
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
 
 from nav.models.logger import LogMessage
 from nav.models.logger import ErrorError
 from nav.web.syslogger.forms import LoggerGroupSearchForm
-from nav.web.utils import create_title
+from nav.web.utils import create_title, is_ajax
 
 
 DATEFORMAT = "%Y-%m-%d %H:%M:%S"
@@ -68,7 +69,6 @@ def _build_context(request):
 
         form = LoggerGroupSearchForm(query_dict)
         if form.is_valid():
-
             results = LogMessage.objects.filter(
                 time__gte=form.cleaned_data['timestamp_from'],
                 time__lte=form.cleaned_data['timestamp_to'],
@@ -204,7 +204,7 @@ def index(request):
 
 
 def group_search(request):
-    if not request.is_ajax():
+    if not is_ajax(request):
         return HttpResponseRedirect(reverse(index) + '?' + request.GET.urlencode())
     return handle_search(request, LoggerGroupSearchForm, reverse(group_search))
 
@@ -213,7 +213,7 @@ def exceptions_response(request):
     """
     Handler for exception-mode.
     """
-    if not request.is_ajax():
+    if not is_ajax(request):
         return HttpResponseRedirect(reverse(index) + '?' + request.GET.urlencode())
 
     account = get_account(request)
@@ -236,7 +236,7 @@ def errors_response(request):
     """
     Handler for error-mode.
     """
-    if not request.is_ajax():
+    if not is_ajax(request):
         return HttpResponseRedirect(reverse(index) + '?' + request.GET.urlencode())
 
     account = get_account(request)

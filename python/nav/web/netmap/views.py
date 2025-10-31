@@ -14,12 +14,13 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Netmap views"""
+
 import json
 
 from django.db.models import Q
 from django.views.generic import TemplateView, ListView
 
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
 from nav.models.profiles import (
     NetmapView,
     NetmapViewDefaultView,
@@ -32,17 +33,12 @@ from .serializers import NetmapViewSerializer
 from .graph import get_traffic_gradient
 
 
-# Ignore linting errors from DRF class hierarchy
-# pylint: disable=R0901,R0904
-
-
 class IndexView(DefaultNetmapViewMixin, TemplateView):
     """Main view for Netmap"""
 
     template_name = 'netmap/netmap.html'
 
     def get_context_data(self, **kwargs):
-
         user = get_account(self.request)
 
         context = super(IndexView, self).get_context_data(user=user, **kwargs)

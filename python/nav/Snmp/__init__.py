@@ -20,6 +20,7 @@ This interface only supports pynetsnmp, but is designed to allow
 multiple implementations
 
 """
+
 import os
 import sys
 
@@ -33,8 +34,6 @@ except ImportError:
 else:
     BACKEND = 'pynetsnmp'
 
-# These wildcard imports are informed, not just accidents.
-# pylint: disable=W0401
 if BACKEND == 'pynetsnmp':
     if sys.platform == "darwin" and not os.getenv("DYLD_LIBRARY_PATH"):
         # horrible workaround for MacOS problems, described at length at
@@ -57,6 +56,7 @@ def safestring(string, encodings_to_try=('utf-8', 'latin-1')):
     undefined and unknown. To ensure they can be safely stored in the
     database (which only accepts UTF-8), we make various attempts at decoding
     strings to unicode objects before the database becomes involved.
+
     """
     if string is None:
         return
@@ -64,6 +64,7 @@ def safestring(string, encodings_to_try=('utf-8', 'latin-1')):
     if isinstance(string, str):
         return string
     if isinstance(string, bytes):
+        string = string.strip(b'\x00')
         for encoding in encodings_to_try:
             try:
                 return string.decode(encoding)

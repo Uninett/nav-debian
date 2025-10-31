@@ -14,10 +14,9 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-# pylint: disable=E1101
 """Urlconf for the NAV REST api"""
 
-from django.urls import re_path, include
+from django.urls import re_path, include, path
 from rest_framework import routers
 
 from nav.auditlog import api as auditlogapi
@@ -53,24 +52,21 @@ router.register(
 )
 router.register(r'auditlog', auditlogapi.LogEntryViewSet, basename='auditlog')
 router.register(r'module', views.ModuleViewSet, basename='module')
+router.register(r'netboxentity', views.NetboxEntityViewSet, basename='netboxentity')
 
 
 urlpatterns = [
-    re_path(r'^$', views.api_root),
-    re_path(r'^token/$', views.get_or_create_token, name="token"),
-    re_path(r'^version/$', views.get_nav_version, name="version"),
-    re_path(
-        r"^prefix/routed/?$",
-        views.RoutedPrefixList.as_view(),
-        name="prefix-routed-list",
-    ),
-    re_path(
-        r"^prefix/usage/?$", views.PrefixUsageList.as_view(), name="prefix-usage-list"
-    ),
+    path('', views.api_root),
+    path('token/', views.get_or_create_token, name="token"),
+    path('version/', views.get_nav_version, name="version"),
+    path('prefix/routed/', views.RoutedPrefixList.as_view(), name="prefix-routed-list"),
+    path('prefix/usage/', views.PrefixUsageList.as_view(), name="prefix-usage-list"),
     re_path(
         r"^prefix/usage/(?P<prefix>.*)$",
         views.PrefixUsageDetail.as_view(),
         name="prefix-usage-detail",
     ),
-    re_path(r'^', include(router.urls)),
+    path('', include(router.urls)),
+    path('vendor/', views.VendorLookup.as_view(), name='vendor'),
+    path('jwt/refresh/', views.JWTRefreshViewSet.as_view(), name='jwt-refresh'),
 ]

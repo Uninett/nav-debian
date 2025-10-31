@@ -8,6 +8,195 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+NAV 5.15
+========
+
+Dependency changes
+------------------
+
+Python modules with changed version requirements:
+
+* :mod:`napalm` (``>=5.1.0,<5.2.0``)
+
+
+Shareable dashboards
+--------------------
+
+Users can now elect to share their dashboards with other users of the same NAV
+installation. Instead of relying on exporting a static dashboard definition to
+JSON and having other users import this definition, users can now *subscribe*
+to other users' shared dashboards.
+
+The active dashboard can be marked as shared by opening the dashboard
+configuration dialog (the cog icon on the right-hand side of the screen) and
+click on "Share dashboard", followed by clicking on the "Save sharing settings"
+button.
+
+Discovering the shared dashboards of other users is done by clicking the "add
+dashboard" button (the plus sign next to your dashboard list) and then clicking
+on "Find shared dashboard". Search for a dashboard name or another user's
+name. Clicking on a shared dashboard name gives you a preview of the dashboard.
+To keep it permanently in your list of dashboards, you must click on the
+"Subscribe" button.
+
+When viewing a dashboard, its owner is clearly named in top right corner of the
+dashboard.
+
+
+NAV 5.14
+========
+
+Dependency changes
+------------------
+
+Python modules with changed version requirements:
+
+* :mod:`djangorestframework` (``>=3.14``)
+* :mod:`napalm` (``>=5.0.0,<5.1.0``)
+* :mod:`twisted` (``>=24.7``)
+
+These Python modules are new requirements:
+
+* :mod:`django-htmx`
+
+
+IP Device Info refresh
+----------------------
+
+Each IP Device's *IP Device Info* page shows an ipdevpoll job status list in
+the lower right corner. This NAV release finally adds the much-discussed
+**Refresh** button to these entries.
+
+The **Refresh** button will ask the :doc:`/reference/ipdevpoll` background
+process to schedule the selected job for an immediate re-run. Once the refresh
+is complete, the entire page will reload to show the potentially updated
+information.
+
+
+Issuing API JSON Web tokens (JWT)
+---------------------------------
+
+Since version 5.11, NAV has provided simple support for authorizing access to
+the API using JSON Web Token signed by authorized third parties.  This release
+adds two new, important features to complement this:
+
+* Signed JWTs can now include claims about read/write-level access and which
+  API endpoints it should be authorized to access
+* NAV can now issue its own JSON Web Tokens, through the *User and API
+  Administration* tool.
+
+More information about creating the necessary keys and configuring NAV to issue
+JWTs can be found in :ref:`local-jwt-configuration`.
+
+We expect to deprecate and remove the old opaque token system in future
+releases, once JWT support stabilizes.
+
+
+QR code generation
+------------------
+
+This release adds two new QR code generation features:
+
+* A new item ``QR Code`` has been added to the ``My stuff`` dropdown menu
+  present on every NAV page. Clicking this will generate and display a QR code
+  "bookmark" that links back to the URL you are currently viewing.
+* The *Seed Database* IP Device listing tab now has a button to generate a ZIP
+  file archive of QR codes linking back to the selected devices. This can
+  potentially be used to print a bunch of QR codes to glue to your equipment,
+  so they can be easily scanned and found in NAV while on-site.
+
+
+New API endpoints
+-----------------
+
+Two new API endpoints have been added:
+
+* ``/api/1/netboxentity/`` can be used to list the internal physical entities
+  that NAV has detected in your devices (chassis, modules, ports, fans, PSUs,
+  etc.), as well as their serial numbers.
+* ``/api/1/vendor/`` can be used to perform bulk OUI vendor lookups for MAC
+  addresses, based on NAV's downloaded IEEE OUI registry.
+
+
+Insecure password warnings
+--------------------------
+
+The *User and API administration* tool account list has for several years
+included warnings about users with potential password problems. One of the
+typical problems are passwords that were last changed in very old versions of
+NAV, which would use password hashing schemes that would no longer be
+considered secure today.
+
+These warnings seem to be too unobtrusive for administrators to notice;
+therefore, this NAV release will display a warning banner to all admins on all
+NAV pages that there are users with potential password problems. The individual
+users that have these password problems will also be shown a similar banner
+about their own account.
+
+"Quickselect" form in *Maintenance* and *Device history* tools has been replaced
+--------------------------------------------------------------------------------
+
+The so-called "quickselect" form, used to find and select components for adding
+to maintenance tasks, or to search for device history of selected components,
+was built using ancient Javascript technology about 18 years ago.  It had
+several issues and was really slow on NAV installations with many IP Devices,
+rooms or locations.
+
+The form has been entirely replaced by a more dynamic search tool, which will
+dynamically search the NAV database for matching components as you type into
+the search bar.
+
+
+Collecting DHCP pool statistics from KEA DHCP servers
+-----------------------------------------------------
+
+This release adds a new program (and cronjob) to collect DHCP pool
+usage/utilization stats from a KEA DHCP server API (:program:`navdhcpstats`)
+every five minutes and store these as time series data in NAV's associated
+Graphite server.  This program is intended to be extensible, so that
+implementations for other APIs can be added as plugins.
+
+We are working on graphing these statistics in the *Prefix* and *Vlan* detail
+pages in the NAV web UI, and expect to include this feature in the next
+release.  Until then, the only documentation for this new command is in the
+comments of its configuration file, :file:`dhcpstats.conf`.
+
+
+NAV 5.13
+========
+
+Dependency changes
+------------------
+
+NAV 5.13 will run properly on Python 3.11.
+
+Dependencies to these Python modules have been added:
+
+:mod:`pytz`
+
+Python modules with changed version requirements:
+
+* :mod:`Django` (``>=4.2,<4.3``)
+* :mod:`djangorestframework` (``>=3.12`` - in practice, 3.15 at the time of release)
+* :mod:`napalm` (``>=5.0.0,<5.1.0``)
+
+OUI lookup in Machine Tracker searches
+--------------------------------------
+
+The first three octets of a MAC hardware address is considered its OUI
+(Organizationally Unique Identifier), and identifies a vendor, manufacturer or
+other organization (as assigned by the IEEE).
+
+NAV 5.11 added the :program:`navoui` program to fetch OUI assignments from IEEE
+and populate the NAV database with them.  NAV 5.13 finally utilizes this
+information by adding optional vendor lookups to Machine Tracker searches.
+
+A new cron job, ``navoui``, is also added, to update the list of assignments
+daily.  You will not benefit from vendor lookups in Machine Tracker until
+:program:`navoui` has been run at least once. If you don't want to wait for the
+first run, you can simply run the program manually.
+
+
 NAV 5.12
 ========
 
@@ -50,6 +239,7 @@ the ``paloaltoarp`` plugin is listed *before* the ``arp`` plugin.
 
 
 .. _5.12-new-http-rest-api-management-profile-type:
+
 New way to configure fetching of Palo Alto firewall ARP cache data
 ------------------------------------------------------------------
 .. NOTE:: See
@@ -2323,9 +2513,9 @@ installation. This is used by the Django framework for cryptographic signing
 in various situations. Here are three suggestions for generating a suitable
 string of random characters, depending on what tools you have available:
 
-    1. :kbd:`gpg -a --gen-random 1 51`
-    2. :kbd:`makepasswd --chars 51`
-    3. :kbd:`pwgen -s 51 1`
+    1. :code:`gpg -a --gen-random 1 51`
+    2. :code:`makepasswd --chars 51`
+    3. :code:`pwgen -s 51 1`
 
 Please see
 https://docs.djangoproject.com/en/1.4/ref/settings/#std:setting-SECRET_KEY if

@@ -16,7 +16,6 @@
 #
 "Script to simulate snmpAgentState events from ipdevpoll"
 
-
 import sys
 from nav import db
 from nav.event import Event
@@ -26,9 +25,7 @@ database = connection.cursor()
 
 
 def handler(nblist, state):
-
     for netboxid in nblist:
-
         e = Event(
             'ipdevpoll',
             'eventEngine',
@@ -50,7 +47,10 @@ nbdup = set()
 sysnames = []
 
 for ii in range(1, len(sys.argv) - 1):
-    sql = "SELECT netboxid,sysname,typeid FROM netbox JOIN room USING(roomid) WHERE ip IS NOT NULL"
+    sql = (
+        "SELECT netboxid,sysname,typeid FROM netbox JOIN room USING(roomid) "
+        "WHERE ip IS NOT NULL"
+    )
     qn = sys.argv[ii]
     if (
         qn.startswith("_")

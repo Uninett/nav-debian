@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Handling web requests for the Report subsystem."""
+
 import logging
 import hashlib
 from functools import wraps
@@ -28,8 +29,6 @@ from os.path import join
 
 from IPy import IP
 
-# this is just here to make sure Django finds NAV's settings file
-# pylint: disable=W0611
 from django.core.cache import cache
 from django.core.paginator import Paginator, InvalidPage
 from django.shortcuts import render
@@ -45,6 +44,7 @@ from nav.report.matrixIPv6 import MatrixIPv6
 from nav.report.metaIP import MetaIP
 from nav.config import find_config_file, find_config_dir, list_config_files_from_dir
 
+from nav.web.auth.utils import get_account
 from nav.web.navlets import add_navlet
 
 
@@ -284,10 +284,11 @@ def make_report(request, report_name, export_delimiter, query_dict, paginate=Tru
     )
 
     config_files = list_config_files_from_dir(CONFIG_DIR)
+    account = get_account(request)
 
     @report_cache(
         (
-            request.account.login,
+            account.login,
             report_name,
             [stat(path).st_mtime for path in config_files],
         ),
@@ -309,7 +310,6 @@ def make_report(request, report_name, export_delimiter, query_dict, paginate=Tru
     if export_delimiter:
         return generate_export(report, report_name, export_delimiter)
     else:
-
         paginator = Paginator(report.table.rows, page_size)
         try:
             page = paginator.page(page_number)
@@ -390,7 +390,7 @@ def make_report(request, report_name, export_delimiter, query_dict, paginate=Tru
 
 def get_page_size(request):
     """Gets the page size based on preferences"""
-    account = request.account
+    account = get_account(request)
     key = account.PREFERENCE_KEY_REPORT_PAGE_SIZE
 
     if 'page_size' in request.GET:
@@ -470,7 +470,8 @@ def add_report_widget(request):
         'query_string': request.POST.get('query_string'),
     }
 
-    add_navlet(request.account, navlet, preferences)
+    account = get_account(request)
+    add_navlet(account, navlet, preferences)
 
     return HttpResponse()
 
@@ -494,7 +495,7 @@ def report_cache(key_items, query_dict):
         def _cache_lookup(*args, **kwargs):
             try:
                 data = cache.get(cache_key)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 _logger.exception("Exception occurred while hitting the cache")
                 data = None
 
@@ -502,7 +503,7 @@ def report_cache(key_items, query_dict):
                 data = func(*args, **kwargs)
                 try:
                     cache.set(cache_key, data)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     _logger.exception("Exception occurred while caching")
 
             return data

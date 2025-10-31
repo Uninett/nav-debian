@@ -181,31 +181,32 @@ Coding style
 ============
 
 NAV code should adhere to the Python style guide documented in
-:pep:`8`. PyLint_ is used to automatically validate much of these coding styles
-in our CI system.
+:pep:`8`. Ruff_ and SonarCloud_ are used to automatically validate much of
+these coding styles in our CI system.
 
 More importantly, all Python code in NAV is automatically formatted using
-Black_, a great tool for automatically formatting your code, obviating the need
-for discussing coding style issues in code reviews.
+Ruff_, a great tool for both linting and automatically formatting your code,
+obviating the need for discussing most coding style issues in code reviews.
 
 Conventions for writing good Python documentation strings (a.k.a. "docstrings")
 are immortalized in :pep:`257`.
 
 Much of the legacy NAV code was, however, written without using any specific
 guidelines for coding style. While all the old code has been formatted
-automatically using Black_, other :pep:`8` conventions aren't necessarily
-enfored here. We always accept patches that clean existing code.
+automatically using Ruff_, other :pep:`8` conventions aren't necessarily
+enforced here. We always accept patches that clean existing code.
 
-Pre-commit hooks and Black
---------------------------
+Pre-commit hooks and Ruff
+-------------------------
 
-To ensure all Python code is automatically formatted using Black_, we employ
+To ensure all Python code is automatically formatted using Ruff_, we employ
 the pre-commit_ framework. This framework ensures our pre-commit rules (as
 specified in :file:`.pre-commit-config.yaml`) are run when you issue the ``git
-commit`` command.
+commit`` command. This includes automated formatting and simple linting rules to
+uphold our coding standards.
 
-Once you have checked out the NAV source code repository from Git, simply run
-the following commands to enable our pre-commit hooks:
+Once you have checked out the NAV source code repository from Git, run the
+following commands to enable our pre-commit hooks:
 
 
 .. code-block:: sh
@@ -213,15 +214,16 @@ the following commands to enable our pre-commit hooks:
    pip install pre-commit
    pre-commit install
 
-If your Python code is not already formatted according to Black's rules when
-you ``git commit``, your code will be automatically formatted using Black, and
-the commit will fail, so that you can inspect the changes before attempting to
-commit again.
+If your Python code is not already formatted according to Ruff's rules when you
+issue ``git commit``, your code will be automatically formatted using Ruff, and
+the commit will initially fail, allowing you to inspect the automated changes
+before attempting to commit again.
 
-.. note:: Legacy NAV code was reformatted using Black in revision
-          ``e6634e512c8ecf283c85a701366620e724806ab7``. The reformatting
-          changes can be ignored by ``git blame`` if you have at least Git
-          2.23. See `this blog post for more information
+.. note:: The NAV codebase has been reformatted multiple times using automated
+          tools. Every commit that potentially reformats the whole codebase is
+          listed in :file:`.git-blame-ignore-revs`. Git can be configured to
+          explicitly ignore these formatting commits when running ``git
+          blame``. See `this blog post for more information
           <https://www.moxio.com/blog/43/ignoring-bulk-change-commits-with-git-blame>`_.
           *TL;DR*: Run :samp:`git config blame.ignoreRevsFile
           .git-blame-ignore-revs`
@@ -432,10 +434,10 @@ employed or commissioned by Sikt.
 Testing and Continuous Integration
 ==================================
 
-Much of NAV is **legacy code**, as defined by *Michael C. Feathers*:
-"Code that has no tests".  We have been making an effort to introduce
-automated tests into the codebase the past several years, and hope
-to improve coverage over time.
+Much of NAV is **legacy code**, as defined by *Michael C. Feathers*: "Code that
+has no tests".  Our goal is to improve this, and since about 2010 our test
+coverage has been slowly increasing. As of September 2024, our coverage is
+over 60%, and we aim to increase it further.
 
 All test suites (except those for Javascript) are located in the
 :file:`tests/` subdirectory.
@@ -443,10 +445,20 @@ All test suites (except those for Javascript) are located in the
 Running tests
 -------------
 
-We use a combination of pytest_ and tox_ to run the test suite.
+We use pytest_ as our test runner, and tox_ to enable running the test suites
+in matrix environments for different combinations of Python and Django
+versions. For the time being, our test suite is divided into three parts
+(``unittests``, ``integration`` and ``functional``).  The unit test suite can
+usually be run just fine from your local computer as long as tox_ and pytest_
+are available, but the integration and functional test suites have lots of
+external requirements that make them best suited to be run in a containerized
+environment (we are, however, working on rebuilding this so the necessary
+environments are easier to achieve on your local computer.  Please see `PR#3248
+<https://github.com/Uninett/nav/pull/3248>`_ for ongoing work).
 
-There's also a script to produce an entire test environment as a Docker
-image and to run the entire test suite inside a Docker container created
+
+For now, there is a script to produce an entire test environment as a Docker
+image, and to run the entire test suite inside a Docker container created
 from that image. Take a look in the :file:`tests/docker/` directory.
 
 For an interactive testing session with tox_, you can utilize the Docker image
@@ -459,7 +471,7 @@ like thus:
    ...
    $ make shell
    ...
-   $ tox run -e unit-py39-django32
+   $ tox run -e unit-py311-django42
    ...
 
 
@@ -492,6 +504,21 @@ of these are automatically run every time a change is pushed to a branch
 in the offical NAV Github repository, or when a pull request is opened
 against this repository.
 
+Development environments
+========================
+
+A complete NAV development environment has many dependencies, and not all are
+necessarily easy to satisfy on an arbitrary developer's computer.  We have
+therefore built two different development environment specifications based on
+Docker Compose, which should make running NAV for development smoother.
+
+1. The oldest of these is a plain Docker Compose specification. Read
+   :doc:`using-docker` for further instructions.
+2. The newest of them is a `devcontainers`_ specification, which should
+   integrate more smoothly into most popular IDEs for Python developers (such
+   as PyCharm or VS Code).  Read :doc:`using-devcontainers` for further
+   instructions.
+
 Tips and tricks
 ===============
 
@@ -511,7 +538,7 @@ the test case :py:class:`DjangoTransactionTestCase` in :py:mod:`nav.tests.cases`
 See :py:mod:`nav.tests.integration.l2trace_test` for an example on applying
 fixtures for your particular test case.
 
-See https://docs.djangoproject.com/en/1.8/topics/serialization/
+See https://docs.djangoproject.com/en/4.2/topics/serialization/
 
 .. TODO:: Be able to use `django-admin's management command: dumpdata
    <https://docs.djangoproject.com/en/dev/ref/django-admin/#dumpdata-appname-appname-appname-model>`_
@@ -533,10 +560,10 @@ __ Github_
 .. _tox: https://tox.readthedocs.io/en/latest/
 .. _Node.js: http://nodejs.org/
 .. _GitHub Actions: https://docs.github.com/en/actions
-.. _pylint: http://www.pylint.org/
 .. _Karma: https://github.com/karma-runner/karma-mocha
 .. _Mocha: http://mochajs.org/
 .. _Chai: http://chaijs.com/
-.. _Black: https://black.readthedocs.io/
-.. _black-macchiato: https://github.com/wbolster/black-macchiato
 .. _pre-commit: https://pre-commit.com/
+.. _Ruff: https://docs.astral.sh/ruff/
+.. _SonarCloud: https://sonarcloud.io/
+.. _devcontainers: https://containers.dev/

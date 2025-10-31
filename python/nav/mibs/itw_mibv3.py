@@ -21,6 +21,7 @@ A class that tries to retrieve all sensors from WeatherGoose II.
 Uses the vendor-specifica IT-WATCHDOGS-MIB-V3 to detect and collect
 sensor-information.
 """
+
 from twisted.internet import defer
 
 from nav.mibs import reduce_index
@@ -516,4 +517,4 @@ class ItWatchDogsMibV3(BaseITWatchDogsMib):
             self._logger.debug('get_all_sensors: %s = %s', table, sensors)
             result.extend(handler(sensors))
 
-        defer.returnValue(result)
+        return result

@@ -15,9 +15,6 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Import seed data in bulk."""
-# no importer implementations have public methods, disable R0903 warning
-# pylint: disable=R0903
-
 
 import json
 
@@ -418,21 +415,25 @@ def raise_if_exists(cls, **kwargs):
 
 class BulkImportError(BulkParseError):
     "Import failed."
+
     pass
 
 
 class DoesNotExist(BulkImportError):
     "Object does not exist"
+
     pass
 
 
 class MultipleObjectsReturned(BulkImportError):
     "Multiple objects returned"
+
     pass
 
 
 class AlreadyExists(BulkImportError):
     "Object already exist in database"
+
     pass
 
 

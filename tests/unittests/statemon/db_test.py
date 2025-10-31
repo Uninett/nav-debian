@@ -1,4 +1,5 @@
 # Copyright (C) 2020 Universitetet i Oslo
+# ruff: noqa E501
 
 from nav.statemon.db import db
 from unittest import TestCase
@@ -6,7 +7,6 @@ from unittest import TestCase
 
 class DBTestcase(TestCase):
     def test_build_host_query(self):
-
         db_instance = db()
 
         # Make groups

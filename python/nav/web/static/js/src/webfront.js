@@ -4,7 +4,8 @@ require([
     'plugins/sensors_controller',
     'plugins/fullscreen',
     'libs/jquery-ui.min',
-], function (RoomMapper, NavletsController, SensorsController, fullscreen) {
+    'src/getting_started_wizard'
+], function (RoomMapper, NavletsController, SensorsController, fullscreen, _, GettingStartedWizard) {
     'use strict';
 
     var $navletsContainer = $('#navlets');
@@ -138,18 +139,17 @@ require([
 
 
     function createFeedbackElements() {
-        var $dashboardSettingsPanel = $('#dropdown-dashboard-settings');
-        var $alertBox = $('<div class="alert-box">');
-        // Error element for naming the dashboard
+        var $dashboardSettingsPanel = $('#dashboard-settings-feedback');
         var errorElement = $('<small class="error">Name the dashboard</small>');
 
         function removeAlertbox() {
-            $alertBox.detach();
+            $dashboardSettingsPanel.empty();
         }
 
         function addFeedback(text, klass) {
             klass = klass ? klass : 'success';
-            $alertBox.attr('class', 'alert-box').addClass(klass).text(text).appendTo($dashboardSettingsPanel);
+            $dashboardSettingsPanel.empty();
+            $('<div class="alert-box">').addClass(klass).text(text).appendTo($dashboardSettingsPanel);
         }
 
         $dashboardSettingsPanel.on('closed', removeAlertbox);
@@ -194,11 +194,17 @@ require([
     function addColumnListener() {
         $('.column-chooser').click(function () {
             $navletsContainer.empty();
-            var columns = $(this).data('columns');
+            const columns = $(this).data('columns');
             new NavletsController($navletsContainer, columns);
             // Save number of columns
-            var url = $(this).closest('.button-group').data('url');
-            var request = $.post(url, {num_columns: columns});
+            const url = $(this).closest('.button-group').data('url');
+            const csrfToken = $('#update-columns-form input[name=csrfmiddlewaretoken]').val();
+            const request = $.ajax({
+                url,
+                type: 'POST',
+                data: {num_columns: columns},
+                headers: {'X-CSRFToken': csrfToken}
+            });
             request.done(function () {
                 $navletsContainer.data('widget-columns', columns);
             });
@@ -222,7 +228,10 @@ require([
         setDefaultDashboardForm.submit(function (event) {
             event.preventDefault();
             feedback.removeAlertbox();
-            var request = $.post(this.getAttribute('action'));
+            const request = $.post(
+                this.getAttribute('action'),
+                $(this).serialize()
+            );
             request.done(function (responseText) {
                 feedback.addFeedback(responseText);
                 setDefaultDashboardForm.hide();
@@ -297,36 +306,6 @@ require([
         });
     }
 
-
-    /**
-     * Import dashboard sumbit function
-     */
-    function setupImportDashboard() {
-        $('#dashboard-import form').submit(function(event) {
-            event.preventDefault();
-            var formData = new FormData($(this)[0]);
-
-            $.ajax({
-                url: $(this).attr("action"),
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (data) {
-                    window.location = data.location;
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    var error = "Error importing dashboard";
-                    if (jqXHR.responseJSON.error) {
-                        error = jqXHR.responseJSON.error;
-                    }
-                    $('#dashboard-import .alert-box').text(error).show();
-                }
-            });
-
-        });
-    }
-
     /**
      * Load runner - runs on page load
      */
@@ -350,17 +329,8 @@ require([
 
 
         /* Add click listener to joyride button */
-        $navletsContainer.on('click', '#joyrideme', function () {
-            var menu = $('.toggle-topbar'),
-                is_small_screen = menu.is(':visible');
-
-            if (is_small_screen) {
-                $('#joyride_for_desktop').remove();
-            } else {
-                $('#joyride_for_mobile').remove();
-            }
-
-            $(document).foundation('joyride', 'start');
+        $navletsContainer.on('click', '#getting-started-wizard', function () {
+            GettingStartedWizard.start();
         });
 
         /* Need some way of doing javascript stuff on widgets */
@@ -375,7 +345,6 @@ require([
 
         addDashboardKeyNavigation();
         addDroppableDashboardTargets();
-        setupImportDashboard();
 
         /**
          * The following listeners are applied to buttons on the right hand side
@@ -395,7 +364,6 @@ require([
         addCreateDashboardListener(feedback);
         addRenameDashboardListener(feedback);
         addDeleteDashboardListener(feedback);
-
     });
 
 });

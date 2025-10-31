@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """POP3 service checker"""
+
 import socket
 import poplib
 
@@ -67,7 +68,6 @@ class Pop3Checker(AbstractChecker):
 class PopConnection(poplib.POP3):
     """Customized POP3 protocol interface"""
 
-    # pylint: disable=W0231
     def __init__(self, timeout, ip, port):
         self.ip = ip
         self.port = port

@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """interface related shadow classes"""
+
 import datetime
 import operator
 from itertools import groupby
@@ -33,8 +34,6 @@ from .netbox import Netbox
 
 MISSING_THRESHOLD = datetime.timedelta(days=1)
 INFINITY = datetime.datetime.max
-
-# pylint: disable=C0111
 
 
 class InterfaceManager(DefaultManager):
@@ -124,7 +123,7 @@ class InterfaceManager(DefaultManager):
 
         if result and len(result) > 1:
             self._logger.debug(
-                "_find_existing_for: multiple matching interfaces " "found for %r: %r",
+                "_find_existing_for: multiple matching interfaces found for %r: %r",
                 snmp_ifc,
                 result,
             )
@@ -286,7 +285,7 @@ class InterfaceManager(DefaultManager):
 
         if link_filter not in ('any', 'topology'):
             self._logger.warning(
-                "configured linkstate filter is invalid: %r" " (using %r as default)",
+                "configured linkstate filter is invalid: %r (using %r as default)",
                 link_filter,
                 default,
             )
@@ -295,8 +294,6 @@ class InterfaceManager(DefaultManager):
             return link_filter
 
 
-# pylint is unable to see which members are created dynamically by metaclass:
-# pylint: disable=W0201,E0203
 class Interface(Shadow):
     __shadowclass__ = manage.Interface
     manager = InterfaceManager
@@ -321,7 +318,7 @@ class Interface(Shadow):
         """
         if not self.is_admin_up():
             self._logger.debug(
-                "withholding linkState event, interface %s is " "not admUp",
+                "withholding linkState event, interface %s is not admUp",
                 self.ifname or self.ifindex,
             )
             return

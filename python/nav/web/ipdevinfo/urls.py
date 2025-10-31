@@ -17,56 +17,60 @@
 #
 """Django URL config for ipdevinfo"""
 
-from django.urls import re_path
+from django.urls import path, re_path
 from nav.web.ipdevinfo import views
 
 
 urlpatterns = [
     # Search
-    re_path(r'^$', views.search, name='ipdevinfo-search'),
+    path('', views.search, name='ipdevinfo-search'),
     # Service list
-    re_path(r'^service/$', views.service_list, name='ipdevinfo-service-list-all'),
-    re_path(
-        r'^service/handler=(?P<handler>\w+)/$',
+    path('service/', views.service_list, name='ipdevinfo-service-list-all'),
+    path(
+        'service/handler=<str:handler>/',
         views.service_list,
         name='ipdevinfo-service-list-handler',
     ),
     # Service matrix
-    re_path(
-        r'^service/matrix/$', views.service_matrix, name='ipdevinfo-service-matrix'
-    ),
+    path('service/matrix/', views.service_matrix, name='ipdevinfo-service-matrix'),
     # IP Device details
     re_path(
         r'^ip=(?P<addr>[a-f\d\.:]+)/$',
         views.ipdev_details,
         name='ipdevinfo-details-by-addr',
     ),
-    re_path(
-        r'^id=(?P<netbox_id>\d+)/$', views.ipdev_details, name='ipdevinfo-details-by-id'
-    ),
-    re_path(
-        r'^(?P<name>[^/]+)/$', views.ipdev_details, name='ipdevinfo-details-by-name'
-    ),
+    path('id=<int:netbox_id>/', views.ipdev_details, name='ipdevinfo-details-by-id'),
+    path('<str:name>/', views.ipdev_details, name='ipdevinfo-details-by-name'),
     re_path(
         r'^save_port_layout_pref',
         views.save_port_layout_pref,
         name='ipdevinfo-save-port-layout',
     ),
     # Module details
-    re_path(
-        r'^(?P<netbox_sysname>[^/]+)/module=(?P<module_name>.+)/$',
+    path(
+        '<str:netbox_sysname>/module=<str:module_name>/',
         views.module_details,
         name='ipdevinfo-module-details',
     ),
     # PoE details
-    re_path(
-        r'^(?P<netbox_sysname>[^/]+)/poegroup=(?P<grpindex>.+)/$',
+    path(
+        '<str:netbox_sysname>/poegroup=<str:grpindex>/',
         views.poegroup_details,
         name='ipdevinfo-poegroup-details',
     ),
-    # Interface details
     re_path(
-        r'^(?P<netbox_sysname>[^/]+)/interface=(?P<port_id>\d+)/$',
+        r'^poe-status-info-modal',
+        views.poe_status_hint_modal,
+        name='ipdevinfo-poe-status-hint-modal',
+    ),
+    re_path(
+        r'^poe-classification-info-modal',
+        views.poe_classification_hint_modal,
+        name='ipdevinfo-poe-classification-hint-modal',
+    ),
+    # Interface details
+    path(
+        '<str:netbox_sysname>/interface=<int:port_id>/',
         views.port_details,
         name='ipdevinfo-interface-details',
     ),
@@ -75,13 +79,13 @@ urlpatterns = [
         views.port_details,
         name='ipdevinfo-interface-details-by-name',
     ),
-    re_path(
-        r'^g/port/(?P<interfaceid>\d+)/$',
+    path(
+        'g/port/<int:interfaceid>/',
         views.port_counter_graph,
         name='interface-counter-graph',
     ),
-    re_path(
-        r'^g/port/(?P<interfaceid>\d+)/(?P<kind>[^/]+)/$',
+    path(
+        'g/port/<int:interfaceid>/<kind>/',
         views.port_counter_graph,
         name='interface-counter-graph',
     ),
@@ -107,5 +111,15 @@ urlpatterns = [
         r'^(?P<netboxid>\d+)/unrecognized_neighbors',
         views.unrecognized_neighbors,
         name='ipdevinfo-unrecognized_neighbors',
+    ),
+    re_path(
+        r'^(?P<netbox_sysname>[^/]+)/(?P<job_name>[^/]+)/refresh_job',
+        views.refresh_ipdevinfo_job,
+        name='refresh-ipdevinfo-job',
+    ),
+    re_path(
+        r'^(?P<netbox_sysname>[^/]+)/(?P<job_name>[^/]+)/(?P<job_started_timestamp>[^/]+)/refresh_job_status',
+        views.refresh_ipdevinfo_job_status_query,
+        name='refresh-ipdevinfo-job-status-query',
     ),
 ]

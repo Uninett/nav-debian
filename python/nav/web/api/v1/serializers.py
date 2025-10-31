@@ -13,8 +13,8 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-# pylint: disable=R0903
 """Serializers for the NAV REST api"""
+
 from decimal import Decimal
 
 from rest_framework import serializers
@@ -287,6 +287,14 @@ class DeviceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class DeviceInlineSerializer(serializers.ModelSerializer):
+    """Serializer for the device model"""
+
+    class Meta(object):
+        model = manage.Device
+        fields = ('id', 'serial')
+
+
 class ModuleInlineSerializer(serializers.ModelSerializer):
     """Serializer for including module information in other serializers"""
 
@@ -352,6 +360,7 @@ class InterfaceSerializer(serializers.ModelSerializer):
         source='get_bundled_interfaces', many=True
     )
     netbox = SubNetboxSerializer()
+    vlan_netident = serializers.CharField(read_only=True)
 
     class Meta(object):
         model = manage.Interface
@@ -516,4 +525,15 @@ class ServiceHandlerSerializer(serializers.Serializer):
     description = serializers.CharField()
 
     class Meta(object):
+        fields = '__all__'
+
+
+class NetboxEntitySerializer(serializers.ModelSerializer):
+    """Serializer for the NetboxEntity model"""
+
+    device = DeviceInlineSerializer()
+    physical_class_name = serializers.CharField(source='get_physical_class_display')
+
+    class Meta(object):
+        model = manage.NetboxEntity
         fields = '__all__'

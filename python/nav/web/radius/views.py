@@ -15,8 +15,10 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """radius accounting interface views"""
+
 from django.shortcuts import render
 from django.urls import reverse
+from nav.web.modals import render_modal
 from nav.web.utils import create_title
 from .forms import AccountChartsForm, AccountLogSearchForm, ErrorLogSearchForm
 
@@ -58,6 +60,16 @@ def index(request):
         return log_search(request)
     else:
         return account_search(request)
+
+
+def account_log_hints_modal(request):
+    """Displays a modal with hints for account log search"""
+    return render_modal(
+        request,
+        'radius/_account_log_hints_modal.html',
+        modal_id="account-log-hints",
+        size="large",
+    )
 
 
 def log_search(request):
@@ -115,6 +127,16 @@ def log_search(request):
     return render(request, 'radius/error_log.html', context)
 
 
+def log_search_hints_modal(request):
+    """Displays a modal with hints for log search"""
+    return render_modal(
+        request,
+        'radius/_error_log_hints_modal.html',
+        modal_id="error-log-hints",
+        size="large",
+    )
+
+
 def log_detail_page(request, accountid):
     """Displays log details as a separate page"""
     template = 'radius/detail.html'
@@ -124,25 +146,41 @@ def log_detail_page(request, accountid):
 def log_detail_modal(request, accountid):
     """Displays log details as a separate page"""
     template = 'radius/detail_modal.html'
-    return log_detail(request, accountid, template)
+    return log_detail(request, accountid, template, use_modal=True)
 
 
-def log_detail(request, accountid, template):
+def log_detail(request, accountid, template, use_modal=False):
     """Displays log details for accountid with the given template"""
     query = LogDetailQuery(accountid)
     query.execute()
-    result = query.result[0]
 
-    field_desc = [LOG_FIELDDESCRIPTIONS[field] for field in LOG_DETAILFIELDS]
-    fields = zip(field_desc, result)
+    fields = []
+    if query.result:
+        result = query.result[0]
+        field_desc = [LOG_FIELDDESCRIPTIONS[field] for field in LOG_DETAILFIELDS]
+        fields = zip(field_desc, result)
+
+    context = {
+        'fields': fields,
+        'result': query.result,
+        'reverse': reverse('radius-log_detail', args=(accountid,)),
+    }
+
+    if use_modal:
+        return render_modal(
+            request,
+            template,
+            context=context,
+            modal_id="log-detail",
+        )
 
     navpath = get_navpath(('Log Detail',))
-    context = {
-        'reverse': reverse('radius-log_detail', args=(accountid,)),
-        'title': create_title(navpath),
-        'navpath': navpath,
-        'fields': fields,
-    }
+    context.update(
+        {
+            'title': create_title(navpath),
+            'navpath': navpath,
+        }
+    )
 
     return render(request, template, context)
 
@@ -178,6 +216,16 @@ def account_charts(request):
     return render(request, 'radius/account_charts.html', context)
 
 
+def account_chart_hints_modal(request):
+    """Displays a modal with hints for account charts"""
+    return render_modal(
+        request,
+        'radius/_account_chart_hints_modal.html',
+        modal_id="account-chart-hints",
+        size="large",
+    )
+
+
 def account_detail_page(request, accountid):
     """Displays account details as a separate page"""
     template = 'radius/detail.html'
@@ -187,26 +235,41 @@ def account_detail_page(request, accountid):
 def account_detail_modal(request, accountid):
     """Displays account details suitable for a modal"""
     template = 'radius/detail_modal.html'
-    return account_detail(request, accountid, template)
+    return account_detail(request, accountid, template, use_modal=True)
 
 
-def account_detail(request, accountid, template):
+def account_detail(request, accountid, template, use_modal=False):
     """Finds account details for a specific accountid"""
     query = AcctDetailQuery(accountid)
     query.execute()
-    result = query.result[0]
 
-    field_desc = [ACCT_DBFIELDSDESCRIPTIONS[field] for field in ACCT_DETAILSFIELDS]
-    fields = zip(field_desc, result)
+    fields = []
+    if query.result:
+        result = query.result[0]
+        field_desc = [ACCT_DBFIELDSDESCRIPTIONS[field] for field in ACCT_DETAILSFIELDS]
+        fields = zip(field_desc, result)
 
-    navpath = get_navpath(('Account Detail',))
     context = {
-        'reverse': reverse('radius-account_detail', args=(accountid,)),
-        'title': create_title(navpath),
-        'navpath': navpath,
         'fields': fields,
         'result': query.result,
+        'reverse': reverse('radius-account_detail', args=(accountid,)),
     }
+
+    if use_modal:
+        return render_modal(
+            request,
+            template,
+            context=context,
+            modal_id="account-detail",
+        )
+
+    navpath = get_navpath(('Account Detail',))
+    context.update(
+        {
+            'title': create_title(navpath),
+            'navpath': navpath,
+        }
+    )
 
     return render(request, template, context)
 

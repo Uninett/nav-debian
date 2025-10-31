@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """SNMP timestamps and sysUpTime comparisons"""
+
 import json
 
 from twisted.internet import defer
@@ -57,7 +58,6 @@ class TimestampChecker(object):
     _logger = ContextLogger()
 
     def __init__(self, agent, containers, var_name):
-        # pylint: disable=W0104
         self._logger
         self.agent = agent
         self.snmpv2mib = Snmpv2Mib(agent)
@@ -84,10 +84,8 @@ class TimestampChecker(object):
             else:
                 value.raiseException()
         self.collected_times = tuple(tup)
-        defer.returnValue(self.collected_times)
+        return self.collected_times
 
-    # We must ignore deserialization failures by catching the Exception base class
-    # pylint: disable=W0703
     @defer.inlineCallbacks
     def load(self):
         """Loads existing timestamps from db"""
@@ -103,11 +101,16 @@ class TimestampChecker(object):
                 return None
             try:
                 return json.loads(info.value)
-            except Exception:
+            except (
+                AttributeError,
+                json.JSONDecodeError,
+                UnicodeDecodeError,
+                TypeError,
+            ):
                 return None
 
         self.loaded_times = yield db.run_in_thread(_deserialize)
-        defer.returnValue(self.loaded_times)
+        return self.loaded_times
 
     def save(self):
         """Saves timestamps to a ContainerRepository"""
@@ -150,7 +153,7 @@ class TimestampChecker(object):
             return True
         if uptime_deviation is None:
             self._logger.debug(
-                "%r: unable to calculate uptime deviation for " "old/new: %r/%r",
+                "%r: unable to calculate uptime deviation for old/new: %r/%r",
                 self.var_name,
                 old_times,
                 new_times,
@@ -166,7 +169,7 @@ class TimestampChecker(object):
             return True
         elif abs(uptime_deviation) > max_deviation:
             self._logger.debug(
-                "%r: sysUpTime deviation detected, possible " "reboot", self.var_name
+                "%r: sysUpTime deviation detected, possible reboot", self.var_name
             )
             return True
         else:

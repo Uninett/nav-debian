@@ -12,7 +12,7 @@ The nav command
 The :program:`nav` program is used to start, stop and query the running state
 of NAV's backend processes.
 
-:kbd:`nav list` lists all back-end processes. :kbd:`nav status` reports their
+:code:`nav list` lists all back-end processes. :code:`nav status` reports their
 current running state. With reference to the list, jump directly to the
 relevant section in this document:
 
@@ -25,6 +25,7 @@ relevant section in this document:
 - `logengine`_
 - `mactrace`_
 - `maintengine`_
+- `navoui`_
 - `navstats`_
 - `netbiostracker`_
 - `pping`_
@@ -214,6 +215,25 @@ appropriate maintenance events for individual devices and services on NAV's
   Maintenance tasks are configured in the web interface.
 :Logs:
   :file:`maintengine.log`
+
+
+navoui
+------
+
+Periodically updates the database with Organizationally Unique Identifiers (OUIs)
+and their corresponding vendors. This enables NAV to display the vendor name
+of a device based on its MAC address, helping to identify whether a device is,
+for example, from Juniper or Cisco.
+
+:Dependencies:
+  None
+:Run mode:
+  cron
+:Configuration:
+  None
+:Logs:
+  Logs to STDERR.
+
 
 navstats
 --------

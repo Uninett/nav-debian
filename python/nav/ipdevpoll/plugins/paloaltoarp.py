@@ -27,7 +27,6 @@ import xml.etree.ElementTree as ET
 
 from IPy import IP
 from twisted.internet import defer, reactor, ssl
-from twisted.internet.defer import returnValue
 from twisted.web import client
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
@@ -44,7 +43,7 @@ class PaloaltoArp(Arp):
     def can_handle(cls, netbox):
         """Return True if this plugin can handle the given netbox."""
         has_configurations = yield cls._has_paloalto_configurations(netbox)
-        returnValue(has_configurations)
+        return has_configurations
 
     @defer.inlineCallbacks
     def handle(self):
@@ -90,7 +89,7 @@ class PaloaltoArp(Arp):
         """
         arptable = yield self._do_request(address, key)
         mappings = _parse_arp(arptable) if arptable else []
-        returnValue(mappings)
+        return mappings
 
     @defer.inlineCallbacks
     def _do_request(self, address: IP, key: str):
@@ -101,7 +100,9 @@ class PaloaltoArp(Arp):
                 return ssl.CertificateOptions(verify=False)
 
         url = f"https://{address}/api/?type=op&cmd=<show><arp><entry+name+=+'all'/></arp></show>&key={key}"
-        self._logger.debug("making request: %s", url)
+        self._logger.debug(
+            "Making HTTP request to Paloalto API endpoint at %s", address
+        )
 
         agent = Agent(reactor, contextFactory=SslPolicy())
 
@@ -114,15 +115,15 @@ class PaloaltoArp(Arp):
                 ),
                 None,
             )
-        except Exception:  # noqa
+        except Exception:  # noqa: BLE001
             self._logger.exception(
-                "Error when talking to PaloAlto API. "
+                "Error when making HTTP request to Paloalto API endpoint. "
                 "Make sure the device is reachable and the API key is correct."
             )
-            returnValue(None)
+            return None
 
         response = yield client.readBody(response)
-        returnValue(response)
+        return response
 
 
 def _parse_arp(arpbytes: bytes) -> list[tuple[str, IP, str]]:

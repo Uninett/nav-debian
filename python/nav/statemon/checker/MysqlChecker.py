@@ -15,6 +15,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """A MySQL service checker"""
+
 import socket
 import struct
 
@@ -64,7 +65,7 @@ class MysqlChecker(AbstractChecker):
         finally:
             try:
                 conn.close()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 pass
 
 

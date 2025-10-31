@@ -13,18 +13,20 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-# pylint: disable=R0903, R0901, R0904
 """Views for the NAV API"""
 
 from datetime import datetime, timedelta
 import logging
+from typing import Sequence
 
 from IPy import IP
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, QueryDict
 from django.db.models import Q
 from django.db.models.fields.related import ManyToOneRel as _RelatedObject
 from django.core.exceptions import FieldDoesNotExist
+import django.db
 import iso8601
+import json
 
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django_filters.filters import ModelMultipleChoiceFilter, CharFilter
@@ -43,20 +45,32 @@ from rest_framework.generics import ListAPIView, get_object_or_404
 from rest_framework.serializers import ValidationError
 
 from oidc_auth.authentication import JSONWebTokenAuthentication
+import jwt
 
+from nav.django.settings import JWT_PUBLIC_KEY, JWT_NAME, LOCAL_JWT_IS_CONFIGURED
+from nav.macaddress import MacAddress
 from nav.models import manage, event, cabling, rack, profiles
+from nav.models.api import JWTRefreshToken
 from nav.models.fields import INFINITY, UNRESOLVED
+from nav.web.auth.utils import get_account
 from nav.web.servicecheckers import load_checker_classes
 from nav.util import auth_token, is_valid_cidr
 
 from nav.buildconf import VERSION
 from nav.web.api.v1 import serializers, alert_serializers
 from nav.web.status2 import STATELESS_THRESHOLD
+from nav.web.jwtgen import (
+    decode_token,
+    generate_access_token,
+    generate_refresh_token,
+    hash_token,
+)
 from nav.macaddress import MacPrefix
 from .auth import (
-    APIPermission,
     APIAuthentication,
+    DefaultPermission,
     NavBaseAuthentication,
+    RelaxedReadPermission,
 )
 from .helpers import prefix_collector
 from .filter_backends import (
@@ -68,19 +82,18 @@ from .filter_backends import (
 
 EXPIRE_DELTA = timedelta(days=365)
 MINIMUMPREFIXLENGTH = 4
-
 _logger = logging.getLogger(__name__)
 
 
 class Iso8601ParseError(exceptions.ParseError):
     default_detail = (
-        'Wrong format on timestamp. See ' 'https://pypi.python.org/pypi/iso8601'
+        'Wrong format on timestamp. See https://pypi.python.org/pypi/iso8601'
     )
 
 
 class IPParseError(exceptions.ParseError):
     default_detail = (
-        'ip field must be a valid IPv4 or IPv6 host address or ' 'network prefix'
+        'ip field must be a valid IPv4 or IPv6 host address or network prefix'
     )
 
 
@@ -162,6 +175,9 @@ def get_endpoints(request=None, version=1):
         'vlan': reverse_lazy('{}vlan-list'.format(prefix), **kwargs),
         'rack': reverse_lazy('{}rack-list'.format(prefix), **kwargs),
         'module': reverse_lazy('{}module-list'.format(prefix), **kwargs),
+        'vendor': reverse_lazy('{}vendor'.format(prefix), **kwargs),
+        'netboxentity': reverse_lazy('{}netboxentity-list'.format(prefix), **kwargs),
+        'jwt_refresh': reverse_lazy('{}jwt-refresh'.format(prefix), **kwargs),
     }
 
 
@@ -209,7 +225,7 @@ class NAVAPIMixin(APIView):
         APIAuthentication,
         JSONWebTokenAuthentication,
     )
-    permission_classes = (APIPermission,)
+    permission_classes = (DefaultPermission,)
     renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
     filter_backends = (filters.SearchFilter, DjangoFilterBackend, RelatedOrderingFilter)
     ordering_fields = '__all__'
@@ -331,6 +347,7 @@ class RoomViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     serializer_class = serializers.RoomSerializer
     filterset_fields = ('location', 'description')
     lookup_value_regex = '[^/]+'
+    permission_classes = (RelaxedReadPermission,)
 
 
 class LocationViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
@@ -508,12 +525,15 @@ class InterfaceViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     Example: `/api/1/interface/?netbox=91&ifclass=trunk&ifclass=swport`
     """
 
-    queryset = manage.Interface.objects.all()
+    queryset = manage.Interface.objects.prefetch_related('swport_vlans__vlan').all()
     search_fields = ('ifalias', 'ifdescr', 'ifname')
 
     # NaturalIfnameFilter returns a list, so IfClassFilter needs to come first
     filter_backends = NAVAPIMixin.filter_backends + (IfClassFilter, NaturalIfnameFilter)
     filterset_class = InterfaceFilterClass
+
+    # Logged-in users must be able to access this API to use the ipdevinfo ports tool
+    permission_classes = (RelaxedReadPermission,)
 
     def get_serializer_class(self):
         request = self.request
@@ -611,7 +631,7 @@ class CablingViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
-SQL_OVERLAPS = "(start_time, end_time) OVERLAPS " "('{}'::TIMESTAMP, '{}'::TIMESTAMP)"
+SQL_OVERLAPS = "(start_time, end_time) OVERLAPS ('{}'::TIMESTAMP, '{}'::TIMESTAMP)"
 SQL_BETWEEN = "'{}'::TIMESTAMP BETWEEN start_time AND end_time"
 
 
@@ -711,7 +731,9 @@ class ArpViewSet(MachineTrackerViewSet):
       timestamp*
     - `endtime`: *must be set with starttime: lists all active records in the
       period between starttime and endtime*
-    - `ip`
+    - `ip`: *Allows filtering by both individual IP addresses and subnet ranges.
+      Single IP example: "ip=2001:db8:a0b:12f0::1"
+      Subnet example: "ip=10.0.42.0/24"*
     - `mac`: *supports prefix filtering - for instance "mac=aa:aa:aa" will
        return all records where the mac address starts with aa:aa:aa*
     - `netbox`
@@ -918,6 +940,9 @@ class PrefixUsageList(NAVAPIMixin, ListAPIView):
     # RelatedOrderingFilter does not work with the custom pagination
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
 
+    # Logged-in users must be able to access this API to use the subnet matrix tool
+    permission_classes = (RelaxedReadPermission,)
+
     def get(self, request, *args, **kwargs):
         """Override get method to verify url parameters"""
         get_times(request)
@@ -1028,6 +1053,8 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     """
 
     filter_backends = (AlertHistoryFilterBackend,)
+    # Logged-in users must be able to access this API to use the status tool
+    permission_classes = (RelaxedReadPermission,)
     model = event.AlertHistory
     serializer_class = alert_serializers.AlertHistorySerializer
     base_queryset = base = event.AlertHistory.objects.prefetch_related(
@@ -1112,11 +1139,12 @@ def get_or_create_token(request):
 
     :type request: django.http.HttpRequest
     """
-    if request.account.is_admin():
+    account = get_account(request)
+    if account.is_admin():
         from nav.models.api import APIToken
 
         token, _ = APIToken.objects.get_or_create(
-            client=request.account,
+            client=account,
             expires__gte=datetime.now(),
             defaults={'token': auth_token(), 'expires': datetime.now() + EXPIRE_DELTA},
         )
@@ -1153,3 +1181,247 @@ class ModuleViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         'device__serial',
     )
     serializer_class = serializers.ModuleSerializer
+
+
+class VendorLookup(NAVAPIMixin, APIView):
+    """Lookup vendor names for MAC addresses.
+
+    This endpoint allows you to look up vendor names for MAC addresses.
+    It can be used with either a GET or POST request.
+
+    For GET requests, the MAC address must be provided via the query parameter `mac`.
+    This only supports one MAC address at a time.
+
+    For POST requests, the MAC addresses must be provided in the request body
+    as a JSON array. This supports multiple MAC addresses.
+
+    Responds with a JSON dict mapping the MAC addresses to the corresponding vendors.
+    The MAC addresses will have the format `aa:bb:cc:dd:ee:ff`. If the vendor for a
+    given MAC address is not found, it will be omitted from the response.
+    If no mac address was supplied, an empty dict will be returned.
+
+    Example GET request: `/api/1/vendor/?mac=aa:bb:cc:dd:ee:ff`
+
+    Example GET response: `{"aa:bb:cc:dd:ee:ff": "Vendor A"}`
+
+    Example POST request:
+        `/api/1/vendor/` with body `["aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"]`
+
+    Example POST response:
+        `{"aa:bb:cc:dd:ee:ff": "Vendor A", "11:22:33:44:55:66": "Vendor B"}`
+    """
+
+    @staticmethod
+    def get(request):
+        mac = request.GET.get('mac', None)
+        if not mac:
+            return Response({})
+
+        try:
+            validated_mac = MacAddress(mac)
+        except ValueError:
+            return Response(
+                f"Invalid MAC address: '{mac}'", status=status.HTTP_400_BAD_REQUEST
+            )
+
+        results = get_vendor_names([validated_mac])
+        return Response(results)
+
+    @staticmethod
+    def post(request):
+        if isinstance(request.data, list):
+            mac_addresses = request.data
+
+        # This adds support for requests via the browseable API
+        elif isinstance(request.data, QueryDict):
+            json_string = request.data.get('_content')
+            if not json_string:
+                return Response("Empty JSON body", status=status.HTTP_400_BAD_REQUEST)
+            try:
+                mac_addresses = json.loads(json_string)
+            except json.JSONDecodeError:
+                return Response("Invalid JSON", status=status.HTTP_400_BAD_REQUEST)
+            if not isinstance(mac_addresses, list):
+                return Response(
+                    "Invalid request body. Must be a JSON array of MAC addresses",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            return Response(
+                "Invalid request body. Must be a JSON array of MAC addresses",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            validated_mac_addresses = validate_mac_addresses(mac_addresses)
+        except ValueError as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+        results = get_vendor_names(validated_mac_addresses)
+        return Response(results)
+
+
+@django.db.transaction.atomic
+def get_vendor_names(mac_addresses: Sequence[MacAddress]) -> dict[str, str]:
+    """Get vendor names for a sequence of MAC addresses.
+
+    :param mac_addresses: Sequence of MAC addresses in a valid format
+        (e.g., "aa:bb:cc:dd:ee:ff").
+    :return: A dictionary mapping MAC addresses to vendor names. If the vendor for a
+        given MAC address is not found, it will be omitted from the response.
+    """
+    # Skip SQL query if no MAC addresses are provided
+    if not mac_addresses:
+        return {}
+
+    # Generate the VALUES part of the SQL query dynamically
+    values = ", ".join(f"('{mac}'::macaddr)" for mac in mac_addresses)
+
+    # Construct the full SQL query
+    query = f"""
+        SELECT mac, vendor
+        FROM (
+            VALUES
+                {values}
+        ) AS temp_macaddrs(mac)
+        INNER JOIN oui ON trunc(temp_macaddrs.mac) = oui.oui;
+    """
+
+    cursor = django.db.connection.cursor()
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    cursor.close()
+
+    # row[0] is mac address, row[1] is vendor name
+    return {str(row[0]): row[1] for row in rows}
+
+
+def validate_mac_addresses(mac_addresses: Sequence[str]) -> list[MacAddress]:
+    """Validates MAC addresses and returns them as MacAddress objects.
+
+    :param mac_addresses: MAC addresses as strings in a valid format
+        (e.g., "aa:bb:cc:dd:ee:ff").
+    :return: List of MacAddress objects.
+    :raises ValueError: If any MAC address is invalid.
+    """
+    validated_macs = []
+    invalid_macs = []
+    for mac in mac_addresses:
+        try:
+            validated_macs.append(MacAddress(mac))
+        except ValueError:
+            invalid_macs.append(mac)
+    if invalid_macs:
+        raise ValueError(f"Invalid MAC address(es): {', '.join(invalid_macs)}")
+    return validated_macs
+
+
+class NetboxEntityViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
+    """
+    A simple ViewSet for viewing NetboxEntities.
+
+    Filters
+    -------
+    - netbox
+    - physical_class
+
+    Example: `/api/netboxentity/?netbox=109&physical_class=3`
+    """
+
+    queryset = manage.NetboxEntity.objects.all()
+    serializer_class = serializers.NetboxEntitySerializer
+    filterset_fields = ['netbox', 'physical_class']
+
+
+class JWTRefreshViewSet(NAVAPIMixin, APIView):
+    """
+    Accepts a valid refresh token.
+    Returns a new refresh token and an access token.
+    """
+
+    permission_classes = []
+
+    def post(self, request):
+        if not LOCAL_JWT_IS_CONFIGURED:
+            return Response("Invalid token", status=status.HTTP_403_FORBIDDEN)
+        # This adds support for requests via the browseable API.
+        # Browseble API sends QueryDict with _content key.
+        # Tests send QueryDict without _content key so it can be treated
+        # as a regular dict.
+        if isinstance(request.data, QueryDict) and '_content' in request.data:
+            json_string = request.data.get('_content')
+            if not json_string:
+                return Response("Empty JSON body", status=status.HTTP_400_BAD_REQUEST)
+            try:
+                data = json.loads(json_string)
+            except json.JSONDecodeError:
+                return Response("Invalid JSON", status=status.HTTP_400_BAD_REQUEST)
+            if not isinstance(data, dict):
+                return Response(
+                    "Invalid request body. Must be a JSON dict",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif isinstance(request.data, dict):
+            data = request.data
+        else:
+            return Response(
+                "Invalid request body. Must be a JSON dict",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        incoming_token = data.get('refresh_token')
+        if incoming_token is None:
+            return Response("Missing token", status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(incoming_token, str):
+            return Response("Invalid token", status=status.HTTP_400_BAD_REQUEST)
+
+        token_hash = hash_token(incoming_token)
+        try:
+            # Hash must be in the database for the token to be valid
+            db_token = JWTRefreshToken.objects.get(hash=token_hash)
+        except JWTRefreshToken.DoesNotExist:
+            return Response("Invalid token", status=status.HTTP_403_FORBIDDEN)
+
+        if db_token.revoked:
+            return Response(
+                "This token has been revoked", status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            claims = jwt.decode(
+                incoming_token,
+                JWT_PUBLIC_KEY,
+                audience=JWT_NAME,
+                issuer=JWT_NAME,
+                algorithms=["RS256"],
+            )
+        except jwt.InvalidSignatureError:
+            return Response("Invalid signature", status=status.HTTP_403_FORBIDDEN)
+        except jwt.InvalidAudienceError:
+            return Response("Invalid audience", status=status.HTTP_403_FORBIDDEN)
+        except jwt.InvalidIssuerError:
+            return Response("Invalid issuer", status=status.HTTP_403_FORBIDDEN)
+        except jwt.ExpiredSignatureError:
+            return Response("Token has expired", status=status.HTTP_403_FORBIDDEN)
+        except jwt.ImmatureSignatureError:
+            return Response("Token is not yet active", status=status.HTTP_403_FORBIDDEN)
+        # base exception for jwt.decode
+        except jwt.InvalidTokenError:
+            return Response("Invalid token", status=status.HTTP_403_FORBIDDEN)
+
+        access_token = generate_access_token(claims)
+        refresh_token = generate_refresh_token(claims)
+
+        new_claims = decode_token(refresh_token)
+        new_hash = hash_token(refresh_token)
+        db_token.hash = new_hash
+        db_token.expires = datetime.fromtimestamp(new_claims['exp'])
+        db_token.activates = datetime.fromtimestamp(new_claims['nbf'])
+        db_token.last_used = datetime.now()
+        db_token.save()
+
+        response_data = {
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+        }
+        return Response(response_data)

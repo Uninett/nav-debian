@@ -14,6 +14,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Selenium tests for simple searches on the navbar"""
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -22,10 +23,9 @@ from selenium.webdriver.support import expected_conditions as EC
 def test_simple_ip_search_should_return_result(selenium, base_url):
     """Tests a search for an IP address"""
     selenium.get('{}/'.format(base_url))
-    query = selenium.find_element(By.ID, 'query')
-    search_button = selenium.find_element(
-        By.CSS_SELECTOR, "input.button[type='submit']"
-    )
+    container = selenium.find_element(By.ID, "navbar-search-form")
+    query = container.find_element(By.ID, 'query')
+    search_button = container.find_element(By.CSS_SELECTOR, "button[type='submit']")
 
     ipaddr = "192.168.42.42"
     query.send_keys(ipaddr)

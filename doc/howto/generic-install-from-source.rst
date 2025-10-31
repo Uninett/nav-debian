@@ -61,7 +61,7 @@ wheels for your platform). These include the ``psycopg2`` driver and the
 
 The current Python requirements are as follows:
 
-.. literalinclude:: ../../requirements/django32.txt
+.. literalinclude:: ../../requirements/django42.txt
    :language: text
 
 .. literalinclude:: ../../requirements/base.txt
@@ -192,7 +192,7 @@ can install all of them by issuing the following command:
 
   Type 'yes' to continue, or 'no' to cancel:
 
-In this example, type :kbd:`yes`, hit :kbd:`Enter`, and ensure your web server's
+In this example, type :code:`yes`, hit :kbd:`Enter`, and ensure your web server's
 document root points to :file:`/usr/share/nav/www`, because that is where the
 :file:`static` directory is located. If that doesn't suit you, you will at
 least need an Alias to point the ``/static`` URL to the :file:`static`

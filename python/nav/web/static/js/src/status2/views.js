@@ -56,7 +56,7 @@ define([
             var self = this;
             var request = $.post(
                 NAV.urls.status2_save_preferences,
-                this.$el.find('form').serialize()
+                this.$el.find('#status-panel form').serialize()
             );
 
             self.setDefaultButton.removeClass('alert');  // Remove errorclass if an error occured on last try
@@ -167,8 +167,6 @@ define([
             request.done(function () {
                 console.log('data fetched');
                 stopSpinner();
-                // Reflow for foundation to enable dropdown content
-                $(document).foundation('dropdown', 'reflow');
             });
             request.fail(function () {
                 console.log('Failed to fetch data');
@@ -197,16 +195,36 @@ define([
 
         events: {
             'click .submit-action': 'submitAction',
-            'change select': 'showOrHideCommentField'
+            'change select': 'showOrHideCommentField',
+            'click .help-toggle': 'toggleHelp'
         },
-
+        helpToggleText: {
+            show: 'Show action details',
+            hide: 'Hide action details'
+        },
         initialize: function () {
             this.actionSelect = this.$('select');
             this.comment = this.$('.usercomment');
             this.commentWrapper = this.$('.usercomment-wrapper');
             this.feedback = this.$('.feedback');
+            this.helpContent = this.$('#action-help-content');
+            this.helpToggle = this.$('.help-toggle');
+            this.helpText = this.$('.help-text');
         },
+        toggleHelp: function(event) {
+            event.preventDefault();
+            const self = this;
 
+            this.helpContent.slideToggle(200, function() {
+                if (self.helpContent.is(':visible')) {
+                    self.helpText.text(self.helpToggleText.hide);
+                    self.helpToggle.attr('aria-expanded', 'true');
+                } else {
+                    self.helpText.text(self.helpToggleText.show);
+                    self.helpToggle.attr('aria-expanded', 'false');
+                }
+            });
+        },
         submitAction: function() {
             var self = this,
                 action = this.actionSelect.val();
@@ -257,12 +275,12 @@ define([
         },
 
         acknowledgeAlerts: function () {
-            console.log('acknowledgeAlerts');
             var self = this;
 
             var request = $.post(NAV.urls.status2_acknowledge_alert, {
                 id: alertsToChange.pluck('id'),
-                comment: this.comment.val()
+                comment: this.comment.val(),
+                csrfmiddlewaretoken: $('#action-panel-revised [name=csrfmiddlewaretoken]').val()
             });
 
             request.done(function () {
@@ -281,7 +299,8 @@ define([
             var self = this;
 
             var request = $.post(NAV.urls.status2_clear_alert, {
-                id: alertsToChange.pluck('id')
+                id: alertsToChange.pluck('id'),
+                csrfmiddlewaretoken: $('#action-panel-revised [name=csrfmiddlewaretoken]').val()
             });
 
             request.done(function () {
@@ -309,7 +328,8 @@ define([
             if (ids.length > 0) {
                 var request = $.post(NAV.urls.status2_put_on_maintenance, {
                     id: ids,
-                    description: description
+                    description: description,
+                    csrfmiddlewaretoken: this.$('[name=csrfmiddlewaretoken]').val()
                 });
 
                 request.done(function () {
@@ -340,7 +360,8 @@ define([
             if (ids.length > 0) {
                 var request = $.post(NAV.urls.status2_delete_module_or_chassis, {
                     id: ids,
-                    description: description
+                    description: description,
+                    csrfmiddlewaretoken: this.$('[name=csrfmiddlewaretoken]').val()
                 });
 
                 request.done(function () {
@@ -350,7 +371,6 @@ define([
                 });
 
                 request.fail(function () {
-                    console.log(request);
                     self.give_error_feedback('Error deleting module or chassis');
                 });
             } else {

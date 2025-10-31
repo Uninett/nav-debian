@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 "common AgentProxy mixin"
+
 import time
 import logging
 from dataclasses import dataclass
@@ -71,7 +72,6 @@ def throttled(func):
     return wraps(func)(_wrapper)
 
 
-# pylint: disable=R0903
 class AgentProxyMixIn(object):
     """Common AgentProxy mix-in class.
 
@@ -114,27 +114,19 @@ class AgentProxyMixIn(object):
             ident=id(self),
         )
 
-    # hey, we're mimicking someone else's API here, never mind the bollocks:
-    # pylint: disable=C0111,C0103
     @cache_for_session
     def getTable(self, *args, **kwargs):
         kwargs['maxRepetitions'] = self.snmp_parameters.max_repetitions
         return super(AgentProxyMixIn, self).getTable(*args, **kwargs)
 
-    # hey, we're mimicking someone else's API here, never mind the bollocks:
-    # pylint: disable=C0111,C0103
     @throttled
     def _get(self, *args, **kwargs):
         return super(AgentProxyMixIn, self)._get(*args, **kwargs)
 
-    # hey, we're mimicking someone else's API here, never mind the bollocks:
-    # pylint: disable=C0111,C0103
     @throttled
     def _walk(self, *args, **kwargs):
         return super(AgentProxyMixIn, self)._walk(*args, **kwargs)
 
-    # hey, we're mimicking someone else's API here, never mind the bollocks:
-    # pylint: disable=C0111,C0103
     @throttled
     def _getbulk(self, *args, **kwargs):
         return super(AgentProxyMixIn, self)._getbulk(*args, **kwargs)
@@ -144,9 +136,12 @@ class AgentProxyMixIn(object):
 class SNMPParameters:
     """SNMP session parameters common to all SNMP protocol versions"""
 
+    # Constants, no annotations
+    DEFAULT_TIMEOUT = 1.5
+
     # Common for all SNMP sessions
     version: int = 1
-    timeout: float = 1.5
+    timeout: float = DEFAULT_TIMEOUT
     tries: int = 3
 
     # Common for v1 and v2 only

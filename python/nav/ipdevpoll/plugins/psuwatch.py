@@ -17,6 +17,7 @@
 fan units.
 
 """
+
 import datetime
 
 from twisted.internet import defer
@@ -64,7 +65,7 @@ class PowerSupplyOrFanStateWatcher(Plugin):
             if old_state != new_state:
                 yield self._handle_state_change(unit, new_state)
 
-        defer.returnValue(True)
+        return True
 
     @defer.inlineCallbacks
     def _retrieve_current_unit_state(self, unit):
@@ -79,11 +80,11 @@ class PowerSupplyOrFanStateWatcher(Plugin):
                 method = getattr(mib, method_name, None)
                 if method:
                     state = yield method(unit.internal_id)
-                    defer.returnValue(state or STATE_UNKNOWN)
+                    return state or STATE_UNKNOWN
         else:
             self._logger.debug("unit has no internal id: %r", unit)
 
-        defer.returnValue(STATE_UNKNOWN)
+        return STATE_UNKNOWN
 
     @defer.inlineCallbacks
     def _handle_state_change(self, unit, new_state):

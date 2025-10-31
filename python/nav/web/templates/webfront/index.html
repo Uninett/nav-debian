@@ -13,7 +13,6 @@
        padding: 0.9rem;
    }
    /* Light adaption of pagination styles */
-   ul.pagination { overflow: auto; }
    ul.pagination li { background-color: gainsboro; }
    ul.pagination li a.drop-active { border: 1px dashed black; }
    ul.pagination li .alert-box { position: absolute; top: -4em }
@@ -33,19 +32,26 @@
 {% block base_content %}
 
   {# Dashboard and widget actions for logged in users #}
-  {% if not current_user_data.account.is_default_account or current_user_data.sudoer %}
+  {% if not current_user_data.account.is_anonymous or current_user_data.sudoer %}
 
     <div id="widgets-actions" class="hide-for-small" >
-      <div id="widgets-action-add" title="Add widget" data-reveal data-reveal-id="navlet-list">
-        <i class="fa fa-plus"></i>
-      </div>
-
-      <div id="widgets-show-fullscreen" title="Show dashboard in fullscreen">
+      {% if can_edit %}
+          <div
+              title="Add widget"
+              class="widget-action"
+              hx-get="{% url 'add-navlet-modal' dashboard.id %}"
+              hx-target="body"
+              hx-swap="beforeend"
+          >
+            <i class="fa fa-plus"></i>
+          </div>
+      {% endif %}
+      <div id="widgets-show-fullscreen" class="widget-action" title="Show dashboard in fullscreen">
         <i class="fa fa-arrows-alt"></i>
       </div>
 
       <div id="widgets-layout-normal"
-           class="widgets-layout-toggler
+           class="widgets-layout-toggler widget-action
                   {% if request.account.preferences.widget_display_density == 'normal' %}hide{% endif %}
                   {% if not request.account.preferences.widget_display_density %}hide{% endif %}"
            title="Use normal layout for dashboard">
@@ -53,162 +59,41 @@
       </div>
 
       <div id="widgets-layout-compact"
-           class="widgets-layout-toggler
+           class="widgets-layout-toggler widget-action
                   {% if request.account.preferences.widget_display_density == 'compact' %}hide{% endif %}"
            title="Use compact layout for dashboard">
         <i class="fa fa-compress"></i>
       </div>
 
-      <div id="rightaction-dashboard-config"
-           title="Settings for current dashboard"
-           data-dropdown="dropdown-dashboard-settings"
-           data-options="align:left">
-        <i class="fa fa-gear fa-lg"></i>
-      </div>
-
-    </div>
-
-    {% comment %} List of navlets to add {% endcomment %}
-    <div id="navlet-list" class="reveal-modal" data-reveal>
-      <h4>Add a widget to your page</h4>
-
-      <ul class="small-block-grid-1 medium-block-grid-2 large-block-grid-3">
-        {% for navlet in navlets %}
-          <li>
-            <div class="panel">
-              <form class="add-user-navlet right" action="{% url 'add-user-navlet' dashboard.pk %}" method="post">
-                <input type="hidden" name="navlet" value="{{ navlet.get_class }}">
-                <input type="submit" class="button tiny" value="Add">
-              </form>
-              <h5>{{ navlet.title }}</h5>
-              <span>{{ navlet.description }}</span>
+      {% if can_edit %}
+          {% include 'webfront/_dashboard_settings_form.html' %}
+      {% else %}
+        <div class="nav-tooltip export-action">
+            <a
+                class="widget-action"
+                href="{% url 'export-dashboard' dashboard.pk %}"
+                aria-describedby="#export-action-tooltip"
+            >
+              <i class="fa fa-download" title="Export dashboard"></i>
+            </a>
+            <div id="export-action-tooltip" role="tooltip">
+                 Download this dashboard's definition into a file that can later be imported by pressing the + next to the tab list
             </div>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-
-    {% comment %} Dashboard import form {% endcomment %}
-    <div id="dashboard-import" class="reveal-modal small" data-reveal>
-        <h4>Import dashboard</h4>
-
-        <div data-alert class="alert-box warning hidden">
         </div>
-        <form action="{% url 'import-dashboard' %}">
-            <fieldset>
-                <legend>Select file to import</legend>
-                <input name="file" type="file" id="dashboard-import-file">
-            </fieldset>
-            <button type="submit" class="button" aria-label="submit form">Import</button>
-        </form>
+      {% endif %}
 
-    </div>
-
-    {# Content dropdown for dashboard settings #}
-    <div id="dropdown-dashboard-settings"
-         data-dropdown-content
-         class="f-dropdown content large right-action-content">
-
-      <form id="form-rename-dashboard"
-            method="post"
-            data-dashboard="{{ dashboard.pk }}"
-            action="{% url 'rename-dashboard' dashboard.pk %}" >
-        <input type="submit" class="small button right" value="Rename dashboard">
-        <label>
-          <input type="text" name="dashboard-name" placeholder="Dashboard name" value="{{ dashboard.name }}">
-        </label>
-      </form>
-
-      <div class="row">
-
-        <div class="column medium-4">
-          <div id="default-dashboard-container"
-               data-is-default-dashboard="{{ dashboard.is_default|yesno:'1,0' }}">
-            <div class="alert-box">This is the default dashboard</div>
-            <form id="form-set-default-dashboard" method="post"
-                  action="{% url 'set-default-dashboard' dashboard.pk %}">
-              <input type="submit" value="Set as default dashboard"
-                     class="small button secondary expand">
-            </form>
-          </div>
-        </div>
-
-        <div class="column medium-4">
-          <a href="{% url 'export-dashboard' dashboard.pk %}" class="small button expand">Export dashboard
-          </a><br/>
-          <small data-tooltip
-                 class="has-tip"
-                 title="Download this dashboards definition into a file that can later be imported by pressing the + next to the tab list">
-              what's this?
-          </small>
-        </div>
-
-        <div class="column medium-4">
-          {% if request.account.account_dashboards.count > 1 and not dashboard.is_default %}
-            <form id="form-delete-dashboard" method="post" action="{% url 'delete-dashboard' dashboard.pk %}">
-              <input type="submit" class="small button alert expand" value="Delete dashboard">
-            </form>
-            {% endif %}
-
-        </div>
-
-      </div>
-
-      <h5>Columns</h5>
-      <ul class="button-group" style="margin-bottom: 1em;" data-url="{% url 'save-dashboard-columns' dashboard.pk %}">
-        <li><a href="#" class="button tiny secondary column-chooser" data-columns="1">One</a></li>
-        <li><a href="#" class="button tiny secondary column-chooser" data-columns="2">Two</a></li>
-        <li><a href="#" class="button tiny secondary column-chooser" data-columns="3">Three</a></li>
-        <li><a href="#" class="button tiny secondary column-chooser" data-columns="4">Four</a></li>
-      </ul>
-
-    </div> {# dropdown dashboard forms #}
-
-
-    {# Content dropdown for adding a new dashboard #}
-    <div id="dropdown-dashboard-add"
-         data-dropdown-content
-         class="f-dropdown content small right-action-content">
-      <form id="form-add-dashboard" method="post" action="{% url 'add-dashboard' %}">
-        <label>
-          Add dashboard
-          <input type="text" name="dashboard-name" placeholder="Dashboard name">
-        </label>
-        <input type="submit" class="small button full-width" value="Add dashboard">
-      </form>
-      <a data-reveal data-reveal-id="dashboard-import">Import dashboard</a>
     </div>
 
     {# Buttons for selecting dashboards #}
-    <ul id="dashboard-nav" class="pagination">
-      <li class="unavailable"><a href="">Dashboards:</a></li>
-      {% for d in dashboards %}
-        <li {% if d.pk == dashboard.pk %}class="current"{% endif %}>
-          {% if d.pk != dashboard.pk %}
-            <div class="alert-box hidden" data-dashboardname="{{ d.name }}"></div>
-          {% endif %}
-          <a href="{{ d.get_absolute_url }}"
-             title="Go to dashboard «{{ d.name }}»"
-             data-dashboard="{{ d.pk }}"
-             data-url="{% url 'moveto-dashboard' d.pk %}">
-            <span>{{ d.name }}</span>
-            <i class="fa fa-star {% if not d.is_default %}hidden{% endif %}"
-               title="This is the default dashboard &mdash; it will be loaded when you log in. To change default, change to another dashboard and set it as default in the dashboard settings."></i>
-          </a>
-        </li>
-      {% endfor %}
-      <li>
-        <a href=""
-           title="Add new dashboard"
-           data-dropdown="dropdown-dashboard-add">
-          <i class="fa fa-plus"></i></a>
-      </li>
-    </ul>
+    {%  include 'webfront/_dashboard_nav.html' with current_dashboard=dashboard dashboards=dashboards %}
 
   {% endif %}
 
 
   {% comment %} Main container for navlets {% endcomment %}
+  <form id="navlets-action-form" style="display: none;">
+    {% csrf_token %}
+  </form>
   <div id="navlets"
        {% if request.account.preferences.widget_display_density == 'compact' %}class="compact"{% endif %}
        data-list-navlets="{% url 'get-user-navlets' dashboard.pk %}"
@@ -217,57 +102,5 @@
        data-base-template-url="{% url 'navlet-base-template' %}"
        data-widget-columns="{{ dashboard.num_columns }}"
        ></div>
-
-
-  {# Joyrides for mobile and desktop #}
-  <ul id="joyride_for_desktop" data-joyride class="joyride-list">
-    <li data-text="Next" data-id="joyrideme">
-      <p>Welcome to NAV!</p>
-      <p>This 30 second tour will show you the basics.</p>
-    </li>
-    <li data-id="navbar-search-form" data-text="Next">
-      <h4>Search</h4>
-
-      <p>Search for IP Devices, rooms, interfaces, VLANs and so forth here.</p>
-    </li>
-    <li data-id="megadroptoggler" data-text="Next">
-      <h4>Your tools</h4>
-      <p>All your tools can be found here.</p>
-    </li>
-    <li data-id="widgets-action-add" data-text="Next" data-options="tip_location:left">
-      <h4>Widgets</h4>
-
-      <p>More widgets can be added by using this button.</p>
-    </li>
-    <li data-class="navlet-action-group" data-text="Next">
-      <h4>Widget controls</h4>
-
-      <p>Move or remove the widget. In many cases you will also see an edit option so that you can personalize the display.</p>
-    </li>
-    <li data-id="footer-documentation-link" data-text="End">
-      <p>Our documentation and wiki pages are stuffed with more information about NAV. A <a href="/doc" title="local documentation">local copy of the documentation</a> is also available.</p>
-    </li>
-  </ul>
-
-  <ul id="joyride_for_mobile" data-joyride class="joyride-list">
-    <li data-text="Next">
-      <p>Welcome to NAV!</p>
-      <p>This 30 second tour will show you the basics.</p>
-    </li>
-    <li data-class="toggle-topbar" data-text="Next" >
-      <h4>Search and tools</h4>
-
-      <p>Open the menu on the top right to get access to search and tools.</p>
-    </li>
-    <li data-class="navlet-action-group" data-text="Next">
-      <h4>Widget controls</h4>
-
-      <p>Move or remove the widget by using the icons. In many cases you will also see an edit option so that you can personalize the display.</p>
-    </li>
-    <li data-id="footer-documentation-link" data-text="End">
-      <p>Our documentation and wiki pages are stuffed with more information about NAV. A <a href="/doc" title="local documentation">local copy of the documentation</a> is also available.</p>
-    </li>
-  </ul>
-
 
 {% endblock %}

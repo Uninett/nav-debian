@@ -82,12 +82,11 @@ def log_stacktrace(logger, stacktrace):
     logger.debug("--- end of stack trace ---")
 
 
-# pylint: disable=W0703
 def _dumpvars(varitems):
     for var, val in varitems:
         try:
             yield "  %r: %s" % (var, pprint.pformat(val, indent=2))
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             yield "  %r: <<exception during formatting: %s>>" % (var, err)
 
 

@@ -14,8 +14,11 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Custom django related decorators"""
+
 from functools import wraps
 from django.http import HttpResponse
+
+from nav.web.auth.utils import get_account
 
 
 def require_admin(func):
@@ -23,7 +26,8 @@ def require_admin(func):
 
     @wraps(func)
     def _wrapper(request, *args, **kwargs):
-        if request.account.is_admin():
+        account = get_account(request)
+        if account.is_admin():
             return func(request, *args, **kwargs)
         else:
             return HttpResponse(status=403)

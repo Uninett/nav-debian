@@ -64,7 +64,7 @@ program. To dump all seed data to the current working directory:
 
 .. code-block:: console
 
-  $ /usr/lib/nav/navdump  -a
+  $ navdump  -a
   Dumping vendor.txt
   Dumping room.txt
   Dumping service.txt
@@ -141,7 +141,7 @@ This may require knowledge of NAV's data model before you proceed. If you know
 your way around SQL, you can even enact more advanced content filters using
 the `-f` or `--filter` option.
 
-.. tip:: See the output of :kbd:`navpgdump --help` for a complete overview of
+.. tip:: See the output of :code:`navpgdump --help` for a complete overview of
          the supported options.
 
 Restoring
@@ -170,8 +170,8 @@ machine/testing server, and wish to copy most of your production data (but not
 your years of machine tracker logs) to it, you can do the full migration in
 one single command line on the test server like this::
 
-  ssh production-nav /usr/lib/nav/navpgdump --only-open-arp --only-open-cam | \
-    /usr/lib/nav/navsyncdb --drop-database --create --restore -
+  ssh production-nav navpgdump --only-open-arp --only-open-cam | \
+    navsyncdb --drop-database --create --restore -
 
 This command is repeatable; when run, it will destroy the running test
 database and restore the current production data into a new test database.
@@ -181,3 +181,51 @@ database and restore the current production data into a new test database.
          which may currently be accessing the database. Failure to do so may
          cause :program:`navsyncdb` to stall forver while waiting for the
          other processes to release their locks on the database.
+
+.. _migrating_prod_db_to_dev:
+
+Migrating a production database to a development environment
+------------------------------------------------------------
+
+As with the test server example above, for some development tasks, it is useful
+to initialize the development database with a database snapshot from a
+production server. The :file:`tools/` directory contains shell scripts to
+streamline this operation somewhat in a development environment (but they
+basically wrap the same commands as mentioned in the previous section):
+
+:file:`tools/dump-remote-db.sh`
+    Runs the :program:`navpgdump` program over an *SSH connection* to a remote
+    host and dumps the output to ``stdout``, automatically filtering out old
+    machine tracker log records and alert profiles (so the development server
+    won't attempt to send notifications to real users).  Requires the
+    :program:`navpgdump` program to be available on the remote system's
+    :envvar:`PATH`. If you need to customize the filters used while dumping, you
+    can make your own version of this script.
+
+:file:`tools/restore-db.sh`
+    Stops NAV processes, drops the current NAV database and re-initializes it
+    with an SQL dump read from ``stdin``.  This program assumes the
+    :program:`psql` program is available and that the necessary configuration
+    for it to connect to an actual PostgreSQL database are present (such as the
+    environment variables :envvar:`PGHOST`, :envvar:`PGPORT`,
+    :envvar:`PGDATABASE`, :envvar:`PGUSER`, etc.). In the devcontainer
+    environment this should already be set up for you.
+
+:file:`tools/reset-db-from-remote.sh`
+    Combines the two previous programs into a single operation, for
+    convenience.
+
+Usage examples
+~~~~~~~~~~~~~~
+
+.. code-block:: sh
+   :caption: Initialize database from remote server ``prefect.example.org``, as user ``ford``
+
+   tools/reset-db-from-remote.sh ford@prefect.example.org
+
+
+.. code-block:: sh
+   :caption: Save a remote database dump to a file and re-use it later
+
+   tools/dump-remote-db.sh ford@prefect.example.org > mydump.sql
+   cat mydump.sql | tools/restore-db.sh

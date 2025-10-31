@@ -14,6 +14,7 @@
 # along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Interface definition for PortAdmin management handlers"""
+
 import time
 from typing import Any, Optional, Sequence, Union
 import logging
@@ -293,7 +294,7 @@ class ManagementHandler:
         """Returns True if this netbox is configurable using this handler"""
         try:
             self.raise_if_not_configurable()
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
         return True
 

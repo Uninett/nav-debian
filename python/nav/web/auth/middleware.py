@@ -19,8 +19,9 @@ Django middleware for handling login, authentication and authorization for NAV.
 
 import logging
 import os
+from typing import Optional
 
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.utils.deprecation import MiddlewareMixin
 
 from nav.models.profiles import Account
@@ -28,15 +29,17 @@ from nav.web.auth import remote_user, get_login_url, logout
 from nav.web.auth.utils import (
     ensure_account,
     authorization_not_required,
+    get_account,
 )
 from nav.web.auth.sudo import get_sudoer
+from nav.web.utils import is_ajax
 
 
 _logger = logging.getLogger(__name__)
 
 
 class AuthenticationMiddleware(MiddlewareMixin):
-    def process_request(self, request):
+    def process_request(self, request: HttpRequest) -> None:
         _logger.debug(
             'AuthenticationMiddleware ENTER (session: %s, account: %s) from "%s"',
             dict(request.session),
@@ -45,11 +48,11 @@ class AuthenticationMiddleware(MiddlewareMixin):
         )
         ensure_account(request)
 
-        account = request.account
+        account = get_account(request)
         sudo_operator = get_sudoer(request)  # Account or None
         logged_in = sudo_operator or account
         _logger.debug(
-            ('AuthenticationMiddleware ' '(logged_in: "%s" acting as "%s") from "%s"'),
+            ('AuthenticationMiddleware (logged_in: "%s" acting as "%s") from "%s"'),
             logged_in.login,
             account.login,
             request.get_full_path(),
@@ -58,7 +61,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         remote_username = remote_user.get_username(request)
         if remote_username:
             _logger.debug(
-                ('AuthenticationMiddleware: ' '(REMOTE_USER: "%s") from "%s"'),
+                ('AuthenticationMiddleware: (REMOTE_USER: "%s") from "%s"'),
                 remote_username,
                 request.get_full_path(),
             )
@@ -73,7 +76,9 @@ class AuthenticationMiddleware(MiddlewareMixin):
                 ensure_account(request)
 
         if sudo_operator is not None:
+            # XXX: sudo: Account.sudo_operator should be set by function!
             request.account.sudo_operator = sudo_operator
+            request.user.sudo_operator = sudo_operator
 
         _logger.debug(
             'AuthenticationMiddleware EXIT (session: %s, account: %s) from "%s"',
@@ -84,8 +89,8 @@ class AuthenticationMiddleware(MiddlewareMixin):
 
 
 class AuthorizationMiddleware(MiddlewareMixin):
-    def process_request(self, request):
-        account = request.account
+    def process_request(self, request: HttpRequest) -> Optional[HttpResponse]:
+        account = get_account(request)
 
         authorized = authorization_not_required(
             request.get_full_path()
@@ -96,18 +101,18 @@ class AuthorizationMiddleware(MiddlewareMixin):
             )
             return self.redirect_to_login(request)
         else:
-            if not account.is_default_account():
+            if not account.is_anonymous:
                 os.environ['REMOTE_USER'] = account.login
             elif 'REMOTE_USER' in os.environ:
                 del os.environ['REMOTE_USER']
 
-    def redirect_to_login(self, request):
+    def redirect_to_login(self, request: HttpRequest) -> HttpResponse:
         """Redirects a request to the NAV login page, unless it was detected
         to be an AJAX request, in which case return a 401 Not Authorized
         response.
 
         """
-        if request.is_ajax():
+        if is_ajax(request):
             return HttpResponse(status=401)
 
         new_url = get_login_url(request)

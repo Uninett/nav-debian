@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """This module contains NAPALM connectivity interfaces for NAV"""
+
 import weakref
 from tempfile import NamedTemporaryFile
 from typing import TypeVar
@@ -53,7 +54,7 @@ def connect(host: Host, profile: manage.ManagementProfile) -> NetworkDriver:
             weakref.finalize(device, key_file.close)
         device.open()
         return device
-    except Exception:
+    except Exception:  # noqa: BLE001
         # but remove it immediately if device was never created
         if key_file:
             key_file.close()

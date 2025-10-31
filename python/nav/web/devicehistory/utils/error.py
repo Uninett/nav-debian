@@ -23,7 +23,7 @@
 
 from django.db import transaction
 
-from nav.django.utils import get_account
+from nav.web.auth.utils import get_account
 from nav.models.manage import Room, Netbox, Module
 from nav.models.event import EventQueue, EventQueueVar, EventType, Subsystem
 from nav.web.message import Messages
@@ -62,7 +62,7 @@ def register_error_events(request, **kwargs):
 
     for key in kwargs:
         raise TypeError(
-            'register_error_events() got an unexpected keyword ' 'argument %s' % key
+            'register_error_events() got an unexpected keyword argument %s' % key
         )
 
     # Data that will be inserted into the eventq table.

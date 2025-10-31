@@ -27,8 +27,12 @@ from django.utils.log import DEFAULT_LOGGING
 from nav.config import NAV_CONFIG, getconfig, find_config_dir
 from nav.db import get_connection_parameters
 import nav.buildconf
-from nav.jwtconf import JWTConf
+from nav.jwtconf import JWTConf, LocalJWTConfig
 from nav.web.security import WebSecurityConfigParser
+
+
+# Changes to `True` by default in Django 5.0
+USE_TZ = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -132,6 +136,7 @@ MIDDLEWARE = (
     'nav.web.auth.middleware.AuthorizationMiddleware',
     'nav.django.legacy.LegacyCleanupMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',
 )
 
 SESSION_SERIALIZER = 'nav.web.session_serializer.PickleSerializer'
@@ -160,6 +165,7 @@ TIME_FORMAT = 'H:i:s'
 SHORT_TIME_FORMAT = 'H:i'  # Use template filter to access this
 DATETIME_FORMAT = '%s %s' % (DATE_FORMAT, TIME_FORMAT)
 SHORT_DATETIME_FORMAT = '%s %s' % (DATE_FORMAT, SHORT_TIME_FORMAT)
+USE_L10N = False
 
 TIME_ZONE = NAV_CONFIG.get('TIME_ZONE', 'Europe/Oslo')
 DOMAIN_SUFFIX = NAV_CONFIG.get('DOMAIN_SUFFIX', None)
@@ -216,10 +222,13 @@ INSTALLED_APPS = (
     'nav.models',
     'nav.web',
     'nav.django',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
     'django.contrib.staticfiles',
     'django.contrib.sessions',
     'django.contrib.humanize',
     'django_filters',
+    'django_htmx',
     'rest_framework',
     'nav.auditlog',
     'nav.web.macwatch',
@@ -230,6 +239,8 @@ INSTALLED_APPS = (
 )
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+AUTH_USER_MODEL = 'nav_models.Account'
+
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
@@ -271,16 +282,34 @@ X_FRAME_OPTIONS = _websecurity_config.get_x_frame_options()
 if _config_dir:
     sys.path.append(os.path.join(_config_dir, "python"))
 try:
-    # pylint: disable=E0602
     LOCAL_SETTINGS
 except NameError:
     try:
-        # pylint: disable=F0401
         from local_settings import *
     except ImportError:
         pass
 
-_issuers_setting = JWTConf().get_issuers_setting()
+_jwtconf = JWTConf()
+_issuers_setting = _jwtconf.get_issuers_setting()
+
+# If _issuer_setting is an empty dict, it means neither external nor local tokens
+# are configured (or theres an error), so we dont need to read the local config.
+if not _issuers_setting:
+    _local_config = LocalJWTConfig()
+else:
+    _local_config = _jwtconf.get_local_config()
+
+# JWT settings are made available here so that they are read once on startup
+# instead of being read on-demand.
+# This is to combat inconsistencies that can occur if the config changes during runtime.
+JWT_PRIVATE_KEY = _local_config.private_key
+JWT_PUBLIC_KEY = _local_config.public_key
+JWT_NAME = _local_config.name
+JWT_ACCESS_TOKEN_LIFETIME = _local_config.access_token_lifetime
+JWT_REFRESH_TOKEN_LIFETIME = _local_config.refresh_token_lifetime
+# If the local config is empty, we assume that local JWT tokens are
+# not configured or the config is invalid.
+LOCAL_JWT_IS_CONFIGURED = _local_config != LocalJWTConfig()
 
 OIDC_AUTH = {
     'JWT_ISSUERS': _issuers_setting,

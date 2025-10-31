@@ -60,7 +60,7 @@ class DispatcherHandler(object):
                 except DispatcherError as error:
                     self.logger.warning("Failed to import %s: %s", dispatcher, error)
                     continue
-                except Exception as error:
+                except Exception as error:  # noqa: BLE001
                     self.logger.exception("Unknown exception: %s", error)
 
                 # Initialize dispatcher
@@ -72,7 +72,7 @@ class DispatcherHandler(object):
                 except DispatcherError as error:
                     self.logger.warning("Failed to init %s: %s", dispatcher, error)
                     continue
-                except Exception as error:
+                except Exception as error:  # noqa: BLE001
                     self.logger.exception("Unknown exception: %s", error)
 
         # Fail if no dispatchers are available
@@ -118,7 +118,6 @@ class DispatcherHandler(object):
         """
 
         for i, (dispatchername, dispatcher) in enumerate(self.dispatchers):
-
             try:
                 self.logger.debug("Trying %s...", dispatchername)
                 (sms, sent, ignored, result, smsid) = dispatcher.sendsms(phone, msgs)
@@ -137,7 +136,7 @@ class DispatcherHandler(object):
             except DispatcherError as error:
                 self.logger.warning("%s failed to send SMS: %s", dispatchername, error)
                 continue  # Skip to next dispatcher
-            except Exception as error:
+            except Exception as error:  # noqa: BLE001
                 self.logger.exception(
                     "Unknown dispatcher exception during send: %s", error
                 )

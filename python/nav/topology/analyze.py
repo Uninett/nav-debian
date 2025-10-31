@@ -37,7 +37,6 @@ Netbox' own interfaces.
 Port nodes can have outgoing edges to other Port nodes, or to Netbox nodes
 
 """
-# pylint: disable=R0903
 
 from collections import defaultdict
 from itertools import chain
@@ -256,7 +255,7 @@ class AdjacencyReducer(AdjacencyAnalyzer):
                 _logger.debug("Considering %s -> %s, source %s", source, dest, proto)
                 if dest == source[0]:
                     _logger.warning(
-                        "A possible self-loop was found: " "%r", (source, dest)
+                        "A possible self-loop was found: %r", (source, dest)
                     )
                     self.graph.remove_edge(source, dest)
                     continue

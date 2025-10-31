@@ -1,4 +1,5 @@
 <form id="uploadform" method="POST" enctype="multipart/form-data">
+  {% csrf_token %}
   <input id="file" type="file" name="images" multiple class="inputfile" data-multiple-caption="{count} files selected">
   <label for="file" class="button small"><i class="fa fa-upload"></i><span>Select images to upload</span></label>
   <input type="submit" class="button small secondary" value="Upload selected images">
@@ -6,7 +7,7 @@
 
 <div class="user-feedback">
   {% for message in messages %}
-  <div class="alert-box {{ message.tags }}" data-alert>
+  <div class="alert-box {{ message.tags }}" data-nav-alert>
     {{ message|safe }}
   </div>
   {% endfor %}

@@ -20,6 +20,61 @@
     .remove-widget { max-width: 250px; }
 }
 
+#navbar-search-form {
+  top: 7px;
+  button, input {
+    top: 0;
+  }
+}
+
+#navbar-search-form-mobile {
+  button {
+    // Override foundation top-bar style
+    top: 0;
+  }
+}
+.search-input-wrapper {
+  display: flex;
+  input, button {
+    height: 1.8rem;
+  }
+  input {
+    max-width: 250px;
+  }
+}
+#navbar-search-results {
+  min-width: 100%;
+  width: fit-content;
+  max-height: 500px;
+  overflow-y: auto;
+  transform: none;
+
+  .result-group {
+    display: flex;
+    flex-direction: column;
+
+    button {
+      align-self: flex-end;
+    }
+
+    .result-item {
+      display: block;
+      width: 100%;
+      padding: 2px 0;
+    }
+    .result-item, .truncate-count {
+      border-top: 1px solid #ccc;
+      &:first-child {
+        border-top: none;
+      }
+    }
+  }
+
+  & > *:last-child {
+    margin-bottom: 0;
+  }
+}
+
 @media #{$small-only} {
     .remove-widget { width: 100%; }
 }
@@ -66,28 +121,129 @@
 
 #widgets-actions {
     box-shadow: 0px 3px 5px grey;
-    color: white;
     position: absolute;
     right: 0;
     top: 0;
     width: 40px;
     z-index: 1000;
-    div {
+    .widget-action {
+        color: white;
         background-color: $topbar-bg-color;
         height: 40px;
         display: flex;
         justify-content: center;
         align-items: center;
+        border-bottom: 1px solid gainsboro;
         &:hover {
             background-color: $primary-color;
             cursor: pointer;
         }
-        &:not(:last-child) {
-            border-bottom: 1px solid gainsboro;
+        &:last-child {
+          border-bottom: none;
         }
+    }
+    .export-action {
+      width: 100%;
+      a.widget-action {
+        width: 100%;
+        border-bottom: none;
+      }
     }
 }
 
+#dropdown-dashboard-settings.popover {
+  width: 100%;
+  .widget-action {
+    border-bottom: none;
+  }
+  .popover-content {
+    width: 800px;
+  }
+  .row {
+    margin-bottom: 1em;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  #toggle-dashboard-shared-form {
+    * {
+      margin-bottom: 0.5rem;
+    }
+    *:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.dashboard-nav-wrapper {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.dashboard-meta-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.badge {
+    padding: 0.2rem 0.25rem;
+    font-size: 0.75rem;
+    background: #e0e0e0;
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+
+    &.white {
+      background: #fff;
+      border-color: #bbb;
+    }
+}
+
+#dashboard-settings-feedback {
+  * {
+    margin-bottom: 0;
+  }
+}
+
+#dashboard-search-form {
+  .description {
+    color: lighten(#333, 20%);
+  }
+}
+
+#dashboard-search-results {
+  ul {
+    margin: 0;
+  }
+  .search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    * {
+      margin-bottom: 0;
+    }
+  }
+
+  .search-result-name {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    .dashboard-owner {
+      font-size: 0.8em;
+      color: lighten(#333, 20%);
+    }
+  }
+}
 
 /* Padding for all pages */
 
@@ -143,7 +299,7 @@ fieldset legend {
 
 /* Sudoer bar is the bar that appears when you switch users from the
    'User Administration' page */
-.sudoer-bar {
+.info-bar {
     background-color: #d3d7cf;
     border-bottom: 1px solid #555753;
     padding-left: 2em;

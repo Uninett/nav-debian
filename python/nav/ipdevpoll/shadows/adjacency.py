@@ -43,6 +43,7 @@ A sentinel record is an AdjacencyCandidate or UnrecognizedNeighbor instance whos
 interface attribute is None, and whose source attribute is a non-empty string.
 
 """
+
 from nav.models import manage
 from nav.ipdevpoll.storage import Shadow, DefaultManager
 from nav.ipdevpoll.utils import is_invalid_database_string
@@ -117,7 +118,6 @@ class AdjacencyManager(DefaultManager):
         expired.delete()
 
 
-# pylint: disable=C0111
 class AdjacencyCandidate(Shadow):
     __shadowclass__ = manage.AdjacencyCandidate
     manager = AdjacencyManager
@@ -211,7 +211,6 @@ class UnrecognizedNeighborManager(DefaultManager):
             ).delete()
 
 
-# pylint: disable=C0111,W0201,E0203
 class UnrecognizedNeighbor(Shadow):
     __shadowclass__ = manage.UnrecognizedNeighbor
     __lookups__ = [('netbox', 'interface', 'remote_id')]

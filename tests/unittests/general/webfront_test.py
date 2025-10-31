@@ -12,7 +12,7 @@ import pytest
 import nav.web.auth.ldap
 from nav.web import auth
 from nav.web.auth import remote_user
-from nav.web.auth.utils import ACCOUNT_ID_VAR
+from nav.web.auth.utils import ACCOUNT_ID_VAR, get_account
 
 LDAP_ACCOUNT = auth.Account(login='knight', ext_sync='ldap', password='shrubbery')
 PLAIN_ACCOUNT = auth.Account(login='knight', password='shrubbery')
@@ -168,7 +168,8 @@ class TestLoginRemoteUser(object):
             ):
                 remote_user.login(request)
                 assert hasattr(request, 'account')
-                assert request.account == REMOTE_USER_ACCOUNT
+                account = get_account(request)
+                assert account == REMOTE_USER_ACCOUNT
                 assert ACCOUNT_ID_VAR in request.session
                 assert (
                     request.session.get(ACCOUNT_ID_VAR, None) == REMOTE_USER_ACCOUNT.id
@@ -227,8 +228,8 @@ class TestLdapUser(object):
                 ),
             }
         )
-        u = nav.web.auth.ldap.LDAPUser(u"zaphod", conn)
-        u.bind(u"æøå")
+        u = nav.web.auth.ldap.LDAPUser("zaphod", conn)
+        u.bind("æøå")
 
     @patch.dict(
         "nav.web.auth.ldap._config._sections",
@@ -256,7 +257,7 @@ class TestLdapUser(object):
                 'search_s.side_effect': fake_search,
             }
         )
-        u = nav.web.auth.ldap.LDAPUser(u"Ægir", conn)
+        u = nav.web.auth.ldap.LDAPUser("Ægir", conn)
         u.is_group_member('cn=noc-operators,cn=groups,dc=example,dc=com')
 
 
@@ -325,8 +326,8 @@ def user_zaphod():
         **{
             'search_s.return_value': [
                 (
-                    u'uid=zaphod,cn=users,dc=example,dc=org',
-                    {u'eduPersonEntitlement': [b'president', b'boss']},
+                    'uid=zaphod,cn=users,dc=example,dc=org',
+                    {'eduPersonEntitlement': [b'president', b'boss']},
                 )
             ]
         }
@@ -339,8 +340,8 @@ def user_marvin():
         **{
             'search_s.return_value': [
                 (
-                    u'uid=marvin,cn=users,dc=example,dc=org',
-                    {u'eduPersonEntitlement': [b'paranoid']},
+                    'uid=marvin,cn=users,dc=example,dc=org',
+                    {'eduPersonEntitlement': [b'paranoid']},
                 )
             ]
         }

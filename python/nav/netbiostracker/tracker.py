@@ -17,6 +17,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Module for doing netbios scans"""
+
 import logging
 from collections import namedtuple
 from datetime import datetime
@@ -31,7 +32,6 @@ from nav.macaddress import MacAddress
 
 SPLITCHAR = '!'
 
-# pylint: disable=C0103
 NetbiosResult = namedtuple('NetbiosResult', 'ip name server username mac')
 
 _logger = logging.getLogger(__name__)

@@ -25,11 +25,11 @@
 # the operation is the owner
 
 from django.http import HttpResponseRedirect, QueryDict
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.shortcuts import render
 from django.urls import reverse
 
+from nav.web.modals import render_modal
 from nav.web.utils import SubListView
 
 from nav.models.profiles import (
@@ -49,7 +49,7 @@ from nav.models.profiles import (
     SMSQueue,
     AccountAlertQueue,
 )
-from nav.django.utils import get_account, is_admin
+from nav.web.auth.utils import get_account
 from nav.web.message import Messages, new_message
 
 from nav.web.alertprofiles.forms import TimePeriodForm, LanguageForm
@@ -82,11 +82,7 @@ def overview(request):
     account = get_account(request)
 
     # Get information about user
-    groups = account.groups.all()
-    try:
-        active_profile = account.get_active_profile()
-    except ObjectDoesNotExist:
-        active_profile = None
+    active_profile = account.get_active_profile()
 
     if not active_profile:
         subscriptions = None
@@ -94,22 +90,9 @@ def overview(request):
         periods = TimePeriod.objects.filter(profile=active_profile).order_by('start')
         subscriptions = alert_subscriptions_table(periods)
 
-    # Get information about users privileges
-    sms_privilege = account.has_perm('alert_by', 'sms')
-
-    filter_dict = {'group_permissions__in': [g.id for g in groups]}
-    filter_groups = FilterGroup.objects.filter(**filter_dict).order_by('name')
-
-    language = account.preferences.get(account.PREFERENCE_KEY_LANGUAGE, 'en')
-    language_form = LanguageForm(initial={'language': language})
-
     info_dict = {
         'active': {'overview': True},
-        'groups': groups,
         'active_profile': active_profile,
-        'sms_privilege': sms_privilege,
-        'filter_groups': filter_groups,
-        'language_form': language_form,
         'alert_subscriptions': subscriptions,
         'navpath': [
             ('Home', '/'),
@@ -118,6 +101,39 @@ def overview(request):
         'title': 'NAV - Alert profiles',
     }
     return render(request, 'alertprofiles/account_detail.html', info_dict)
+
+
+def groups_and_permissions_modal(request):
+    """Render a modal with information about groups and permissions"""
+    account = get_account(request)
+
+    # Get information about user
+    groups = account.groups.all()
+    active_profile = account.get_active_profile()
+
+    # Get information about users privileges
+    sms_privilege = account.has_perm('alert_by', 'sms')
+    filter_dict = {'group_permissions__in': [g.id for g in groups]}
+    filter_groups = (
+        FilterGroup.objects.filter(**filter_dict).distinct().order_by('name')
+    )
+
+    language = account.preferences.get(account.PREFERENCE_KEY_LANGUAGE, 'en')
+    language_form = LanguageForm(initial={'language': language})
+
+    return render_modal(
+        request,
+        'alertprofiles/_groups_and_permissions_modal.html',
+        context={
+            'active_profile': active_profile,
+            'filter_groups': filter_groups,
+            'groups': groups,
+            'language_form': language_form,
+            'sms_privilege': sms_privilege,
+        },
+        modal_id="groups-and-permissions",
+        size="large",
+    )
 
 
 def show_profile(request):
@@ -130,10 +146,7 @@ def show_profile(request):
     if order_by not in valid_ordering:
         order_by = 'name'
 
-    try:
-        active_profile = account.alert_preference.active_profile
-    except Exception:
-        active_profile = None
+    active_profile = account.get_active_profile()
 
     if not active_profile:
         new_message(request, _('There\'s no active profile set.'), Messages.NOTICE)
@@ -224,14 +237,15 @@ def profile_new(request):
 
 def set_active_profile(request, profile):
     """Set active profile to given profile"""
+    account = get_account(request)
     preference, _created = AlertPreference.objects.get_or_create(
-        account=request.account, defaults={'active_profile': profile}
+        account=account, defaults={'active_profile': profile}
     )
     preference.active_profile = profile
     preference.save()
     new_message(
         request,
-        u'Active profile automatically set to {}'.format(profile.name),
+        'Active profile automatically set to {}'.format(profile.name),
         Messages.NOTICE,
     )
 
@@ -302,7 +316,7 @@ def profile_save(request):
     if 'template' in request.POST:
         create_time_periods(request, profile)
 
-    new_message(request, u'Saved profile {}'.format(profile.name), Messages.SUCCESS)
+    new_message(request, 'Saved profile {}'.format(profile.name), Messages.SUCCESS)
 
     return HttpResponseRedirect(
         reverse('alertprofiles-profile-detail', args=(profile.id,))
@@ -363,7 +377,7 @@ def profile_remove(request):
                     request, _('You do not own this profile.')
                 )
             if profile == active_profile:
-                warnings.append({'message': u'This is the currently active profile.'})
+                warnings.append({'message': 'This is the currently active profile.'})
 
             queued = AccountAlertQueue.objects.filter(
                 subscription__time_period__profile=profile
@@ -522,7 +536,7 @@ def profile_time_period_add(request):
     time_period = time_period_form.save()
     new_message(
         request,
-        _('Saved time period %(time)s for %(during)s to profile ' '%(profile)s')
+        _('Saved time period %(time)s for %(during)s to profile %(profile)s')
         % {
             'time': time_period.start,
             'during': time_period.get_valid_during_display(),
@@ -576,21 +590,17 @@ def profile_time_period_remove(request):
         account = get_account(request)
         time_periods = TimePeriod.objects.filter(pk__in=request.POST.getlist('period'))
         profile = AlertProfile.objects.get(pk=request.POST.get('profile'))
-        try:
-            active_profile = AlertPreference.objects.get(account=account).active_profile
-        except Exception:
-            pass
-        else:
-            if profile == active_profile:
-                new_message(
-                    request,
-                    _(
-                        "Time periods are used in profile %(profile)s, which "
-                        "is the current active profile."
-                    )
-                    % {'profile': profile.name},
-                    Messages.WARNING,
+        active_profile = account.get_active_profile()
+        if active_profile and profile == active_profile:
+            new_message(
+                request,
+                _(
+                    "Time periods are used in profile %(profile)s, which "
+                    "is the current active profile."
                 )
+                % {'profile': profile.name},
+                Messages.WARNING,
+            )
 
         if not time_periods:
             new_message(request, _('No time periods were selected.'), Messages.NOTICE)
@@ -606,9 +616,7 @@ def profile_time_period_remove(request):
                 return alertprofiles_response_forbidden(
                     request, _('You do not own this profile.')
                 )
-            description = _(
-                u'From %(time)s for %(profile)s during %(valid_during)s'
-            ) % {
+            description = _('From %(time)s for %(profile)s during %(valid_during)s') % {
                 'time': period.start,
                 'profile': period.profile.name,
                 'valid_during': period.get_valid_during_display(),
@@ -621,10 +629,10 @@ def profile_time_period_remove(request):
             if queued > 0:
                 warnings.append(
                     {
-                        'message': u"There are %(queued)s queued alerts on a "
-                        u"subscription under this time period. Deleting "
-                        u"this time period will delete those alerts as "
-                        u"well." % {'queued': queued}
+                        'message': "There are %(queued)s queued alerts on a "
+                        "subscription under this time period. Deleting "
+                        "this time period will delete those alerts as "
+                        "well." % {'queued': queued}
                     }
                 )
             elements.append(
@@ -707,7 +715,7 @@ def profile_time_period_setup(request, time_period_id=None):
             ('Profiles', reverse('alertprofiles-profile')),
             (profile.name, reverse('alertprofiles-profile-detail', args=(profile.id,))),
             (
-                str(time_period.start) + u', ' + time_period.get_valid_during_display(),
+                str(time_period.start) + ', ' + time_period.get_valid_during_display(),
                 None,
             ),
         ],
@@ -800,7 +808,7 @@ def profile_time_period_subscription_edit(request, subscription_id=None):
             (profile.name, reverse('alertprofiles-profile-detail', args=(profile.id,))),
             (
                 str(subscription.time_period.start)
-                + u', '
+                + ', '
                 + subscription.time_period.get_valid_during_display(),
                 reverse(
                     'alertprofiles-profile-timeperiod-setup',
@@ -874,16 +882,16 @@ def profile_time_period_subscription_remove(request):
             if queued > 0:
                 warnings.append(
                     {
-                        'message': u"There are %(queued)s queued alert(s) on this "
-                        u"subscription.  If you delete this "
-                        u"subscription, those alerts will be deleted as "
-                        u"well." % {'queued': queued},
+                        'message': "There are %(queued)s queued alert(s) on this "
+                        "subscription.  If you delete this "
+                        "subscription, those alerts will be deleted as "
+                        "well." % {'queued': queued},
                     }
                 )
 
             description = _(
-                u"Watch %(fg)s, send to %(address)s %(dispatch)s, from "
-                u"%(time)s for %(profile)s during %(during)s"
+                "Watch %(fg)s, send to %(address)s %(dispatch)s, from "
+                "%(time)s for %(profile)s during %(during)s"
             ) % {
                 'fg': sub.filter_group.name,
                 'address': sub.alert_address.address,
@@ -917,7 +925,7 @@ def profile_time_period_subscription_remove(request):
                     reverse('alertprofiles-profile-detail', args=(period.profile.id,)),
                 ),
                 (
-                    str(period.start) + u', ' + period.get_valid_during_display(),
+                    str(period.start) + ', ' + period.get_valid_during_display(),
                     reverse(
                         'alertprofiles-profile-timeperiod-setup', args=(period.id,)
                     ),
@@ -1122,8 +1130,8 @@ def address_remove(request):
             for sub in subscriptions:
                 warnings.append(
                     {
-                        'message': u'Address used in subscription "watch %(fg)s '
-                        u'from %(time)s for profile %(profile)s".'
+                        'message': 'Address used in subscription "watch %(fg)s '
+                        'from %(time)s for profile %(profile)s".'
                         % {
                             'fg': sub.filter_group.name,
                             'time': sub.time_period.start,
@@ -1140,14 +1148,14 @@ def address_remove(request):
                 if queued > 0:
                     warnings.append(
                         {
-                            'message': u"There are %(queued)s queued alerts on "
-                            u"this subscription. Deleting this time "
-                            u"period will delete those alerts as "
-                            u"well." % {'queued': queued}
+                            'message': "There are %(queued)s queued alerts on "
+                            "this subscription. Deleting this time "
+                            "period will delete those alerts as "
+                            "well." % {'queued': queued}
                         }
                     )
 
-            description = _(u'''%(type)s address %(address)s''') % {
+            description = _('''%(type)s address %(address)s''') % {
                 'type': addr.type.name,
                 'address': addr.address,
             }
@@ -1179,7 +1187,7 @@ def address_remove(request):
 @requires_post('alertprofiles-profile', ('language',))
 def language_save(request):
     """Saves the user's preferred language"""
-    account = request.account
+    account = get_account(request)
     value = request.POST.get('language')
     account.preferences[account.PREFERENCE_KEY_LANGUAGE] = value
     account.save()
@@ -1234,7 +1242,7 @@ def sms_list(request):
 def filter_list(request):
     """Lists all the filters"""
     account = get_account(request)
-    admin = is_admin(account)
+    admin = account.is_admin()
 
     page = request.GET.get('page', 1)
 
@@ -1276,7 +1284,7 @@ def filter_show_form(request, filter_id=None, filter_form=None):
     active = {'filters': True}
     page_name = 'New filter'
     account = get_account(request)
-    admin = is_admin(account)
+    admin = account.is_admin()
     is_owner = True
 
     filtr = None
@@ -1469,9 +1477,9 @@ def filter_remove(request):
             except Account.DoesNotExist:
                 warnings.append(
                     {
-                        'message': u'This filter is public. Deleting it will '
-                        u'make it unavailable for all users of this '
-                        u'system.'
+                        'message': 'This filter is public. Deleting it will '
+                        'make it unavailable for all users of this '
+                        'system.'
                     }
                 )
 
@@ -1481,7 +1489,7 @@ def filter_remove(request):
             for fgroup in filter_groups:
                 warnings.append(
                     {
-                        'message': u'Used in filter group %(name)s.'
+                        'message': 'Used in filter group %(name)s.'
                         % {'name': fgroup.name},
                         'link': reverse(
                             'alertprofiles-filter_groups-detail', args=(fgroup.id,)
@@ -1560,6 +1568,16 @@ def filter_addexpression(request):
         'title': 'NAV - Alert profiles',
     }
     return render(request, 'alertprofiles/expression_form.html', info_dict)
+
+
+def filter_addexpression_operator_help_modal(request):
+    """Renders a modal with descriptions of all available operators"""
+    return render_modal(
+        request,
+        'alertprofiles/_add_expression_operator_help_modal.html',
+        modal_id='operator-help',
+        size='large',
+    )
 
 
 @requires_post('alertprofiles-filters')
@@ -1654,8 +1672,8 @@ def filter_removeexpression(request):
         elements = []
         for expr in expressions:
             description = _(
-                u"Expression, %(match_field)s %(operator)s %(value)s, used in "
-                u"filter %(filter)s"
+                "Expression, %(match_field)s %(operator)s %(value)s, used in "
+                "filter %(filter)s"
             ) % {
                 'match_field': expr.match_field.name,
                 'operator': expr.get_operator_display(),
@@ -1690,7 +1708,7 @@ def filter_removeexpression(request):
 def filter_group_list(request):
     """Lists the available filter groups"""
     account = get_account(request)
-    admin = is_admin(account)
+    admin = account.is_admin()
 
     page = request.GET.get('page', 1)
 
@@ -1733,7 +1751,7 @@ def filter_group_show_form(request, filter_group_id=None, filter_group_form=None
     active = {'filter_groups': True}
     page_name = 'New filter group'
     account = get_account(request)
-    admin = is_admin(account)
+    admin = account.is_admin()
     is_owner = True
 
     filter_group = None
@@ -1841,6 +1859,16 @@ def filter_group_detail(request, filter_group_id=None):
     return filter_group_show_form(request, filter_group_id)
 
 
+def filter_group_operator_help_modal(request):
+    """Renders a modal with descriptions of all available operators"""
+    return render_modal(
+        request,
+        'alertprofiles/_filter_group_operator_help_modal.html',
+        modal_id='operator-help',
+        size="large",
+    )
+
+
 @requires_post('alertprofiles-filter_groups')
 def filter_group_save(request):
     """Saves a filter group"""
@@ -1937,17 +1965,16 @@ def filter_group_remove(request):
             except Account.DoesNotExist:
                 warnings.append(
                     {
-                        'message': u"This is a public filter group. Deleting it "
-                        u"will make it unavailable for all other users "
-                        u"of this system.",
+                        'message': "This is a public filter group. Deleting it "
+                        "will make it unavailable for all other users "
+                        "of this system.",
                     }
                 )
 
             for profile in profiles:
                 warnings.append(
                     {
-                        'message': u'Used in profile %(name)s.'
-                        % {'name': profile.name},
+                        'message': 'Used in profile %(name)s.' % {'name': profile.name},
                         'link': reverse(
                             'alertprofiles-profile-detail', args=(profile.id,)
                         ),
@@ -2117,8 +2144,8 @@ def filter_group_removefilter(request):
             new_message(
                 request,
                 _(
-                    u"You are now editing a public filter group. This will "
-                    u"affect all users who uses this filter group."
+                    "You are now editing a public filter group. This will "
+                    "affect all users who uses this filter group."
                 ),
                 Messages.WARNING,
             )
@@ -2243,7 +2270,7 @@ def filter_group_movefilter(request):
 def matchfield_list(request):
     """Lists the available match fields"""
     account = get_account(request)
-    if not is_admin(account):
+    if not account.is_admin():
         return alertprofiles_response_forbidden(
             request, 'Only admins can view this page.'
         )
@@ -2291,7 +2318,7 @@ def matchfield_show_form(request, matchfield_id=None, matchfield_form=None):
     active = {'matchfields': True}
     page_name = 'New matchfield'
     account = get_account(request)
-    if not is_admin(account):
+    if not account.is_admin():
         return alertprofiles_response_forbidden(
             request, 'Only admins can view this page.'
         )
@@ -2373,7 +2400,7 @@ def matchfield_detail(request, matchfield_id=None):
 def matchfield_save(request):
     """Saves a match field"""
     account = get_account(request)
-    if not is_admin(account):
+    if not account.is_admin():
         return alertprofiles_response_forbidden(
             request, 'Only admins can view this page.'
         )
@@ -2414,7 +2441,7 @@ def matchfield_save(request):
 def matchfield_remove(request):
     """Deletes a match field"""
     account = get_account(request)
-    if not is_admin(account):
+    if not account.is_admin():
         return alertprofiles_response_forbidden(
             request, 'Only admins can view this page.'
         )
@@ -2492,7 +2519,7 @@ def matchfield_remove(request):
 def permission_list(request, group_id=None):
     """Lists the saved alert profiles permissions"""
     account = get_account(request)
-    if not is_admin(account):
+    if not account.is_admin():
         return alertprofiles_response_forbidden(
             request, 'Only admins can view this page.'
         )
@@ -2530,11 +2557,21 @@ def permission_list(request, group_id=None):
     return render(request, 'alertprofiles/permissions.html', info_dict)
 
 
+def permissions_help_modal(request):
+    """Renders the permissions help modal"""
+    return render_modal(
+        request,
+        'alertprofiles/_permissions_help_modal.html',
+        modal_id="permissions-help",
+        size="small",
+    )
+
+
 @requires_post('alertprofiles-permissions')
 def permissions_save(request):
     """Saves an Alert Profiles permission"""
     account = get_account(request)
-    if not is_admin(account):
+    if not account.is_admin():
         return alertprofiles_response_forbidden(
             request, 'Only admins can view this page.'
         )

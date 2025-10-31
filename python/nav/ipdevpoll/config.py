@@ -30,7 +30,7 @@ class IpdevpollConfig(NAVConfigParser):
     """ipdevpoll config parser"""
 
     DEFAULT_CONFIG_FILES = ('ipdevpoll.conf',)
-    DEFAULT_CONFIG = u"""
+    DEFAULT_CONFIG = """
 [ipdevpoll]
 logfile = ipdevpolld.log
 max_concurrent_jobs = 500
@@ -77,7 +77,7 @@ EATON_CORPORATION = XUPS-MIB
 MERLIN_GERIN = MG-SNMP-UPS-MIB
 IT_WATCHDOGS_INC = IT-WATCHDOGS-MIB-V3 IT-WATCHDOGS-MIB ItWatchDogsMibV4
 GEIST_MANUFACTURING_INC = GEIST-MIB-V3 GeistMibV4
-COMET_SYSTEM_SRO = P8652-MIB COMETMS-MIB
+COMET_SYSTEM_SRO = P8652-MIB COMETMS-MIB T3611-MIB
 KCP_INC = SPAGENT-MIB
 ELTEK_ENERGY_AS = ELTEK-DISTRIBUTED-MIB
 EATON_WILLIAMS = CD6C
@@ -130,8 +130,6 @@ def get_netbox_filter(section, config=None):
     return []
 
 
-# this is a data container class, mr. pylint!
-# pylint: disable=R0913,R0903
 class JobDescriptor(object):
     """A data structure describing a job."""
 

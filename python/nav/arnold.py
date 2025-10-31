@@ -19,7 +19,6 @@
 Provides helpfunctions for Arnold web and script
 """
 
-
 import re
 import os
 import configparser
@@ -53,7 +52,6 @@ CONFIGFILE = os.path.join("arnold", "arnold.conf")
 NONBLOCKFILE = os.path.join("arnold", "nonblock.conf")
 _logger = logging.getLogger(__name__)
 
-# pylint: disable=C0103
 Candidate = namedtuple("Candidate", "camid ip mac interface endtime")
 
 
@@ -297,7 +295,9 @@ def disable(candidate, justification, username, comment="", autoenablestep=0):
     if not candidate.interface.netbox.get_preferred_snmp_management_profile(
         require_write=True
     ):
-        raise NoReadWriteManagementProfileError(candidate.interface.netbox)
+        raise NoReadWriteManagementProfileError(
+            "%s has no read-write management profile" % candidate.interface.netbox
+        )
     identity = check_identity(candidate)
     change_port_status('disable', identity)
     identity.status = 'disabled'
@@ -319,7 +319,9 @@ def quarantine(candidate, qvlan, justification, username, comment="", autoenable
     if not candidate.interface.netbox.get_preferred_snmp_management_profile(
         require_write=True
     ):
-        raise NoReadWriteManagementProfileError(candidate.interface.netbox)
+        raise NoReadWriteManagementProfileError(
+            "%s has no read-write management profile" % candidate.interface.netbox
+        )
     identity = check_identity(candidate)
     identity.fromvlan = change_port_vlan(identity, qvlan.vlan)
     identity.tovlan = qvlan
@@ -463,7 +465,9 @@ def change_port_status(
     profile = netbox.get_preferred_snmp_management_profile(require_write=True)
 
     if not profile:
-        raise NoReadWriteManagementProfileError
+        raise NoReadWriteManagementProfileError(
+            "%s has no read-write management profile" % netbox
+        )
 
     agent = agent_getter(profile)(host=netbox.ip)
 
@@ -498,14 +502,14 @@ def change_port_vlan(identity, vlan):
     agent = ManagementFactory().get_instance(netbox)
     try:
         fromvlan = agent.get_interface_native_vlan(interface)
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001
         raise ChangePortVlanError(error)
     else:
         _logger.info('Setting vlan %s on interface %s', vlan, interface)
         try:
             agent.set_vlan(interface, vlan)
             agent.cycle_interfaces([interface])
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             raise ChangePortVlanError(error)
         else:
             return fromvlan
@@ -533,7 +537,6 @@ def get_host_name(ip):
     return hostname
 
 
-# pylint: disable=E1103
 def get_netbios(ip):
     """Get netbiosname of computer with ip"""
 

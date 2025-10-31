@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """Forms for the radius tool"""
+
 from datetime import datetime
 
 from django import forms
@@ -28,6 +29,8 @@ from nav.web.crispyforms import (
 )
 
 from nav.util import is_valid_cidr
+
+from ..utils import validate_timedelta_for_overflow
 
 
 def validate_integer(value):
@@ -68,12 +71,10 @@ class MultitypeQueryWidget(forms.MultiWidget):
 
     def format_output(self, rendered_widgets):
         """Place the assumed two widgets side by side"""
-        output = u"""<div class="row collapse">
+        output = """<div class="row collapse">
         <div class="medium-6 column">{0:s}</div>
         <div class="medium-6 column">{1:s}</div>
-        </div>""".format(
-            *rendered_widgets
-        )
+        </div>""".format(*rendered_widgets)
         return output
 
 
@@ -167,6 +168,13 @@ class ErrorLogSearchForm(forms.Form):
             ],
         )
 
+    def clean_time(self):
+        if self.cleaned_data["time"]:
+            time_type, time = self.cleaned_data["time"]
+            if time_type == "hours":
+                validate_timedelta_for_overflow(hours=int(time))
+            return time
+
 
 class AccountLogSearchForm(forms.Form):
     """Form for searching in the radius account log"""
@@ -236,6 +244,13 @@ class AccountLogSearchForm(forms.Form):
             ],
         )
 
+    def clean_time(self):
+        if self.cleaned_data["time"]:
+            time_type, time = self.cleaned_data["time"]
+            if time_type == "days":
+                validate_timedelta_for_overflow(days=int(time))
+            return time
+
 
 class AccountChartsForm(forms.Form):
     """Form for displaying top talkers"""
@@ -258,3 +273,9 @@ class AccountChartsForm(forms.Form):
             form_fields=[self['days'], self['charts']],
             submit_field=SubmitField('send', 'Show me', css_classes='small'),
         )
+
+    def clean_days(self):
+        days = self.cleaned_data["days"]
+        validate_timedelta_for_overflow(days=days)
+
+        return days

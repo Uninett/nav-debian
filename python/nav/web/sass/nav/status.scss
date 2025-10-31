@@ -34,11 +34,11 @@ table.expandable {
     li, p {
         font-size: 0.9rem;
     }
+}
 
-    .f-dropdown {
-        a {
-            color: #027bbb;
-        }
-    }
-
+#action-help-content {
+    margin: 0.5rem 0 1rem 0;
+    padding: 1rem;
+    background-color: #ffffff;
+    border: 1px solid #cccccc;
 }

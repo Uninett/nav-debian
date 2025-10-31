@@ -14,7 +14,6 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """SSH service checker"""
-# pylint: disable=W0703
 
 import socket
 
@@ -44,7 +43,7 @@ class SshChecker(AbstractChecker):
             protocol, major = version.split('-')[:2]
             stream.write("%s-%s-%s\r\n" % (protocol, major, "NAV_Servicemon"))
             stream.flush()
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             return (
                 Event.DOWN,
                 "Failed to send version reply to %s: %s"

@@ -16,7 +16,6 @@
 #
 """Bulk import format parsers."""
 
-
 import csv
 import re
 import io
@@ -133,8 +132,6 @@ class BulkParser:
         return header
 
 
-# don't complain about simple iterators, mr. Pylint!
-# pylint: disable=R0903
 class CommentStripper:
     """Iterator that strips comments from the input iterator"""
 

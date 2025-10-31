@@ -15,9 +15,9 @@
     <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/custom.css" />
     <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/calendar.css" />
     <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/treeselect.css" />
-    <link rel="stylesheet" href="{{ STATIC_URL }}css/nav/quickselect.css" />
     {% comment %} Javascript global variables {% endcomment %}
     <script src="{{ STATIC_URL }}js/libs/jquery.js"></script>
+    <script src="{{ STATIC_URL }}js/libs/htmx-2.0.4.min.js"></script>
     {% include 'navurls.html' %}
     <script src="{{ STATIC_URL }}js/require_config.js"></script>
     {% if debug %}
@@ -39,7 +39,7 @@
 
 
 {% comment %} TOP BAR {% endcomment %}
-<nav class="top-bar" data-topbar data-options="is_hover: false">
+<nav class="top-bar">
   <ul class="title-area">
     <li class="name">
       <h1>
@@ -57,16 +57,7 @@
   <section class="top-bar-section">
     <ul class="left">
       <li class="has-form search">
-        <form id="navbar-search-form" action="{% url 'info-search' %}" method="get">
-          <div class="row collapse">
-            <div class="small-8 columns">
-              <input id="query" type="text" name="query" maxlength="100"/>
-            </div>
-            <div class="small-4 columns">
-              <input class="button secondary" type="submit" value="Search" />
-            </div>
-          </div>
-        </form>
+        {% include "info/_navbar_search_form.html" %}
       </li>
     </ul>
 
@@ -90,7 +81,7 @@
 
       <li class="hide-for-small text-center"><a id="megadroptoggler" href="javascript:void(0);">Tools <i class="fa fa-caret-down"></i></a></li>
 
-      {% if not current_user_data.account.is_default_account %}
+      {% if not current_user_data.account.is_anonymous %}
         <li class="has-dropdown">
           <a href="javascript:void(0);">
             My stuff
@@ -100,10 +91,11 @@
               <li><a href="{{ link.uri }}">{{ link.name }}</a></li>
             {% endfor %}
             <li class="divider"><a href="{% url 'webfront-preferences' %}">My account <i class="fa fa-gear"></i></a></li>
+            <li class="divider"><a hx-get="{% url 'webfront-qr-code' %}" hx-target="body" hx-swap="beforeend">QR Code <i class="fa fa-qrcode"></i></a></li>
           </ul>
         </li>
       {% endif %}
-      {% if current_user_data.account.is_default_account %}
+      {% if current_user_data.account.is_anonymous %}
         <li>
             <a class="navbar login button secondary" href="{{ login_url }}">Login</a>
         </li>
@@ -163,14 +155,23 @@
 
 
   {% if current_user_data.sudoer %}
-    <div class="sudoer-bar">
+    <div class="info-bar">
         <form action="{% url 'webfront-logout' %}" method="post">
+            {% csrf_token %}
             <img src="{{ STATIC_URL }}images/main/emblem-important.png"
                  alt="Important information"/>
             Hi <em>{{ current_user_data.sudoer.name }}</em>, you are currently
             logged in as <em>{{ current_user_data.account.name }}</em>.
             <input type="submit" name="submit_desudo" value="Log back in as {{ current_user_data.sudoer.login }}" class="button secondary small"/>
         </form>
+    </div>
+{% endif %}
+
+{% if current_user_data.password_issues %}
+    <div id="password-issues-bar" class="info-bar">
+        <img src="{{ STATIC_URL }}images/main/emblem-important.png"/>
+        {{ current_user_data.password_issues.message }}
+        <a href="{{ current_user_data.password_issues.link }}">{{ current_user_data.password_issues.link_message }}</a>
     </div>
 {% endif %}
 
@@ -206,7 +207,7 @@
 
   {% block base_debug %}
     {% if debug %}
-      {% if not current_user_data.account.is_default_account %}
+      {% if not current_user_data.account.is_anonymous %}
         {% include "debug.html" %}
       {% endif %}
     {% endif %}

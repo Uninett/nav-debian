@@ -21,8 +21,7 @@ support write operations*.
 How to get a token
 ------------------
 
-Tokens are administrated from the `User and API Administration
-</useradmin/tokens/>`_ page in NAV.
+Tokens are administrated from the ``User and API Administration`` page in NAV.
 
 .. _classic-token:
 How to use the token
@@ -40,10 +39,10 @@ doing your requests, make sure to add the header field to all requests.
 on NAV installations that do not have SSL enabled, you are potentially giving
 everyone access to the data.
 
-
+.. _jwt-token:
 JSON Web Tokens
 ------------------
-JSON Web Tokens (JWTs) must be :doc:`configured <../reference/jwt>` before they can be used.
+JSON Web Tokens (JWTs) must be :ref:`configured <jwt-configuration>` before they can be used.
 
 Once configured, you can use tokens issued by your configured issuers in almost the same way
 as :ref:`classic tokens <classic-token>`::
@@ -55,6 +54,36 @@ Note how JWTs require the prefix ``Bearer`` and not ``Token``.
 JWTs must include valid ``exp``, ``nbf``, ``iss`` and ``aud`` claims in order to be valid.
 ``iss`` and ``aud`` must match the :doc:`configuration <../reference/jwt>`, while ``exp`` must
 be in the future and ``nbf`` must be in the past.
+
+The ``endpoints`` and ``write`` claims are optional claims that are used to determine what
+resources the token has access to.
+The ``endpoints`` claim should contain a list of endpoints that the token has access to.
+If ``endpoints`` is an empty list or omitted, the token will not have access to any endpoints.
+The ``write`` claim should be a boolean indicating whether the token has write access to the endpoints.
+If ``write`` is ``false`` or omitted, the token will only have read access to the endpoints listed in ``endpoints``.
+
+
+Locally issued JSON Web Tokens
+------------------------------
+Local JSON Web Tokens (JWTs) must be :ref:`configured <local-jwt-configuration>` before they can be used.
+
+NAV supports generating JWT tokens for local use, as opposed to tokens generated externally.
+You can generate refresh tokens via the frontend which can be used to obtain access tokens
+that can be used as described :ref:`above <jwt-token>`.
+
+In order to create access tokens you must use the refresh token endpoint, which is available at ``/api/jwt/refresh/``.
+The endpoint takes a JSON object with a single key, ``refresh_token``, which should contain the
+token you wish to use::
+
+  curl -X POST -H "Content-type: application/json" http://localhost:80/api/jwt/refresh/ -d '{"refresh_token": "<refresh_token>"}'
+
+The response will contain an access token and a new refresh token::
+
+  {"refresh_token": "<new_refresh_token>", "access_token": "<new_access_token>"}
+
+Refresh tokens can only be used once, so the next time you need a new access token,
+you should use the new refresh token provided in the response.
+
 
 Browsing the API
 ================
@@ -133,8 +162,8 @@ At the moment there is no way of specifying wildcards in the filter.
 Using POST, PUT, PATCH and DELETE
 ---------------------------------
 
-To use these request methods you need a write-enabled token. Go to `User and API
-Administration </useradmin/tokens/>`_ to set token attributes.
+To use these request methods you need a write-enabled token. Go to ``User and API
+Administration`` to set token attributes.
 
 CRUD-methods are enabled for a limited number of endpoints. These endpoints can
 be found by querying the endpoint with the ``OPTIONS`` header and see if POST is

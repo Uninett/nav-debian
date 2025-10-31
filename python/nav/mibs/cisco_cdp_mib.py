@@ -13,7 +13,8 @@
 # more details.  You should have received a copy of the GNU General Public
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
-""""CISCO-CDP-MIB handling"""
+""" "CISCO-CDP-MIB handling"""
+
 import socket
 from collections import namedtuple
 
@@ -30,6 +31,7 @@ ADDRESS_TYPE_IP = 1
 
 class CiscoCDPMib(mibretriever.MibRetriever):
     "A MibRetriever for handling CISCO-CDP-MIB"
+
     mib = get_mib('CISCO-CDP-MIB')
 
     def get_neighbors_last_change(self):
@@ -48,7 +50,7 @@ class CiscoCDPMib(mibretriever.MibRetriever):
             neighbor = self._make_cache_tuple(index, row)
             if neighbor:
                 neighbors.append(neighbor)
-        defer.returnValue(neighbors)
+        return neighbors
 
     @defer.inlineCallbacks
     def _get_cdp_cache_table(self):
@@ -60,7 +62,7 @@ class CiscoCDPMib(mibretriever.MibRetriever):
                 'cdpCacheDevicePort',
             ]
         )
-        defer.returnValue(reduce_index(cache))
+        return reduce_index(cache)
 
     @staticmethod
     def _make_cache_tuple(index, row):
@@ -84,5 +86,4 @@ class CiscoCDPMib(mibretriever.MibRetriever):
         return CDPNeighbor(ifindex, ip, deviceid, deviceport)
 
 
-# pylint: disable=C0103
 CDPNeighbor = namedtuple('CDPNeighbor', 'ifindex ip deviceid deviceport')

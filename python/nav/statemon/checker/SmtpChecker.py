@@ -14,6 +14,7 @@
 # License along with NAV. If not, see <http://www.gnu.org/licenses/>.
 #
 """SMTP service checker"""
+
 import re
 import socket
 import smtplib
@@ -59,7 +60,6 @@ class SmtpChecker(AbstractChecker):
         return Event.UP, msg
 
 
-# pylint: disable=R0904
 class SMTP(smtplib.SMTP):
     """A customized SMTP protocol interface"""
 

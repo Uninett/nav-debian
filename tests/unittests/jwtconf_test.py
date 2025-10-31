@@ -1,6 +1,7 @@
+import datetime
 from mock import patch, mock_open
 from unittest import TestCase
-from nav.jwtconf import JWTConf
+from nav.jwtconf import JWTConf, LocalJWTConfig
 from nav.config import ConfigurationError
 
 
@@ -9,7 +10,7 @@ class TestJWTConf(TestCase):
         pass
 
     def test_issuer_settings_include_valid_jwks_issuer(self):
-        config = u"""
+        config = """
             [jwks-issuer]
             keytype=JWKS
             aud=nav
@@ -33,7 +34,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(settings['jwks-issuer'], expected_settings)
 
     def test_issuer_settings_include_valid_pem_issuer(self):
-        config = u"""
+        config = """
             [pem-issuer]
             keytype=PEM
             aud=nav
@@ -58,7 +59,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(settings['pem-issuer'], expected_settings)
 
     def test_issuer_settings_include_valid_local_issuer(self):
-        config = u"""
+        config = """
             [nav]
             private_key=key
             public_key=key
@@ -84,7 +85,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(settings['nav'], expected_settings)
 
     def test_invalid_config_for_internal_tokens_should_return_empty_dict(self):
-        config = u"""
+        config = """
             [wrong-section-name]
             private_key=key
             public_key=key
@@ -101,7 +102,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(settings, dict())
 
     def test_invalid_config_for_external_tokens_should_return_empty_dict(self):
-        config = u"""
+        config = """
             [pem-issuer]
             keytype=INVALID
             aud=nav
@@ -157,7 +158,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(validated_type, type)
 
     def test_validate_issuer_should_fail_if_external_name_matches_local_name(self):
-        config = u"""
+        config = """
         [nav]
         private_key=key
         public_key=key
@@ -184,7 +185,7 @@ class TestJWTConf(TestCase):
             jwtconf._validate_issuer("")
 
     def test_get_nav_private_key_returns_correct_private_key(self):
-        config = u"""
+        config = """
         [nav]
         private_key=key
         public_key=key
@@ -201,7 +202,7 @@ class TestJWTConf(TestCase):
                 self.assertEqual(jwtconf.get_nav_private_key(), key)
 
     def test_get_nav_public_key_returns_correct_public_key(self):
-        config = u"""
+        config = """
         [nav]
         private_key=key
         public_key=key
@@ -218,7 +219,7 @@ class TestJWTConf(TestCase):
                 self.assertEqual(jwtconf.get_nav_public_key(), key)
 
     def test_get_nav_name_should_raise_error_if_name_empty(self):
-        config = u"""
+        config = """
         [nav]
         private_key=key
         public_key=key
@@ -230,7 +231,7 @@ class TestJWTConf(TestCase):
                 jwtconf.get_nav_name()
 
     def test_get_nav_name_returns_configured_name(self):
-        config = u"""
+        config = """
         [nav]
         private_key=key
         public_key=key
@@ -241,7 +242,7 @@ class TestJWTConf(TestCase):
             self.assertEqual(jwtconf.get_nav_name(), "nav")
 
     def test_missing_option_should_raise_error(self):
-        config_with_missing_keytype = u"""
+        config_with_missing_keytype = """
             [pem-issuer]
             aud=nav
             key=key_path
@@ -257,7 +258,7 @@ class TestJWTConf(TestCase):
                     jwtconf._get_settings_for_external_tokens()
 
     def test_non_existing_file_should_raise_error(self):
-        config = u"""
+        config = """
             [pem-issuer]
             aud=nav
             key=key_path
@@ -274,7 +275,7 @@ class TestJWTConf(TestCase):
             self.assertEqual(jwtconf._read_key_from_path("path"), mock_key)
 
     def test_file_with_permission_problems_should_raise_error(self):
-        config = u"""
+        config = """
             [pem-issuer]
             aud=nav
             key=key_path
@@ -287,7 +288,7 @@ class TestJWTConf(TestCase):
                     jwtconf._read_key_from_path("fakepath")
 
     def test_empty_config_should_give_empty_issuer_settings(self):
-        config = u"""
+        config = """
             """
         expected_settings = {}
         with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
@@ -296,7 +297,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(settings, expected_settings)
 
     def test_empty_config_should_give_empty_external_settings(self):
-        config = u"""
+        config = """
             """
         expected_settings = {}
         with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
@@ -305,7 +306,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(settings, expected_settings)
 
     def test_empty_config_should_give_empty_local_settings(self):
-        config = u"""
+        config = """
             """
         expected_settings = {}
         with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
@@ -314,7 +315,7 @@ class TestJWTConf(TestCase):
         self.assertEqual(settings, expected_settings)
 
     def test_settings_should_include_local_and_external_settings(self):
-        config = u"""
+        config = """
             [nav]
             private_key=key
             public_key=key
@@ -339,3 +340,182 @@ class TestJWTConf(TestCase):
         assert 'jwks-issuer' in settings
         assert 'pem-issuer' in settings
         assert 'local-issuer' in settings
+
+    def test_get_access_token_lifetime_should_return_configured_lifetime(self):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        access_token_lifetime=2h
+        """
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            jwtconf = JWTConf()
+            self.assertEqual(
+                jwtconf.get_access_token_lifetime(), datetime.timedelta(hours=2)
+            )
+
+    def test_get_refresh_token_lifetime_should_return_configured_lifetime(self):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        refresh_token_lifetime=2d
+        """
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            jwtconf = JWTConf()
+            self.assertEqual(
+                jwtconf.get_refresh_token_lifetime(), datetime.timedelta(days=2)
+            )
+
+    def test_if_lifetime_is_not_configured_then_get_access_token_lifetime_should_return_default_lifetime(  # noqa: E501
+        self,
+    ):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        """
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            jwtconf = JWTConf()
+            self.assertEqual(
+                jwtconf.get_access_token_lifetime(),
+                jwtconf.DEFAULT_ACCESS_TOKEN_LIFETIME,
+            )
+
+    def test_if_lifetime_is_not_configured_then_get_refresh_token_lifetime_should_return_default_lifetime(  # noqa: E501
+        self,
+    ):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        """
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            jwtconf = JWTConf()
+            self.assertEqual(
+                jwtconf.get_refresh_token_lifetime(),
+                jwtconf.DEFAULT_REFRESH_TOKEN_LIFETIME,
+            )
+
+    def test_get_local_config_returns_correct_private_key(self):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        access_token_lifetime=2h
+        refresh_token_lifetime=2d
+        """
+        key = "private-key"
+
+        def read_file_patch(self, file):
+            return key
+
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            with patch.object(JWTConf, '_read_key_from_path', read_file_patch):
+                local_config = JWTConf().get_local_config()
+                self.assertEqual(local_config.private_key, key)
+
+    def test_get_local_config_returns_correct_public_key(self):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        access_token_lifetime=2h
+        refresh_token_lifetime=2d
+        """
+        key = "public-key"
+
+        def read_file_patch(self, file):
+            return key
+
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            with patch.object(JWTConf, '_read_key_from_path', read_file_patch):
+                local_config = JWTConf().get_local_config()
+                self.assertEqual(local_config.public_key, key)
+
+    def test_get_local_config_returns_correct_name(self):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        access_token_lifetime=2h
+        refresh_token_lifetime=2d
+        """
+        key = "public-key"
+
+        def read_file_patch(self, file):
+            return key
+
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            with patch.object(JWTConf, '_read_key_from_path', read_file_patch):
+                local_config = JWTConf().get_local_config()
+                self.assertEqual(local_config.name, "nav")
+
+    def test_get_local_config_returns_correct_access_token_lifetime(self):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        access_token_lifetime=2h
+        refresh_token_lifetime=2d
+        """
+        key = "public-key"
+
+        def read_file_patch(self, file):
+            return key
+
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            with patch.object(JWTConf, '_read_key_from_path', read_file_patch):
+                local_config = JWTConf().get_local_config()
+                self.assertEqual(
+                    local_config.access_token_lifetime, datetime.timedelta(hours=2)
+                )
+
+    def test_get_local_config_returns_correct_refresh_token_lifetime(self):
+        config = """
+        [nav]
+        private_key=key
+        public_key=key
+        name=nav
+        access_token_lifetime=2h
+        refresh_token_lifetime=2d
+        """
+        key = "public-key"
+
+        def read_file_patch(self, file):
+            return key
+
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            with patch.object(JWTConf, '_read_key_from_path', read_file_patch):
+                local_config = JWTConf().get_local_config()
+                self.assertEqual(
+                    local_config.refresh_token_lifetime, datetime.timedelta(days=2)
+                )
+
+    def test_get_local_config_returns_empty_config_when_config_is_invalid(self):
+        config = """
+        [nav]
+        public_key=key
+        name=nav
+        access_token_lifetime=qweqwe
+        """
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            local_config = JWTConf().get_local_config()
+            self.assertEqual(local_config, LocalJWTConfig())
+
+    def test_get_local_config_returns_empty_config_when_local_tokens_are_not_configured(
+        self,
+    ):
+        config = """
+        """
+        with patch.object(JWTConf, 'DEFAULT_CONFIG', config):
+            local_config = JWTConf().get_local_config()
+            self.assertEqual(local_config, LocalJWTConfig())
