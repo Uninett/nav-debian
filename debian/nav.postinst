@@ -25,7 +25,7 @@ fix_system_user() {
     if ! getent passwd navcron > /dev/null; then
 	adduser --system --no-create-home --home /usr/share/nav \
 	    --shell /bin/sh --ingroup nav navcron;
-	addgroup navcron dialout;
+	adduser navcron dialout;
     fi
     
     # make sure navcron has a valid shell

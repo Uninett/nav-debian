@@ -1,3 +1,49 @@
+nav (5.15.0-2bookworm) bookworm; urgency=high
+
+  * Repackaged for Debian bookworm.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 30 Oct 2025 14:16:08 +0000
+
+nav (5.15.0-1bullseye) bullseye; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 30 Oct 2025 15:00:14 +0100
+
+nav (5.14.1-1bullseye) bullseye; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 01 Sep 2025 13:24:16 +0200
+
+nav (5.14.0-1bullseye) bullseye; urgency=medium
+
+  * New upstream release.
+    - Added link to the new navdhcpstats program.
+    - Added link to the new navrefresh program.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 21 Aug 2025 12:10:11 +0000
+
+nav (5.13.2-1bullseye) bullseye; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 16 May 2025 09:20:46 +0000
+
+nav (5.13.1-1bullseye) bullseye; urgency=high
+
+  * New upstream security release.
+    - Fixes a privilege escalation vulnerability
+      (https://github.com/Uninett/nav/security/advisories/GHSA-gprr-5vvf-582g)
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 12 May 2025 12:09:06 +0000
+
+nav (5.13.0-1bullseye) bullseye; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 07 Mar 2025 09:31:25 +0000
+
 nav (5.12.0-2) bullseye; urgency=medium
 
   * Correctly specify package PostgreSQL version requirement.

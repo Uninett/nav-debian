@@ -12,6 +12,7 @@ opt/venvs/nav/bin/nav usr/sbin/nav
 opt/venvs/nav/bin/navcheckservice usr/bin/navcheckservice
 opt/venvs/nav/bin/navclean usr/bin/navclean
 opt/venvs/nav/bin/navdf usr/bin/navdf
+opt/venvs/nav/bin/navdhcpstats usr/bin/navdhcpstats
 opt/venvs/nav/bin/navdump usr/bin/navdump
 opt/venvs/nav/bin/naventity usr/bin/naventity
 opt/venvs/nav/bin/navoidverify usr/bin/navoidverify
@@ -20,6 +21,7 @@ opt/venvs/nav/bin/navpgdump usr/bin/navpgdump
 opt/venvs/nav/bin/navsnmp usr/bin/navsnmp
 opt/venvs/nav/bin/navstats usr/bin/navstats
 opt/venvs/nav/bin/navsyncdb usr/sbin/navsyncdb
+opt/venvs/nav/bin/navrefresh usr/sbin/navrefresh
 opt/venvs/nav/bin/navtopology usr/bin/navtopology
 opt/venvs/nav/bin/navuser usr/sbin/navuser
 opt/venvs/nav/bin/netbiostracker usr/bin/netbiostracker
