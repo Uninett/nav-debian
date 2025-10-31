@@ -20,7 +20,7 @@ jobs:
     env:
       DISTRO: ${{ matrix.distro }}
       IMAGE_TAG: navpkg:${{ matrix.distro }}
-      PKGS: cron apt-transport-https locales curl ca-certificates dirmngr software-properties-common
+      PKGS: cron apt-transport-https locales curl ca-certificates dirmngr
       ARCHIVE: nav
 
     steps:
