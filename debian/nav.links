@@ -9,6 +9,7 @@ opt/venvs/nav/bin/macwatch usr/bin/macwatch
 opt/venvs/nav/bin/mailin usr/bin/mailin
 opt/venvs/nav/bin/maintengine usr/bin/maintengine
 opt/venvs/nav/bin/nav usr/sbin/nav
+opt/venvs/nav/bin/nav_cisco_auth_sessions usr/sbin/nav_cisco_auth_sessions
 opt/venvs/nav/bin/navcheckservice usr/bin/navcheckservice
 opt/venvs/nav/bin/navclean usr/bin/navclean
 opt/venvs/nav/bin/navdf usr/bin/navdf

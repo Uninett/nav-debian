@@ -1,3 +1,9 @@
+nav (5.16.0-1bullseye) bullseye; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 19 Dec 2025 09:01:50 +0000
+
 nav (5.15.1-1bullseye) bullseye; urgency=medium
 
   * New upstream release.
