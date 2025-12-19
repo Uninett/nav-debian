@@ -66,14 +66,24 @@ def index(request):
             query = request.GET['query']
             id_filter = Q(pk__icontains=query)
             netbox_filter = Q(netboxes__sysname__icontains=query)
+            description_filter = Q(description__icontains=query)
             groups = (
-                NetboxGroup.objects.filter(id_filter | netbox_filter)
+                NetboxGroup.objects.filter(
+                    id_filter | netbox_filter | description_filter
+                )
                 .distinct()
                 .order_by('id')
             )
     else:
         form = NetboxGroupForm()
         groups = NetboxGroup.objects.all()
+
+    if request.htmx:
+        return render(
+            request,
+            'info/netboxgroup/_search_results.html',
+            {'netboxgroups': groups, 'searchform': form},
+        )
 
     return render(
         request,

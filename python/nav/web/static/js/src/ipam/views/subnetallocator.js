@@ -102,8 +102,23 @@ define(function(require, exports, module) {
         node: node,
         fsm: self.fsm
       };
-      // Mount/refresh info subview
-      self.showChildView("nodeInfo", new InfoView(payload));
+      /*
+        TODO: Upgrade Marionette version to latest stable - 3.x or 4.x.
+        The codebase was updated to use jQuery 3.x, which has compatibility issues with Marionette regions.
+        Therefore, we bypass Marionette regions here and directly manipulate the DOM using jQuery.
+
+        Upgrading Marionette requires a significant refactoring effort and thorough testing to ensure
+        compatibility with the existing codebase. Once upgraded, we can revert to using Marionette regions for better
+        view management and lifecycle handling.
+      */
+      const infoContainer = self.$el.find(".allocation-tree-info:first");
+      if (infoContainer.length === 0) {
+        console.warn("nodeInfo container not found in DOM");
+        return;
+      }
+      const infoView = new InfoView(payload);
+      infoView.render();
+      infoContainer.html(infoView.$el);
     },
 
     // Initial state. The tree has the data it needs to draw itself.
@@ -145,14 +160,29 @@ define(function(require, exports, module) {
         node: node,
         fsm: self.fsm
       };
-      // Mount/refresh info subview
-      self.showChildView("reservation", new ReservationView(payload));
+      // Find the region element and render the ReservationView into it
+      // (bypassing Marionette regions due to jQuery 3.x compatibility issues)
+      const reservationContainer = self.$el.find(".allocation-tree-reservation:first");
+      if (reservationContainer.length === 0) {
+        console.warn("reservation container not found in DOM");
+        return;
+      }
+      const reservationView = new ReservationView(payload);
+      reservationView.render();
+      reservationContainer.html(reservationView.$el);
+      // Store reference for cleanup
+      self._reservationView = reservationView;
     },
 
     // When deleting reservation, just return to new or currently focused node
     hideReservation: function(self, node) {
       self.debug("Destroying reservation");
-      self.getRegion("reservation").reset();
+      // Clean up reservation view manually
+      if (self._reservationView) {
+        self._reservationView.destroy();
+        self._reservationView = null;
+      }
+      self.$el.find(".allocation-tree-reservation:first").empty();
       self.fsm.step("DONE", node);
     },
 
@@ -215,7 +245,7 @@ define(function(require, exports, module) {
       "change .size-of-network": "onNetworkSizeChange",
       "keypress .size-of-network": "onNetworkSizeKeypress",
       "click .cancel-reservation:first": "cancelReservation",
-      "select2-selecting .prefix-list": "onSelectPrefix",
+      "select2:select .prefix-list": "onSelectPrefix",
       "click .choose-network-size": "chooseNetworkSize"
     },
 
@@ -261,15 +291,17 @@ define(function(require, exports, module) {
 
     onSelectPrefix: function(evt) {
       // Don't handle empty values from user
-      if (!evt.val) {
+      // In Select2 v4, the selected data is in evt.params.data
+      const selectedData = evt.params?.data;
+      if (!selectedData?.id) {
         return;
       }
-      var params = {
-        "net_address": evt.val,
+      const params = {
+        "net_address": selectedData.id,
         "net_type": "reserved"
       };
       this.model.set("creation_url", this.baseUrl + decodeURIComponent($.param(params, true)));
-      this.model.set("selected_prefix", evt.val);
+      this.model.set("selected_prefix", selectedData.id);
       this.fsm.step("CHOOSE_SUBNET");
     },
 
@@ -295,10 +327,11 @@ define(function(require, exports, module) {
       var pageSize = 10;
       selectElem.select2({
         placeholder: self.model.get("selected_prefix") || "Select a subnet",
-        dataType: 'json',
         ajax: {
           url: "/ipam/api/suggest/",
-          data: function(term, page) {
+          dataType: 'json',
+          data: function(params) {
+            const page = params.page || 1;
             return {
               n: pageSize,
               prefixlen: sizeOfNetwork,
@@ -306,15 +339,16 @@ define(function(require, exports, module) {
               offset: pageSize * (page - 1)
             };
           },
-          results: function(data) {
+          processResults: function(data, params) {
             console.log(data);
-            var transformed = _.map(data.candidates, function(prefixMap) {
+            const transformed = _.map(data.candidates, function (prefixMap) {
               return {
                 text: optionTemplate(prefixMap),
                 id: prefixMap.prefix
               };
             });
-            return { results: transformed, more: data.more };
+            params.page = params.page || 1;
+            return { results: transformed, pagination: { more: data.more } };
           }
         }
       });
