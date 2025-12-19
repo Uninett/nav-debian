@@ -19,12 +19,12 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: kenchan0130/actions-system-info@59699597e84e80085a750998045983daa49274c4
         id: system-info
 
       - name: "Cache pip packages"
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: pip-cache
         with:
           path: ~/.cache/pip
@@ -33,7 +33,7 @@ jobs:
             ${{ runner.os }}-${{ steps.system-info.outputs.release }}-pip-
 
       - name: "Cache tox environments"
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: tox-cache
         with:
           path: .tox
@@ -79,7 +79,8 @@ jobs:
           postgresql version: '13'  # minimum NAV requirement
           postgresql user: $PGUSER
           postgresql password: $PGPASSWORD
-
+      - name: "Check for Django warnings"
+        run: python3 -m tox -e django-warnings
       - name: "Run tests"
         run: |
           export DISPLAY=:99
@@ -89,7 +90,7 @@ jobs:
 
       - name: Upload Selenium driver logs (${{ matrix.python-version }})
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: pytest-logs-${{ matrix.python-version }}
           path: |
@@ -97,7 +98,7 @@ jobs:
 
       - name: Upload test reports (${{ matrix.python-version }})
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports-${{ matrix.python-version }}
           path: |
@@ -105,7 +106,7 @@ jobs:
 
       - name: Upload core dumps (${{ matrix.python-version }})
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: core-dumps-${{ matrix.python-version }}
           path: |
@@ -128,7 +129,7 @@ jobs:
     name: "Test Javascript code"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: browser-actions/setup-chrome@latest
       - uses: browser-actions/setup-firefox@latest
       - run: chrome --version
@@ -147,7 +148,7 @@ jobs:
 
       - name: Upload JavaScript test reports
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: javascript-test-reports
           path: |
@@ -169,7 +170,7 @@ jobs:
         run: |
           echo $BASE_SHA > ./extra/base_sha
       - name: Upload PR number file and base SHA file
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: extra
           path: extra/

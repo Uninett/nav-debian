@@ -13,16 +13,19 @@ import nav.web.auth.ldap
 from nav.web import auth
 from nav.web.auth import remote_user
 from nav.web.auth.utils import ACCOUNT_ID_VAR, get_account
+from nav.models import profiles
 
-LDAP_ACCOUNT = auth.Account(login='knight', ext_sync='ldap', password='shrubbery')
-PLAIN_ACCOUNT = auth.Account(login='knight', password='shrubbery')
-REMOTE_USER_ACCOUNT = auth.Account(
+LDAP_ACCOUNT = profiles.Account(login='knight', ext_sync='ldap', password='shrubbery')
+PLAIN_ACCOUNT = profiles.Account(login='knight', password='shrubbery')
+REMOTE_USER_ACCOUNT = profiles.Account(
     login='knight', ext_sync='REMOTE_USER', password='shrubbery'
 )
 
 
-@patch("nav.web.auth.Account.save", new=MagicMock(return_value=True))
-@patch("nav.web.auth.Account.objects.get", new=MagicMock(return_value=LDAP_ACCOUNT))
+@patch("nav.models.profiles.Account.save", new=MagicMock(return_value=True))
+@patch(
+    "nav.models.profiles.Account.objects.get", new=MagicMock(return_value=LDAP_ACCOUNT)
+)
 class TestLdapAuthenticate(object):
     def test_authenticate_should_return_account_when_ldap_says_yes(self):
         ldap_user = Mock()
@@ -41,8 +44,10 @@ class TestLdapAuthenticate(object):
             assert auth.authenticate('knight', 'shrubbery') == LDAP_ACCOUNT
 
 
-@patch("nav.web.auth.Account.save", new=MagicMock(return_value=True))
-@patch("nav.web.auth.Account.objects.get", new=MagicMock(return_value=PLAIN_ACCOUNT))
+@patch("nav.models.profiles.Account.save", new=MagicMock(return_value=True))
+@patch(
+    "nav.models.profiles.Account.objects.get", new=MagicMock(return_value=PLAIN_ACCOUNT)
+)
 @patch("nav.web.auth.ldap.available", new=False)
 class TestNormalAuthenticate(object):
     def test_authenticate_should_return_account_when_password_is_ok(self):
@@ -61,7 +66,7 @@ class TestRemoteUserAuthenticate(object):
         request.META['REMOTE_USER'] = 'knight'
         with patch("nav.web.auth.remote_user._config.getboolean", return_value=True):
             with patch(
-                "nav.web.auth.Account.objects.get",
+                "nav.models.profiles.Account.objects.get",
                 new=MagicMock(return_value=REMOTE_USER_ACCOUNT),
             ):
                 assert remote_user.authenticate(request) == REMOTE_USER_ACCOUNT
@@ -78,10 +83,11 @@ class TestRemoteUserAuthenticate(object):
         request.META['REMOTE_USER'] = 'knight'
         with patch("nav.web.auth.remote_user._config.getboolean", return_value=True):
             with patch(
-                "nav.web.auth.Account.objects.get", return_value=REMOTE_USER_ACCOUNT
+                "nav.models.profiles.Account.objects.get",
+                return_value=REMOTE_USER_ACCOUNT,
             ):
-                with patch("nav.web.auth.LogEntry.add_log_entry"):
-                    with patch("nav.web.auth.Account.locked", return_value=True):
+                with patch("nav.auditlog.models.LogEntry.add_log_entry"):
+                    with patch("nav.models.profiles.Account.locked", return_value=True):
                         assert remote_user.authenticate(request) is False
 
 

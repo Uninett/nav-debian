@@ -3,7 +3,7 @@ require([
     'plugins/navlets_controller',
     'plugins/sensors_controller',
     'plugins/fullscreen',
-    'libs/jquery-ui.min',
+    'jquery-ui',
     'src/getting_started_wizard'
 ], function (RoomMapper, NavletsController, SensorsController, fullscreen, _, GettingStartedWizard) {
     'use strict';
@@ -288,24 +288,6 @@ require([
     }
 
 
-    /** Functions for deleting a dashboard */
-    function addDeleteDashboardListener(feedback) {
-        $('#form-delete-dashboard').submit(function (event) {
-            event.preventDefault();
-            var $this = $(this);
-            var doDelete = confirm('Really delete dashboard and all widgets on it?');
-            if (doDelete) {
-                var request = $.post(this.getAttribute('action'), $this.serialize());
-                request.done(function (response) {
-                    window.location = '/';
-                });
-                request.fail(function (response) {
-                    feedback.addFeedback(response.responseText, 'error');
-                });
-            }
-        });
-    }
-
     /**
      * Load runner - runs on page load
      */
@@ -363,7 +345,6 @@ require([
         addDefaultDashboardListener(feedback);
         addCreateDashboardListener(feedback);
         addRenameDashboardListener(feedback);
-        addDeleteDashboardListener(feedback);
     });
 
 });
