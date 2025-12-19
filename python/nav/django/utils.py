@@ -17,7 +17,11 @@
 
 """Utility methods for django used in NAV"""
 
+import distro
+import platform
+
 from django.core.exceptions import FieldDoesNotExist
+from django.http import HttpRequest
 from django.urls import reverse
 from django.utils.http import urlencode
 
@@ -56,6 +60,39 @@ def get_verbose_name(model, lookup):
     raise FieldDoesNotExist
 
 
+def pformat_request(request: HttpRequest, function, *attributes) -> None:
+    """View ``request`` via `function``, one line per attribute
+
+    Use the ``attributes`` parameter to limit what attributes are inspected.
+
+    Also dumps the contents of the dicts ``request.environ``and
+    ``request.META``, one line per value, sorted per key.
+
+    The ``function`` must have an input signature compatible with
+    ``logging.Logger.debug()``.
+
+    Meant for debugging via logs.
+
+    Example usage::
+
+        pformat_request(request, logging.getLogger(__name__).debug)
+    """
+    DICT_ATTRIBUTES = ('META', 'environ')
+
+    existing_attributes = vars(request).keys()
+    if attributes:
+        attributes = set(existing_attributes).intersection(attributes)
+    else:
+        attributes = existing_attributes
+    for attribute in sorted(attributes):
+        value = getattr(request, attribute)
+        if attribute in DICT_ATTRIBUTES:
+            for key in sorted(value.keys()):
+                function('request.%s: %s: %s', attribute, key, value[key])
+        else:
+            function('request.%s: %s', attribute, value)
+
+
 #
 # Django version differentiated helper functions:
 #
@@ -83,3 +120,12 @@ def get_all_related_many_to_many_objects(model):
         for f in model._meta.get_fields(include_hidden=True)
         if f.many_to_many and f.auto_created
     ]
+
+
+def get_os_version():
+    if platform.system() == "Linux":
+        return f"Linux {distro.name(pretty=True)}"
+    elif platform.system() == "Darwin":
+        return f"macOS {platform.mac_ver()[0]}"
+    else:
+        return f"{platform.system()} {platform.release()} ({platform.version()})"

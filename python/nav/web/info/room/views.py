@@ -93,6 +93,13 @@ def search(request):
     else:
         searchform = RoomSearchForm()
 
+    if request.htmx:
+        return render(
+            request,
+            'info/room/_search_results.html',
+            {"rooms": rooms, "searchform": searchform},
+        )
+
     return render(
         request,
         "info/room/base.html",
@@ -408,7 +415,7 @@ def render_add_sensor_modal(request, roomid):
         {
             'room': room,
             'rack': rack,
-            'sensortype': 'pdu sensor' if is_pdu else 'sensor',
+            'sensortype': 'PDU Sensor' if is_pdu else 'Sensor',
             'sensors': filteredsensors,
             'column': column,
             'hx_target': f'#rack_{rack.pk} [data-column="{column}"]',

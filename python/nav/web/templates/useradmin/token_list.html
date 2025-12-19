@@ -6,7 +6,7 @@
     #token-list-table .label { cursor: help; margin-bottom: 1px; }
   </style>
   <script>
-    require(['libs/jquery.tablesorter.min', 'src/tablesorter_custom_sorters'], function() {
+    require(['jquery-tablesorter', 'src/tablesorter_custom_sorters'], function() {
       $(function() {
         var $table = $('#token-list-table');
         if ($table.length && $table.find('tbody tr').length > 0) {
@@ -36,6 +36,12 @@
       <a href="{% url 'useradmin-token_create' %}" class="button small">
         Create new token
       </a>
+
+      {% if request.account.is_admin %}
+        <div>
+          {% include 'useradmin/frag-auditlog.html' %}
+        </div>
+      {% endif %}
 
       {# Show table with tokens if there are any #}
       {% if object_list %}
