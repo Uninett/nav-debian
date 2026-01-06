@@ -1,8 +1,8 @@
-nav (5.16.0-4trixie) UNRELEASED; urgency=medium
+nav (5.16.0-4trixie) trixie; urgency=medium
 
   * Repackaged for Debian Trixie.
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 19 Dec 2025 09:16:42 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Tue, 06 Jan 2026 09:58:18 +0000
 
 nav (5.16.0-3bookworm) bookworm; urgency=high
 
