@@ -1,4 +1,3 @@
 nav-start-mkdir-var-run
 config-debian-dirs
 add-python-gammu-dependency
-fix-pping-snmptrapd-config-permissiondenied
