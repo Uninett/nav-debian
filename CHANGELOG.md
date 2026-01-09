@@ -11,6 +11,21 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
 
 <!-- towncrier release notes start -->
 
+## [5.16.1] - 2026-01-09
+
+### Fixed
+
+- Fixed location search for locations with slashes in names
+  ([#3717](https://github.com/Uninett/nav/issues/3717))
+- Fixed `pping` and `snmptrapd` crashes when attempting to look for config files
+  in inaccessible directories
+  ([#3720](https://github.com/Uninett/nav/issues/3720))
+- Support RFC3339/ISO8601-formatted timestamps when parsing syslog messages in
+  `logengine` ([#3722](https://github.com/Uninett/nav/issues/3722))
+- Fixed GeoMap display of rooms/locations with slashes in their IDs
+  ([#3724](https://github.com/Uninett/nav/issues/3724))
+
+
 ## [5.16.0] - 2025-12-19
 
 ### Security
@@ -74,7 +89,7 @@ This project uses [*towncrier*](https://towncrier.readthedocs.io/) and the chang
   ([#3677](https://github.com/Uninett/nav/issues/3677))
 - Fixed accessing SeedDB urls for locations, usages, organizations and device
   groups with '/' in names
-  ([#3687](https://github.com/Uninett/nav/issues/3687))
+  ([#3712](https://github.com/Uninett/nav/pull/3712))
 - Fixed bug where subnets were not selectable in the IPAM subnet allocator
   ([#3692](https://github.com/Uninett/nav/issues/3692))
 - Fixed bug in SeedDB IP Device form where enter in a text field triggered an
