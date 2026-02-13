@@ -19,7 +19,9 @@ login method.
 """
 
 import logging
+import re
 
+from django.contrib.auth import SESSION_KEY as DJANGO_USER_SESSION_KEY
 from django.core.cache import cache
 
 from nav.models.profiles import Account
@@ -59,6 +61,7 @@ def set_account(request, account, cycle_session_id=True):
     Cycles the session ID by default to avoid session fixation.
     """
     request.session[ACCOUNT_ID_VAR] = account.id
+    request.session[DJANGO_USER_SESSION_KEY] = str(account.id)
     request.account = request.user = account
     _logger.debug('Set active account to "%s"', account.login)
     if cycle_session_id:
@@ -109,10 +112,16 @@ def authorization_not_required(fullpath):
         '/index/audit-logging-modal/',
         '/refresh_session',
     ]
+    auth_not_required_regex = [r'^/index/dashboard/[^/]+/load/?$']
     for url in auth_not_required:
         if fullpath.startswith(url):
             _logger.debug('authorization_not_required: %s', url)
             return True
+    for regex in auth_not_required_regex:
+        if re.match(regex, fullpath):
+            _logger.debug('authorization_not_required: %s', regex)
+            return True
+    return False
 
 
 def get_number_of_accounts_with_password_issues() -> int:

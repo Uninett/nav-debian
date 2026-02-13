@@ -24,33 +24,38 @@ from urllib.parse import quote as urlquote
 
 from django.db import models
 from django.db.models import Q
+from django.contrib.auth import authenticate, login as django_login
 from django.http import (
+    HttpRequest,
+    HttpResponse,
     HttpResponseForbidden,
     HttpResponseRedirect,
-    HttpResponse,
-    HttpRequest,
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.debug import sensitive_variables, sensitive_post_parameters
 from django.views.decorators.http import require_GET, require_POST
-from django_htmx.http import HttpResponseClientRedirect, HttpResponseClientRefresh
+from django_htmx.http import (
+    HttpResponseClientRedirect,
+    HttpResponseClientRefresh,
+    trigger_client_event,
+)
 
 from nav.auditlog.models import LogEntry
 from nav.models.profiles import (
     AccountDashboard,
     AccountDashboardSubscription,
+    AccountDefaultDashboard,
     AccountNavlet,
     NavbarLink,
 )
-from nav.web import auth, webfrontConfig
-from nav.web.auth import ldap
+from nav.web import webfrontConfig
 from nav.web.auth import logout as auth_logout
 from nav.web.auth.utils import get_account, set_account
 from nav.web.message import new_message, Messages
 from nav.web.modals import render_modal, render_modal_alert
-from nav.web.navlets import can_modify_navlet
+from nav.web.navlets import can_modify_navlet, create_navlet_object
 from nav.web.utils import generate_qr_code_as_string
 from nav.web.utils import require_param
 from nav.web.webfront import (
@@ -69,11 +74,19 @@ from nav.web.webfront.utils import quick_read, tool_list
 _logger = logging.getLogger('nav.web.tools')
 
 
+COLUMNS_MAPPER = {
+    '1': 'medium-12',
+    '2': 'medium-6',
+    '3': 'medium-4',
+    '4': 'medium-3',
+}
+
+
 def index(request, did=None):
     """Controller for main page."""
     # Read files that will be displayed on front page
     account = get_account(request)
-    if account.is_anonymous:
+    if account.is_default_account():
         welcome = quick_read(WELCOME_ANONYMOUS_PATH)
     else:
         welcome = quick_read(WELCOME_REGISTERED_PATH)
@@ -94,9 +107,38 @@ def index(request, did=None):
         'can_edit': dashboard.can_edit(account),
         'is_subscribed': dashboard.is_subscribed(account),
         'title': 'NAV - {}'.format(dashboard.name),
+        'widget_display_density': account.preferences.get('widget_display_density', ''),
     }
 
     return render(request, 'webfront/index.html', context)
+
+
+def load_dashboard(request, dashboard_id=None):
+    """Renders the dashboard widgets for a given dashboard."""
+    account = get_account(request)
+    dashboard = find_dashboard(account, dashboard_id)
+    usernavlets = dashboard.widgets.all()
+    compact = account.preferences.get('widget_display_density') == 'compact'
+
+    columns = dashboard.num_columns
+    column_map = {i: [] for i in range(1, columns + 1)}
+
+    for navlet in usernavlets:
+        col = max(1, min(navlet.column, columns))
+        column_map[col].append(create_navlet_object(navlet))
+
+    return render(
+        request,
+        'webfront/_dashboard_navlets.html',
+        {
+            'has_navlets': len(usernavlets) > 0,
+            'dashboard_id': dashboard.id,
+            'columns': column_map,
+            'column_count': columns,
+            'compact': compact,
+            'column_class': COLUMNS_MAPPER.get(str(columns), 'medium-4'),
+        },
+    )
 
 
 @require_POST
@@ -118,6 +160,9 @@ def toggle_dashboard_shared(request, did):
 
     if not is_shared:
         AccountDashboardSubscription.objects.filter(dashboard=dashboard).delete()
+        AccountDefaultDashboard.objects.exclude(account=account).filter(
+            dashboard=dashboard
+        ).delete()
 
     return _render_share_form_response(
         request,
@@ -313,7 +358,7 @@ def login(request):
     origin = request.GET.get('origin', '').strip()
     if 'noaccess' in request.GET:
         account = get_account(request)
-        if account.is_anonymous:
+        if account.is_default_account():
             errors = ['You need to log in to access this resource']
         else:
             errors = [
@@ -355,25 +400,22 @@ def do_login(request: HttpRequest) -> HttpResponse:
         username = form.cleaned_data['username']
         password = form.cleaned_data['password']
 
-        try:
-            account = auth.authenticate(username, password)
-        except ldap.Error as error:
-            errors.append('Error while talking to LDAP:\n%s' % error)
+        account = authenticate(request, username=username, password=password)
+        if account is not None:
+            LogEntry.add_log_entry(
+                account, 'log-in', '{actor} logged in', before=account
+            )
+            django_login(request, account)
+            set_account(request, account)  # NAV legacy specific
+            _logger.info("%s successfully logged in", account.login)
+            if not origin:
+                origin = reverse('webfront-index')
+            return HttpResponseRedirect(origin)
         else:
-            if account:
-                LogEntry.add_log_entry(
-                    account, 'log-in', '{actor} logged in', before=account
-                )
-                set_account(request, account)
-                _logger.info("%s successfully logged in", account.login)
-                if not origin:
-                    origin = reverse('webfront-index')
-                return HttpResponseRedirect(origin)
-            else:
-                _logger.info("failed login: %r", username)
-                errors.append(
-                    'Username or password is incorrect, or the account is locked.'
-                )
+            _logger.info("failed login: %r", username)
+            errors.append(
+                'Username or password is incorrect, or the account is locked.'
+            )
 
     # Something went wrong. Display login page with errors.
     return render(
@@ -477,7 +519,7 @@ def change_password(request):
     context = _create_preference_context(request)
     account = get_account(request)
 
-    if account.is_anonymous:
+    if account.is_default_account():
         return render(request, 'useradmin/not-logged-in.html', {})
 
     if request.method == 'POST':
@@ -531,21 +573,21 @@ def set_account_preference(request):
 def set_default_dashboard(request, did):
     """Set the default dashboard for the user"""
     account = get_account(request)
-    dash = get_object_or_404(AccountDashboard, pk=did, account=account)
+    dash = find_dashboard(account, did)
+    account.set_default_dashboard(dash.id)
 
-    old_defaults = list(
-        AccountDashboard.objects.filter(account=account, is_default=True)
+    dash.shared_by_other = dash.is_shared and dash.account_id != account.id
+    response = render(
+        request,
+        'webfront/_dashboard_set_default_response.html',
+        {
+            'dashboard': dash,
+            'is_subscribed': dash.is_subscribed(account),
+            'message': f'Default dashboard set to «{dash.name}»',
+            'status': 'success',
+        },
     )
-    for old_default in old_defaults:
-        old_default.is_default = False
-
-    dash.is_default = True
-
-    AccountDashboard.objects.bulk_update(
-        objs=old_defaults + [dash], fields=["is_default"]
-    )
-
-    return HttpResponse('Default dashboard set to «{}»'.format(dash.name))
+    return trigger_client_event(response, name='nav.dashboard.defaultChanged')
 
 
 @require_POST
@@ -565,7 +607,7 @@ def delete_dashboard(request, did):
     dashboard = get_object_or_404(AccountDashboard, pk=did, account=account)
 
     is_last = AccountDashboard.objects.filter(account=account).count() == 1
-    if is_last or dashboard.is_default:
+    if is_last or dashboard.is_default_for_account(account):
         error_message = (
             "Cannot delete last dashboard"
             if is_last
@@ -611,10 +653,25 @@ def save_dashboard_columns(request, did):
 
     # Explicit fetch on account to prevent other people to change settings
     account = get_account(request)
+    num_columns = request.POST.get('num_columns')
+    if not num_columns or not num_columns.isdigit():
+        return HttpResponse(status=400)
+
+    new_column_count = int(num_columns)
+
     dashboard = get_object_or_404(AccountDashboard, pk=did, account=account)
-    dashboard.num_columns = request.POST.get('num_columns', 3)
+    dashboard.num_columns = new_column_count
     dashboard.save()
-    return HttpResponse()
+
+    response = render(
+        request,
+        "webfront/_dashboard_settings_columns_form.html",
+        {
+            'dashboard': dashboard,
+            'message': 'Dashboard updated to {} columns.'.format(new_column_count),
+        },
+    )
+    return trigger_client_event(response, name='nav.dashboard.reload')
 
 
 @require_POST

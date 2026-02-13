@@ -1,4 +1,4 @@
-define(['libs/datatables.min'], function () {
+define(['libs/datatables.min', 'dt_config'], function () {
     /*
      * Primary filter is the main filter run on all tables
      * Secondary filters are run together with the primary filter
@@ -24,7 +24,7 @@ define(['libs/datatables.min'], function () {
     function do_primary_filter() {
         var filter = remove_keywords($(primary_node).val());
         for (var i = 0; i < tables.length; i++) {
-            $(tables[i]).dataTable().fnFilter(filter);
+            $(tables[i]).DataTable().search(filter).draw();
         }
     }
 
@@ -60,7 +60,7 @@ define(['libs/datatables.min'], function () {
 
     /* Attach keylistener and register filter to datatable plugin */
     function register_filter(config) {
-        $.fn.dataTableExt.afnFiltering.push(config.runner);
+        $.fn.DataTable.ext.search.push(config.runner);
         $('#' + config.node + ' input').keyup(do_primary_filter);
     }
 
@@ -68,13 +68,20 @@ define(['libs/datatables.min'], function () {
      * Secondary filters
      */
 
+    var last_seen_mode = 'ago';
+
+    function set_last_seen_mode(mode) {
+        last_seen_mode = mode;
+    }
     /* Filter on column 5 (last active) when column 4 (vlan) is not trunk.
      * Very reusable code! ;-P */
     function filter_last_seen(oSettings, aData, iDataIndex) {
-        var days = get_keyword(/\$days:\w+/) || getInputValue(filters.last_seen.node);
+        const days = get_keyword(/\$days:\w+/) || getInputValue(filters.last_seen.node);
         if (days) {
-            var rowdate = extract_date(aData[4]);
-            return (!is_trunk(aData[3]) && daysince(rowdate) >= days);
+            const rowdate = extract_date(aData[4]);
+            const isMoreThanMode = last_seen_mode === 'ago';
+            const diff = daysince(rowdate);
+            return !is_trunk(aData[3]) && (isMoreThanMode ? diff >= days : diff <= days);
         }
         return true;
     }
@@ -152,8 +159,9 @@ define(['libs/datatables.min'], function () {
         extract_date: extract_date,
         daysince: daysince,
         is_trunk: is_trunk,
-        remove_keywords: remove_keywords
+        remove_keywords: remove_keywords,
+        set_last_seen_mode: set_last_seen_mode,
+        refresh: do_primary_filter
     };
 
 });
-
