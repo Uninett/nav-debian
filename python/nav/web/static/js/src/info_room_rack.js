@@ -1,8 +1,31 @@
+/**
+ * Matches all search terms when searching in Select2
+ * Updated for Select2 v4 - matcher signature changed from (term, text) to (params, data)
+ */
+function select2MultipleMatcher(params, data) {
+    // If there are no search terms, return all data
+    if (!params.term || params.term.trim() === '') {
+        return data;
+    }
+    // Check if text matches all search terms
+    let has = true;
+    const words = params.term.toUpperCase().split(" ");
+    const text = data.text || '';
+    words.forEach((word, idx) => {
+        has = has && (text.toUpperCase().indexOf(word) >= 0);
+    })
+    // Return null if no match, or the data object if it matches
+    return has ? data : null;
+}
+
 require([
+    'plugins/csrf-utils',
     'plugins/linear_gauge',
     'plugins/symbols',
-    'jquery-sparkline'
-], function (LinearGauge, symbol) {
+    'plugins/d3_sparkline'
+], function (CsrfUtils, LinearGauge, symbol, d3Sparkline) {
+
+    const csrfToken = CsrfUtils.getCsrfToken();
 
     /**
      * TODO:
@@ -32,26 +55,6 @@ require([
         } catch (e) {
             return number;
         }
-    }
-
-    /**
-     * Matches all search terms when searching in Select2
-     * Updated for Select2 v4 - matcher signature changed from (term, text) to (params, data)
-     */
-    function select2MultipleMatcher(params, data) {
-        // If there are no search terms, return all data
-        if ($.trim(params.term) === '') {
-            return data;
-        }
-        // Check if text matches all search terms
-        let has = true;
-        const words = params.term.toUpperCase().split(" ");
-        const text = data.text || '';
-        words.forEach((word, idx) => {
-            has = has && (text.toUpperCase().indexOf(word) >= 0);
-        })
-        // Return null if no match, or the data object if it matches
-        return has ? data : null;
     }
 
 
@@ -212,15 +215,9 @@ require([
 
         if (unitIsKnown) {
             // Create sparkline if unit is known only
-            $element.find('.sparkline').sparkline([null, value, max], {
-                type: 'bullet',
+            d3Sparkline.bullet($element.find('.sparkline'), [null, value, max], {
                 performanceColor: 'lightsteelblue',
-                rangeColors: ['#fff'],
-                width: '100%',
-                tooltipFormatter: function (data) {
-                    // return data.values[1].toFixed(2);
-                    return "";
-                }
+                rangeColors: ['#fff']
             });
         }
 
@@ -297,12 +294,17 @@ require([
      */
     function addSensorRemoveListener() {
         $('#racks').on('click', '.remove-sensor', function () {
-            var rackSensor = $(this).closest('.rack-sensor');
-            var rack = $(this).closest('.rack');
-            var request = $.post(NAV.urls.remove_sensor , {
-                id: rackSensor.data('id'),
-                column: rackSensor.data('column'),
-                rackid: rack.data('rackid')
+            const rackSensor = $(this).closest('.rack-sensor');
+            const rack = $(this).closest('.rack');
+            const request = $.ajax({
+                url: NAV.urls.remove_sensor,
+                type: 'POST',
+                data: {
+                    id: rackSensor.data('id'),
+                    column: rackSensor.data('column'),
+                    rackid: rack.data('rackid')
+                },
+                headers: {'X-CSRFToken': csrfToken}
             });
             request.done(function () {
                 rackSensor.remove();
@@ -317,11 +319,14 @@ require([
     function addRackRemoveListener() {
         $('#racks').on('click', '.remove-rack', function (event) {
             // event.preventDefault();
-            var yes = confirm('Really remove this rack?');
+            const yes = confirm('Really remove this rack?');
             if (yes) {
-                var rack = $(this).closest('.rack');
-                var request = $.post(NAV.urls.remove_rack, {
-                    rackid: rack.data('rackid')
+                const rack = $(this).closest('.rack');
+                const request = $.ajax({
+                    url: NAV.urls.remove_rack,
+                    type: 'POST',
+                    data: {rackid: rack.data('rackid')},
+                    headers: {'X-CSRFToken': csrfToken}
                 });
                 request.done(function () {
                     rack.remove();
@@ -367,8 +372,13 @@ require([
     function addRenameRackListener() {
         $('#racks').on('submit', '.rename-rack-form', function(event) {
             event.preventDefault();
-            var $form = $(this);
-            var request = $.post($form.attr('action'), $form.serialize());
+            const $form = $(this);
+            const request = $.ajax({
+                url: $form.attr('action'),
+                type: 'POST',
+                data: $form.serialize(),
+                headers: {'X-CSRFToken': csrfToken}
+            });
             request.fail(function () {
                 console.log("Failed to rename rack");
             });
@@ -400,7 +410,12 @@ require([
                     var column = $(this).data('column');
                     serialized += '&column=' + column;
                     serialized += '&rackid=' + rack.data('rackid');
-                    var request = $.post(NAV.urls.save_sensor_order, serialized);
+                    $.ajax({
+                        url: NAV.urls.save_sensor_order,
+                        type: 'POST',
+                        data: serialized,
+                        headers: {'X-CSRFToken': csrfToken}
+                    });
                 }
             });
         });
@@ -414,8 +429,13 @@ require([
             forcePlaceholderSize: true,
             placeholder: 'highlight',
             update: function (event, ui) {
-                var serialized = $(this).sortable('serialize');
-                var request = $.post(NAV.urls.save_rack_order, serialized);
+                const serialized = $(this).sortable('serialize');
+                $.ajax({
+                    url: NAV.urls.save_rack_order,
+                    type: 'POST',
+                    data: serialized,
+                    headers: {'X-CSRFToken': csrfToken}
+                });
             }
         });
     }
@@ -431,9 +451,14 @@ require([
                 html_class = $radio.val(),
                 rackid = $radio.closest('.rack').data('rackid');
 
-            $.post(NAV.urls.save_rack_color, {
-                rackid: rackid,
-                class: html_class
+            $.ajax({
+                url: NAV.urls.save_rack_color,
+                type: 'POST',
+                data: {
+                    rackid: rackid,
+                    class: html_class
+                },
+                headers: {'X-CSRFToken': csrfToken}
             }).done(function() {
                 $radio.closest('.rack').find('.rack-body').removeClass(classes).addClass(html_class);
             }).fail(function() {

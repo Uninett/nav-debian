@@ -134,12 +134,23 @@ MIDDLEWARE = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
-    'nav.web.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # 'nav.web.auth.middleware.NAVRemoteUserMiddleware',
+    'nav.web.auth.middleware.NAVAuthenticationMiddleware',
     'nav.web.auth.middleware.AuthorizationMiddleware',
     'nav.django.legacy.LegacyCleanupMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 )
+
+AUTHENTICATION_BACKENDS = [
+    # "nav.web.auth.backends.NAVRemoteUserBackend",
+    "nav.web.auth.ldap_auth_backend.LdapBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/index/login/'
 
 SESSION_SERIALIZER = 'nav.web.session_serializer.PickleSerializer'
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
@@ -262,7 +273,7 @@ SEARCHPROVIDERS = [
     'nav.web.info.searchproviders.UnrecognizedNeighborSearchProvider',
 ]
 
-## Web security options supported by Django
+# Web security options supported by Django
 # * https://docs.djangoproject.com/en/3.2/ref/middleware/#module-django.middleware.security
 # * https://docs.djangoproject.com/en/3.2/topics/http/sessions/
 # * https://docs.djangoproject.com/en/3.2/ref/clickjacking/
