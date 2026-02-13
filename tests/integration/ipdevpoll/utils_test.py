@@ -17,6 +17,7 @@ import pytest
 import pytest_twisted
 
 from nav.ipdevpoll.utils import get_arista_vrf_instances
+from nav.mibs.types import LogicalMibInstance
 
 
 @pytest.mark.twisted
@@ -27,10 +28,10 @@ def test_get_arista_vrf_instances_should_return_expected_instances(snmp_agent_pr
 
     result = yield get_arista_vrf_instances(snmp_agent_proxy)
     expected = [
-        ('', 'arista'),
-        ('IOT', 'arista@IOT'),
-        ('MGMT', 'arista@MGMT'),
-        ('STUDENT', 'arista@STUDENT'),
-        ('VR', 'arista@VR'),
+        LogicalMibInstance(description='', community='arista'),
+        LogicalMibInstance(description='IOT', community='arista@IOT'),
+        LogicalMibInstance(description='MGMT', community='arista@MGMT'),
+        LogicalMibInstance(description='STUDENT', community='arista@STUDENT'),
+        LogicalMibInstance(description='VR', community='arista@VR'),
     ]
     assert set(result) == set(expected)

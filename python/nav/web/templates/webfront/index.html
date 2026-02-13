@@ -37,6 +37,7 @@
     <div id="widgets-actions" class="hide-for-small" >
       {% if can_edit %}
           <div
+              id="widgets-action-add"
               title="Add widget"
               class="widget-action"
               hx-get="{% url 'add-navlet-modal' dashboard.id %}"
@@ -64,28 +65,22 @@
            title="Use compact layout for dashboard">
         <i class="fa fa-compress"></i>
       </div>
-
-      {% if can_edit %}
-          {% include 'webfront/_dashboard_settings_form.html' %}
-      {% else %}
-        <div class="nav-tooltip export-action">
-            <a
-                class="widget-action"
-                href="{% url 'export-dashboard' dashboard.pk %}"
-                aria-describedby="#export-action-tooltip"
-            >
-              <i class="fa fa-download" title="Export dashboard"></i>
-            </a>
-            <div id="export-action-tooltip" role="tooltip">
-                 Download this dashboard's definition into a file that can later be imported by pressing the + next to the tab list
-            </div>
-        </div>
-      {% endif %}
-
+      {% include 'webfront/_dashboard_settings_form.html' %}
     </div>
 
     {# Buttons for selecting dashboards #}
     {%  include 'webfront/_dashboard_nav.html' with current_dashboard=dashboard dashboards=dashboards %}
+
+    {% if dashboard.needs_default_set %}
+    <div id="no-default-dashboard-warning" class="alert-box warning with-icon">
+        No default dashboard is set. The default dashboard is shown when you log in.
+        <button class="button tiny" style="margin-bottom: 0;"
+                hx-post="{% url 'set-default-dashboard' dashboard.pk %}"
+                hx-target="#dashboard-settings-feedback">
+            Set this dashboard as default
+        </button>
+    </div>
+    {% endif %}
 
   {% endif %}
 
@@ -94,13 +89,15 @@
   <form id="navlets-action-form" style="display: none;">
     {% csrf_token %}
   </form>
-  <div id="navlets"
-       {% if request.user.preferences.widget_display_density == 'compact' %}class="compact"{% endif %}
-       data-list-navlets="{% url 'get-user-navlets' dashboard.pk %}"
-       data-remove-navlet="{% url 'remove-user-navlet' %}"
+  <div
+       id="navlets-htmx"
+       {% if widget_display_density == 'compact' %}class="compact"{% endif %}
+       hx-get="{% url 'dashboard-load' dashboard.pk %}"
+       hx-trigger="load, nav.dashboard.reload from:body"
+       hx-target="#navlets-htmx"
        data-save-order-url="{% url 'save-navlet-order' %}"
-       data-base-template-url="{% url 'navlet-base-template' %}"
-       data-widget-columns="{{ dashboard.num_columns }}"
-       ></div>
+       data-columns="{{ dashboard.num_columns }}"
+  >
+  </div>
 
 {% endblock %}

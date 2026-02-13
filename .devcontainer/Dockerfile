@@ -15,6 +15,10 @@ ENV PYTHONUNBUFFERED=1
 # We're using mount caches, so don't clean the apt cache after every apt command!
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 
+# Update the stale yarnpkg GPG key shipped in the base image
+RUN gpg --keyserver keyserver.ubuntu.com --recv-keys 62D54FD4003F6525 \
+    && gpg --export 62D54FD4003F6525 | gpg --dearmor --yes -o /usr/share/keyrings/yarn-archive-keyring.gpg
+
 ## Use deb.nodesource.com to fetch more modern versions of Node/NPM than Debian can provide
 ARG TIMEZONE=Europe/Oslo
 ARG LOCALE=en_US.UTF-8
@@ -56,5 +60,9 @@ RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 ENV UV_PROJECT_ENVIRONMENT=/home/vscode/.venv
 ENV UV_PYTHON=${MAIN_PYTHON_VERSION}
 ENV PATH="${UV_PROJECT_ENVIRONMENT}/bin:${PATH}"
+
+# Pre-create the Claude config directory with correct ownership so that the
+# named volume mount inherits it (Docker initializes empty volumes from the image)
+RUN mkdir -p /home/vscode/.claude && chown vscode:vscode /home/vscode/.claude
 
 RUN echo "This is the original base image for NAV devcontainer" > /README.TXT

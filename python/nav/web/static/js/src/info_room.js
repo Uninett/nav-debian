@@ -13,6 +13,7 @@ require(
         "jquery",
         "jquery-ui",
         "libs/datatables.min",
+        "dt_config",
         "plugins/lightbox"
     ],
     function(tab_navigation, global_dt_filters, table_info_converter, RoomMapper, SensorsController, JUIHelpers) {
@@ -123,10 +124,15 @@ require(
 
         /* Add global filtering to the tables */
         function add_filters() {
-            var tables = $.fn.dataTable.fnTables();
+            const tables = $.fn.DataTable.tables();
             var primary_node = $('#netbox-global-search');
             var filters = ['last_seen', 'vlan'];
 
+
+            $('#lastseen-mode').on('change', function () {
+                global_dt_filters.set_last_seen_mode(this.value);
+                global_dt_filters.refresh();
+            });
             try {
                 global_dt_filters.add_filters(primary_node, tables, filters);
             } catch (error) {

@@ -1,8 +1,14 @@
-nav (5.16.1-2bookworm1) bookworm; urgency=high
+nav (5.17.0-2bookworm1) UNRELEASED; urgency=high
 
   * Repackaged for Debian bookworm.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 09 Jan 2026 12:34:10 +0000
+
+nav (5.17.0-1bullseye1) bullseye; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 13 Feb 2026 11:55:09 +0000
 
 nav (5.16.1-1bullseye1) bullseye; urgency=medium
 

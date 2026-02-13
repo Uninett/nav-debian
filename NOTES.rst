@@ -8,6 +8,104 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+NAV 5.17
+========
+
+CSRF protection enabled
+-----------------------
+
+This release adds CSRF (Cross Site Request Forgery) protection to the whole NAV
+site - i.e. POST requests to the NAV web backend will require a valid CSRF
+token to be included. This should not be noticable for end-users, but be beware
+of the unlikely case that some form or front-end feature stops working due to
+403 errors. As usual, issues can be reported at
+https://github.com/Uninett/nav/issues
+
+
+Viewing DHCP stats
+------------------
+
+This release adds support for viewing DHCP usage/utilization graphs in the
+*Prefix* and *Vlan* detail pages in the NAV web UI.
+
+See the :doc:`DHCP stats documentation </reference/dhcpstats>` for information
+about DHCP stats in NAV.
+
+.. warning::
+   To accomodate for this feature, changes have been made to where DHCP stats
+   are stored and read from in the Graphite/Carbon timeseries database. Some
+   manual renaming is necessary if you've configured NAV to collect DHCP stats
+   prior to this release, and if you want the stats you've collected up until
+   now to show up in the new DHCP usage/utilization graphs. See the :doc:`DHCP
+   stats migration documentation </howto/migrate-dhcpstats>` for more
+   information.
+
+.. warning::
+   To accomodate for this feature, changes have been made to the name of a Kea
+   DHCPv4 optional option in :file:`dhcpstats.conf` and its default value: The
+   option previously called *user_context_poolname_key* with default value
+   ``name`` now goes by *user_context_groupname_key* with default value
+   ``group``. When this option is unset, this means that NAV looks for
+   user-context objects in Kea DHCPv4 configurations that look like this:
+
+   .. code-block:: json
+
+     "user-context": {
+       "group": "first-floor"
+     }
+
+   as opposed to this:
+
+   .. code-block:: json
+
+     "user-context": {
+       "name": "first-floor"
+     }
+
+
+SNMPv3 context support for Cisco switches
+-----------------------------------------
+
+NAV now supports SNMPv3 contexts when collecting per-VLAN BRIDGE-MIB data from
+Cisco switches. Previously, this data collection only worked with SNMP v1/v2c
+using Cisco's *community string indexing* feature.
+
+Cisco switches maintain separate BRIDGE-MIB instances for each active VLAN.
+With SNMPv3, these are accessed using SNMP contexts (named ``vlan-1``,
+``vlan-2``, etc.) rather than modified community strings.
+
+.. important::
+
+   For this to work, your Cisco switches must be configured to allow the SNMPv3
+   user to query these VLAN contexts. This typically requires a command like::
+
+     snmp-server group YOUR-GROUP-NAME v3 auth context vlan- match prefix
+
+   Without this configuration, NAV will be unable to collect MAC address tables
+   and switching information, resulting in incomplete machine tracker data and
+   potentially missing network topology information.
+
+See the :doc:`/reference/management-profiles` documentation for more details on
+configuring SNMPv3 profiles.
+
+Stopped testing on Python 3.12
+------------------------------
+
+Python 3.12 has been removed from our test matrix because of issues with Python
+3.12 and race conditions that affect coverage measurements in our test suite.
+No tests were failing, but the coverage collection process would fail almost
+every run on GitHub, causing all our builds to be flagged as failing.
+
+This means that, moving forward, we cannot guarantee NAV is fully compatible
+with Python 3.12. Additionally, we normally target Debian for production
+deployments, and Debian has had no releases that provided Python 3.12, which
+means we will never actually run NAV in production on 3.12 ourselves (Debian 12
+provides Python 3.11, Debian 13 provides Python 3.13).
+
+However, our test matrix still includes Python 3.11 and 3.13, which means we
+can still be reasonably sure things will work on 3.12.
+
+
 NAV 5.16
 ========
 
