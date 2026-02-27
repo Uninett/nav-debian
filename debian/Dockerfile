@@ -51,6 +51,12 @@ RUN  --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs
 
+# Install uv for faster Python package installation
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
+
+# Install uv-pip wrapper for dh-virtualenv's --pip-tool
+COPY uv-pip /usr/local/bin/uv-pip
+
 RUN  chmod 777 /home
 ENV  HOME=/home
 ENV  QUILT_PATCHES=debian/patches
