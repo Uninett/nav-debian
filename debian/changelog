@@ -1,14 +1,21 @@
-nav (5.17.0-3trixie1) trixie; urgency=medium
+nav (5.17.1-3trixie1) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Trixie.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 13 Feb 2026 12:55:26 +0000
 
-nav (5.17.0-2bookworm1) bookworm; urgency=high
+nav (5.17.1-2bookworm1) bookworm; urgency=high
 
   * Repackaged for Debian bookworm.
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 13 Feb 2026 12:48:00 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 27 Feb 2026 10:17:23 +0000
+
+nav (5.17.1-1bullseye1) bullseye; urgency=medium
+
+  * New upstream release.
+  * Disable useless stripping of non-deterministic package data.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 27 Feb 2026 10:13:04 +0000
 
 nav (5.17.0-1bullseye1) bullseye; urgency=medium
 
