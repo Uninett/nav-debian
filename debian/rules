@@ -18,6 +18,11 @@ override_dh_virtualenv:
 
 	dh_virtualenv --pip-tool /usr/local/bin/uv-pip --extras docs,ldap,gammu --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0"
 
+	# Replace Debian's patched pip (which requires system python3-pip) with upstream pip
+	/usr/local/bin/uv pip install --reinstall --python $(DEBIAN_ROOT)/opt/venvs/nav/bin/python pip
+	# Fix shebangs: uv writes the build-time path, but dh-virtualenv expects /opt/venvs/nav/...
+	sed -i '1s|#!$(DEBIAN_ROOT)/opt/venvs/nav/|#!/opt/venvs/nav/|' $(DEBIAN_ROOT)/opt/venvs/nav/bin/pip*
+
 	$(DEBIAN_ROOT)/opt/venvs/nav/bin/python $(DEBIAN_ROOT)/opt/venvs/nav/bin/sphinx-build doc/ doc/_build/html
 	dh_installdocs doc/_build/html
 	dh_installdocs NOTES.rst
