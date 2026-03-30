@@ -14,4 +14,4 @@ os.environ["VIRTUAL_ENV"] = sys.prefix
 # Filter out args unsupported by uv pip (e.g. --log added by dh-virtualenv)
 args = [a for a in sys.argv[1:] if not a.startswith("--log")]
 
-os.execv("/usr/local/bin/uv", ["uv", "pip"] + args + ["--link-mode", "copy"])
+os.execv("/usr/local/bin/uv", ["uv", "pip"] + args + ["--link-mode", "copy", "--no-binary", "psycopg2"])
