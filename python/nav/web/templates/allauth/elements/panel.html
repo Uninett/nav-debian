@@ -1,0 +1,14 @@
+{% load allauth %}
+<section>
+    <h4>
+        {% slot title %}
+        {% endslot %}
+    </h4>
+    {% slot body %}
+    {% endslot %}
+    {% if slots.actions %}
+        <ul class="allauth-actions">
+            {% for action in slots.actions %}<li>{{ action }}</li>{% endfor %}
+        </ul>
+    {% endif %}
+</section>

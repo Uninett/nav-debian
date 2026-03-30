@@ -31,6 +31,7 @@ import json
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from django_filters.filters import ModelMultipleChoiceFilter, CharFilter
 from rest_framework import status, filters, viewsets, exceptions
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import api_view, renderer_classes, action
 from rest_framework.reverse import reverse_lazy
 from rest_framework.renderers import (
@@ -69,7 +70,6 @@ from nav.macaddress import MacPrefix
 from .auth import (
     APIAuthentication,
     DefaultPermission,
-    NavBaseAuthentication,
     RelaxedReadPermission,
 )
 from .helpers import prefix_collector
@@ -221,7 +221,7 @@ class NAVAPIMixin(APIView):
     """Mixin for providing permissions and renderers"""
 
     authentication_classes = (
-        NavBaseAuthentication,
+        SessionAuthentication,
         APIAuthentication,
         JSONWebTokenAuthentication,
     )
@@ -334,39 +334,63 @@ class AccountGroupViewSet(NAVAPIMixin, viewsets.ModelViewSet):
         return queryset
 
 
-class RoomViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
+class AliasQueryParamMixin:
+    """Generalised mixin for alias filtering"""
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        alias = self.request.query_params.get('alias')
+        if alias:
+            qs = qs.aka(alias)
+        return qs
+
+
+class RoomViewSet(
+    LoggerMixin, NAVAPIMixin, AliasQueryParamMixin, viewsets.ModelViewSet
+):
     """Lists all rooms.
-
-    Filters
-    -------
-    - description
-    - location
-    """
-
-    queryset = manage.Room.objects.all()
-    serializer_class = serializers.RoomSerializer
-    filterset_fields = ('location', 'description')
-    lookup_value_regex = '[^/]+'
-    permission_classes = (RelaxedReadPermission,)
-
-
-class LocationViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
-    """Lists all locations
 
     Search
     ------
-    Searches in *description*
+    Searches in *description* and *aliases*
 
     Filters
     -------
     - id
+    - description
+    - location
+    - alias
+    """
+
+    queryset = manage.Room.objects.all()
+    serializer_class = serializers.RoomSerializer
+    filterset_fields = ('id', 'location', 'description')
+    search_fields = ('description', 'aliases')
+    lookup_value_regex = '[^/]+'
+    permission_classes = (RelaxedReadPermission,)
+
+
+class LocationViewSet(
+    LoggerMixin, AliasQueryParamMixin, NAVAPIMixin, viewsets.ModelViewSet
+):
+    """Lists all locations
+
+    Search
+    ------
+    Searches in *description* and *aliases*
+
+    Filters
+    -------
+    - id
+    - description
     - parent
+    - alias
     """
 
     queryset = manage.Location.objects.all()
     serializer_class = serializers.LocationSerializer
-    filterset_fields = ('id', 'parent')
-    search_fields = ('description',)
+    filterset_fields = ('id', 'parent', 'description')
+    search_fields = ('description', 'aliases')
     lookup_value_regex = '[^/]+'
 
 
@@ -396,6 +420,24 @@ class ManagementProfileViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     serializer_class = serializers.ManagementProfileSerializer
 
 
+class NetboxFilterClass(FilterSet):
+    """Contains filter logic for netboxes"""
+
+    room_alias = CharFilter(method="filter_room_alias")
+
+    room_location_alias = CharFilter(method="filter_room_location_alias")
+
+    def filter_room_alias(self, queryset, name, value):
+        return queryset.filter(room__in=manage.Room.objects.aka(value))
+
+    def filter_room_location_alias(self, queryset, name, value):
+        return queryset.filter(room__location__in=manage.Location.objects.aka(value))
+
+    class Meta:
+        model = manage.Netbox
+        fields = ('sysname', 'room', 'organization', 'category', 'room__location')
+
+
 class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
     """Lists all netboxes.
 
@@ -411,6 +453,8 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
       unset for everything
     - organization
     - room
+    - room_alias
+    - room_location_alias
     - sysname
     - type__name (NB: two underscores): ^ indicates starts_with, otherwise exact match
 
@@ -419,13 +463,7 @@ class NetboxViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
 
     queryset = manage.Netbox.objects.all().prefetch_related("info_set")
     serializer_class = serializers.NetboxSerializer
-    filterset_fields = (
-        'sysname',
-        'room',
-        'organization',
-        'category',
-        'room__location',
-    )
+    filterset_class = NetboxFilterClass
     filter_backends = NAVAPIMixin.filter_backends + (
         NetboxIsOnMaintenanceFilterBackend,
     )
@@ -572,6 +610,30 @@ class InterfaceViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
             return Response({'last_used': None})
 
 
+class PatchFilterClass(FilterSet):
+    """Contains filter logic for patches"""
+
+    cabling_room_alias = CharFilter(method="filter_cabling_room_alias")
+    cabling_target_room_alias = CharFilter(method="filter_cabling_target_room_alias")
+
+    def filter_cabling_room_alias(self, queryset, name, value):
+        return queryset.filter(cabling__room__in=manage.Room.objects.aka(value))
+
+    # Done by id since target room is a VarChar and not a foreign key
+    def filter_cabling_target_room_alias(self, queryset, name, value):
+        room_ids = list(manage.Room.objects.aka(value).values_list('id', flat=True))
+        return queryset.filter(cabling__target_room__in=room_ids)
+
+    class Meta:
+        model = cabling.Patch
+        fields = (
+            'cabling',
+            'cabling__room',
+            'interface',
+            'interface__netbox',
+        )
+
+
 class PatchViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     """Lists all patches
 
@@ -583,6 +645,7 @@ class PatchViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     -------
     - cabling: The cable id
     - cabling__room: The room id
+    - cabling_room_alias: Room aliases
     - interface: The interface id
     - interface__netbox: The netbox id
 
@@ -596,7 +659,7 @@ class PatchViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         'cabling__room', 'interface__netbox'
     ).all()
     serializer_class = serializers.PatchSerializer
-    filterset_fields = ('cabling', 'cabling__room', 'interface', 'interface__netbox')
+    filterset_class = PatchFilterClass
     search_fields = (
         'cabling__jack',
         'cabling__room__id',
@@ -606,12 +669,39 @@ class PatchViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     )
 
 
+class CablingFilterClass(FilterSet):
+    """Contains filter logic for cabling entities"""
+
+    room_alias = CharFilter(method="filter_room_alias")
+
+    target_room_alias = CharFilter(method="filter_target_room_alias")
+
+    def filter_room_alias(self, queryset, name, value):
+        return queryset.filter(room__in=manage.Room.objects.aka(value))
+
+    # Done by id since target room is a VarChar and not a foreign key
+    def filter_target_room_alias(self, queryset, name, value):
+        room_ids = list(manage.Room.objects.aka(value).values_list('id', flat=True))
+        return queryset.filter(target_room__in=room_ids)
+
+    class Meta:
+        model = cabling.Cabling
+        fields = (
+            'room',
+            'jack',
+            'building',
+            'target_room',
+            'category',
+        )
+
+
 class CablingViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     """Lists all cables.
 
     Search
     ------
-    Searches in *jack*, *target_room*, *building*, *description*, *category*, *room*
+    Searches in *jack*, *target_room*, *building*,
+    *description*, *category*, *room*, *room__aliases*
 
     Filters
     -------
@@ -620,12 +710,14 @@ class CablingViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     - category
     - jack
     - room
+    - room_alias
     - target_room
+    - target_room_alias
 
     """
 
     serializer_class = serializers.CablingSerializer
-    filterset_fields = ('room', 'jack', 'building', 'target_room', 'category')
+    filterset_class = CablingFilterClass
     search_fields = (
         'jack',
         'target_room',
@@ -633,6 +725,7 @@ class CablingViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         'description',
         'category',
         'room__id',
+        'room__aliases',
     )
 
     def get_queryset(self):
@@ -1125,6 +1218,19 @@ class AlertHistoryViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
         return lookup_url_kwarg in self.kwargs
 
 
+class RackFilterClass(FilterSet):
+    """Contains filter logic for racks"""
+
+    room_alias = CharFilter(method="filter_room_alias")
+
+    def filter_room_alias(self, queryset, name, value):
+        return queryset.filter(room__in=manage.Room.objects.aka(value))
+
+    class Meta:
+        model = rack.Rack
+        fields = ('id', 'room', 'rackname')
+
+
 class RackViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     """Lists all environment racks.
 
@@ -1136,13 +1242,14 @@ class RackViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     -------
     - id
     - room
+    - room_alias
     - rackname
 
     """
 
     queryset = rack.Rack.objects.all()
     serializer_class = serializers.RackSerializer
-    filterset_fields = ['room', 'rackname']
+    filterset_class = RackFilterClass
     search_fields = ['rackname']
 
 

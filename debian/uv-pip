@@ -1,0 +1,17 @@
+"""dh-virtualenv pip-tool wrapper that delegates to uv pip.
+
+dh-virtualenv invokes the pip-tool as:
+    <venv>/bin/python <pip-tool> install [args...]
+
+This wrapper sets VIRTUAL_ENV so uv knows which environment to target,
+then execs into `uv pip` with the original arguments.
+"""
+import os
+import sys
+
+os.environ["VIRTUAL_ENV"] = sys.prefix
+
+# Filter out args unsupported by uv pip (e.g. --log added by dh-virtualenv)
+args = [a for a in sys.argv[1:] if not a.startswith("--log")]
+
+os.execv("/usr/local/bin/uv", ["uv", "pip"] + args + ["--link-mode", "copy", "--no-binary", "psycopg2"])

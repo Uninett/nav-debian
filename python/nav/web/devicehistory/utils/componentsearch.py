@@ -55,8 +55,8 @@ def _get_search_queries(search: str, exclude: list[Model] = []):
     Excludes specified component types if provided.
     """
     searches: list[tuple[type[Model], Q, type[Model] | None]] = [
-        (Location, Q(id__icontains=search), None),
-        (Room, Q(id__icontains=search), Location),
+        (Location, Q(id__icontains=search) | Q(aliases__icontains=search), None),
+        (Room, Q(id__icontains=search) | Q(aliases__icontains=search), Location),
         (
             Netbox,
             Q(sysname__icontains=search)
@@ -134,6 +134,8 @@ def _get_option_label(component: Model):
     """
     if component._meta.db_table == 'netbox':
         return '%(sysname)s [%(ip)s - %(chassis_serial)s]' % component.__dict__
+    if component._meta.db_table in ('room', 'location'):
+        return component.verbose_string
     return str(component)
 
 
