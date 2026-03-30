@@ -32,10 +32,22 @@ jshint --config ${JSDIR}/.jshintrc ${JAVASCRIPT_FILES[@]} --jslint-reporter > "$
 # Verify that jshint was running as jshint will have non-zero exit if ANY linting errors is found.
 [ -s "${REPORTDIR}/javascript-jshint.xml" ]
 
-echo "Running tests"
-"${JSDIR}/node_modules/karma/bin/karma" start "${JSDIR}/test/karma.conf.buildserver.js"
-
-if [ "$?" -eq 1 ]; then
-    echo "Error when testing, taking screenshot"
-    import -window root "${REPORTDIR}/javascript-test-error.png"
+# Point to Playwright's Chromium if CHROME_BIN is not already set.
+# Playwright's directory layout varies across versions:
+#   Old: chromium-<rev>/chrome-linux/chrome, chromium-<rev>/chrome-mac/Chromium.app/...
+#   New: chromium-<rev>/chrome-linux-x64/chrome, chromium-<rev>/chrome-mac-arm64/Google Chrome for Testing.app/...
+# PLAYWRIGHT_BROWSERS_PATH may override the default cache location (e.g. in devcontainers).
+if [[ -z "$CHROME_BIN" ]]; then
+    PLAYWRIGHT_CHROME=$(find \
+        ${PLAYWRIGHT_BROWSERS_PATH:+"$PLAYWRIGHT_BROWSERS_PATH"} \
+        "$HOME/.cache/ms-playwright" \
+        "$HOME/Library/Caches/ms-playwright" \
+        "$WORKSPACE/.cache/ms-playwright" \
+        \( -path "*/chromium-*/chrome-linux*/chrome" \
+           -o \( -path "*/chromium-*/chrome-mac*/*.app/Contents/MacOS/*" \
+                 ! -path "*/Helpers/*" ! -path "*/Frameworks/*" \) \) \
+        2>/dev/null | sort -Vr | head -1)
+    [[ -n "$PLAYWRIGHT_CHROME" ]] && export CHROME_BIN="$PLAYWRIGHT_CHROME"
 fi
+
+"${JSDIR}/node_modules/karma/bin/karma" start "${JSDIR}/test/karma.conf.buildserver.js"

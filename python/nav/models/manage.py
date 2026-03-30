@@ -1059,7 +1059,52 @@ class Memory(models.Model):
             return self.type
 
 
-class Room(models.Model):
+class AliasQuerySet(models.QuerySet):
+    """Generic QuerySet for looking up models that has aliases stored"""
+
+    def aka(self, partial_alias: str):
+        """
+        Returns a filtered queryset for partial case insensitive matches for id and
+        aliases
+        """
+        return self.filter(
+            Q(aliases__icontains=partial_alias) | Q(id__icontains=partial_alias)
+        )
+
+    def aka_or_description(self, query: str):
+        """
+        Returns a filtered queryset for partial case insensitive matches for id,
+        aliases and description
+        """
+        return self.filter(
+            Q(aliases__icontains=query)
+            | Q(id__icontains=query)
+            | Q(description__icontains=query)
+        )
+
+
+class AliasesMixin:
+    """A mixin that provides methods and properties for models that use aliases"""
+
+    @property
+    def aliases_string(self) -> str:
+        return ", ".join(self.aliases)
+
+    @property
+    def verbose_string(self):
+        rep = '%s' % (self.id)
+        if self.description:
+            rep += ': %s' % (self.description)
+        if self.aliases:
+            rep += ' (%s)' % (self.aliases_string)
+        return rep
+
+    def get_all_aliases(self):
+        aliases = [self.id] + list(self.aliases)
+        return aliases
+
+
+class Room(models.Model, AliasesMixin):
     """From NAV Wiki: The room table defines a wiring closes / network room /
     server room."""
 
@@ -1073,6 +1118,9 @@ class Room(models.Model):
     description = VarcharField(db_column='descr', blank=True)
     position = PointField(null=True, blank=True, default=None)
     data = HStoreField(blank=True, default=dict)
+    aliases = JSONField(default=list)
+
+    objects = AliasQuerySet.as_manager()
 
     class Meta(object):
         db_table = 'room'
@@ -1080,10 +1128,10 @@ class Room(models.Model):
         ordering = ('id',)
 
     def __str__(self):
+        rep = '%s' % (self.id)
         if self.description:
-            return '%s (%s)' % (self.id, self.description)
-        else:
-            return '%s' % (self.id)
+            rep += ': %s' % (self.description)
+        return rep
 
     def get_absolute_url(self):
         return reverse('room-info', kwargs={'roomid': self.pk})
@@ -1126,7 +1174,7 @@ class TreeMixin(object):
         return descendants
 
 
-class Location(models.Model, TreeMixin):
+class Location(models.Model, TreeMixin, AliasesMixin):
     """The location table defines a group of rooms; i.e. a campus."""
 
     id = models.CharField(db_column='locationid', max_length=30, primary_key=True)
@@ -1140,6 +1188,9 @@ class Location(models.Model, TreeMixin):
     )
     description = VarcharField(db_column='descr', blank=True)
     data = HStoreField(default=dict)
+    aliases = JSONField(default=list)
+
+    objects = AliasQuerySet.as_manager()
 
     class Meta(object):
         db_table = 'location'
@@ -1147,10 +1198,10 @@ class Location(models.Model, TreeMixin):
         ordering = ['id']
 
     def __str__(self):
+        rep = '%s' % (self.id)
         if self.description:
-            return '{} ({})'.format(self.id, self.description)
-        else:
-            return '{}'.format(self.id)
+            rep += ': %s' % (self.description)
+        return rep
 
     def get_all_rooms(self):
         """Return a queryset returning all rooms in this location and
@@ -1189,6 +1240,10 @@ class Organization(models.Model, TreeMixin):
             return '{o.id} ({o.description})'.format(o=self)
         else:
             return '{o.id}'.format(o=self)
+
+    def get_absolute_url(self):
+        """Returns the URL to this organization's edit page"""
+        return reverse('seeddb-organization-edit', kwargs={'organization_id': self.id})
 
     def extract_emails(self):
         """Naively extract email addresses from the contact string"""

@@ -144,6 +144,10 @@ class Account(AbstractBaseUser):
         """Returns the natural key for an account as a tuple"""
         return (self.login,)
 
+    def get_absolute_url(self):
+        """Returns the URL to this account's detail page"""
+        return reverse('useradmin-account_detail', kwargs={'account_id': self.id})
+
     def get_active_profile(self):
         """Returns the account's active alert profile"""
         try:
@@ -244,6 +248,11 @@ class Account(AbstractBaseUser):
         superuser.  Either the user is an admin, or they're not.
         """
         return self.is_admin()
+
+    @property
+    def username(self):
+        "Workaround 3rd party Django apps that poorly support custom users"
+        return self.login
 
     @sensitive_variables('password')
     def set_password(self, password):

@@ -417,6 +417,15 @@ this to the database.
           test exists to verify that the Django models can at least be used
           to run proper SELECT statements against the database.
 
+.. WARNING:: Do not set ``OWNER`` on anything in the schema!
+          If using Django's own migration system to generate a schema
+          for you (via sqlmigrate) or some other helper, you will have to look
+          for and alter or remove any lines that explicitly set OWNER.
+
+          For Django that is any line looking like this:
+
+          ``ALTER TABLE some_tablename OWNER TO something;``
+
 
 Version Control
 ===============
@@ -447,31 +456,29 @@ Running tests
 
 We use pytest_ as our test runner, and tox_ to enable running the test suites
 in matrix environments for different combinations of Python and Django
-versions. For the time being, our test suite is divided into three parts
-(``unittests``, ``integration`` and ``functional``).  The unit test suite can
-usually be run just fine from your local computer as long as tox_ and pytest_
-are available, but the integration and functional test suites have lots of
-external requirements that make them best suited to be run in a containerized
-environment (we are, however, working on rebuilding this so the necessary
-environments are easier to achieve on your local computer.  Please see `PR#3248
-<https://github.com/Uninett/nav/pull/3248>`_ for ongoing work).
+versions. Our test suite is divided into two parts (``unittests`` and
+``integration``).  The unit test suite can usually be run just fine from your
+local computer as long as tox_ and pytest_ are available.  The integration test
+suite (which includes functional Playwright-based browser tests) requires
+access to a PostgreSQL server.  The standard ``PG*`` environment variables
+(``PGHOST``, ``PGPORT``, ``PGUSER``, ``PGPASSWORD``) must point to a user with
+``CREATEDB`` privileges, as the test setup will create a temporary database.
+The project's devcontainer takes care of all of this out of the box.  Beyond
+PostgreSQL, each conftest configures the remaining environment automatically
+via :file:`tests/setup_test_config.py`.
 
-
-For now, there is a script to produce an entire test environment as a Docker
-image, and to run the entire test suite inside a Docker container created
-from that image. Take a look in the :file:`tests/docker/` directory.
-
-For an interactive testing session with tox_, you can utilize the Docker image
-like thus:
+To run integration tests (including functional browser tests):
 
 .. code-block:: console
 
-   $ cd tests/docker
-   $ make
+   $ tox run -e integration-py311-django42
    ...
-   $ make shell
-   ...
-   $ tox run -e unit-py311-django42
+
+To run only the functional browser tests:
+
+.. code-block:: console
+
+   $ tox run -e integration-py311-django42 -- tests/functional
    ...
 
 
@@ -486,8 +493,8 @@ inside the Docker CI image:
 
    tox -e javascript
 
-This will take of installing the required JS modules using npm, and running the
-test suite in three different browsers (Chrome, Firefox and PhantomJS).
+This will take care of installing the required JS modules using npm, and running the
+test suite in headless Chrome.
 
 All tests are located under :file:`python/nav/web/static/js/test/`. Create new tests
 there. For syntax, assertions and related stuff take a look at the tests
@@ -525,24 +532,48 @@ Tips and tricks
 Make fixtures for integration testing
 -------------------------------------
 
+Use pytest fixtures to create test data for integration tests. Fixtures can
+depend on other fixtures, as shown in this example from
+:file:`tests/integration/conftest.py`:
+
 .. code-block:: python
 
-   from django.core import serializers
-   from nav.models.manage import Netbox
+   @pytest.fixture()
+   def localhost(management_profile):
+       from nav.models.manage import Netbox, NetboxProfile
 
-   fixtures = serializers.serialize("xml", Netbox.objects.all()[:2])
+       box = Netbox(
+           ip='127.0.0.1',
+           sysname='localhost.example.org',
+           organization_id='myorg',
+           room_id='myroom',
+           category_id='SRV',
+       )
+       box.save()
+       NetboxProfile(netbox=box, profile=management_profile).save()
+       yield box
+       box.delete()
 
-Fixtures can so be used in your integration tests by extending
-the test case :py:class:`DjangoTransactionTestCase` in :py:mod:`nav.tests.cases`.
+The ``localhost`` fixture depends on ``management_profile``, which pytest
+automatically creates first. Shared fixtures like these in :file:`conftest.py`
+can be used across multiple test modules.
 
-See :py:mod:`nav.tests.integration.l2trace_test` for an example on applying
-fixtures for your particular test case.
+Fixtures that create database objects should in many cases depend on the ``db``
+fixture (either directly or transitively through another fixture). This wraps
+each test in a database transaction that is rolled back after the test
+completes, so explicit cleanup code is not strictly necessary:
 
-See https://docs.djangoproject.com/en/4.2/topics/serialization/
+.. code-block:: python
 
-.. TODO:: Be able to use `django-admin's management command: dumpdata
-   <https://docs.djangoproject.com/en/dev/ref/django-admin/#dumpdata-appname-appname-appname-model>`_
-   to create fixtures.
+   @pytest.fixture
+   def my_netbox(db):
+       box = Netbox(...)
+       box.save()
+       yield box
+       # No cleanup needed - transaction is rolled back automatically
+
+Use ``get_or_create`` for objects that might already exist in the test database
+(e.g. rooms or organizations created by :file:`test-data.sql`).
 
 Force the custom Django 500 error handler to run
 ------------------------------------------------
