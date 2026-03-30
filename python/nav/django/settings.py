@@ -23,6 +23,21 @@ import sys
 import copy
 import warnings
 
+# Backport Django 5.1's login_not_required decorator for Django < 5.1.
+# django-allauth uses this decorator to mark views that should be publicly
+# accessible (login, OAuth callback, password reset, etc.). On Django < 5.1
+# allauth falls back to a no-op, which means NAV's AuthorizationMiddleware
+# treats all allauth views as requiring authorization. This patch must run
+# before allauth's modules are imported (during app initialization).
+from django.contrib.auth import decorators as _auth_decorators
+
+if not hasattr(_auth_decorators, 'login_not_required'):
+
+    def _login_not_required(view_func):
+        view_func.login_required = False
+        return view_func
+
+    _auth_decorators.login_not_required = _login_not_required
 
 from django.utils.log import DEFAULT_LOGGING
 
@@ -31,6 +46,7 @@ from nav.db import get_connection_parameters
 import nav.buildconf
 from nav.jwtconf import JWTConf, LocalJWTConfig
 from nav.web.security import WebSecurityConfigParser
+from nav.web.auth.allauth import MFAConfigParser, SocialConfigParser, OIDCConfigParser
 from nav.django.utils import get_os_version
 
 
@@ -158,6 +174,7 @@ MIDDLEWARE = (
     'django_htmx.middleware.HtmxMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'nav.web.auth.middleware.NAVRemoteUserMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'nav.web.auth.middleware.NAVAuthenticationMiddleware',
     'nav.web.auth.middleware.AuthorizationMiddleware',
     'nav.django.legacy.LegacyCleanupMiddleware',
@@ -168,9 +185,10 @@ AUTHENTICATION_BACKENDS = [
     "nav.web.auth.backends.NAVRemoteUserBackend",
     "nav.web.auth.ldap_auth_backend.LdapBackend",
     "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 LOGIN_REDIRECT_URL = '/'
-LOGIN_URL = '/index/login/'
+LOGIN_URL = '/accounts/login/'
 
 SESSION_SERIALIZER = 'nav.web.session_serializer.PickleSerializer'
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
@@ -269,6 +287,12 @@ INSTALLED_APPS = (
     'nav.portadmin.napalm',
     'nav.web.portadmin',
     'django.contrib.postgres',
+    'allauth',
+    'allauth.account',
+    'allauth.mfa',
+    'allauth.socialaccount',
+    # noqa: Needs to be a setting
+    #'allauth.socialaccount.providers.dataporten',
 )
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
@@ -308,6 +332,7 @@ SECURE_BROWSER_XSS_FILTER = True  # Does no harm
 _websecurity_config = WebSecurityConfigParser()
 _needs_tls = bool(_websecurity_config.getboolean('needs_tls'))
 SESSION_COOKIE_SECURE = _needs_tls
+CSRF_COOKIE_SECURE = _needs_tls
 X_FRAME_OPTIONS = _websecurity_config.get_x_frame_options()
 
 # Hack for hackers to use features like debug_toolbar etc.
@@ -352,3 +377,41 @@ OIDC_AUTH = {
 # Add NAV and OS-versions so they are added to exception views
 NAV_VERSION = nav.buildconf.VERSION
 OS_VERSION = get_os_version()
+
+# Allauth settings
+
+ACCOUNT_ADAPTER = "nav.web.auth.allauth.adapter.NAVAccountAdapter"
+ACCOUNT_USER_MODEL_USERNAME_FIELD = 'login'
+ACCOUNT_ALLOW_SIGNUPS = False
+ACCOUNT_MAX_EMAIL_ADDRESSES = 1
+
+MFA_ADAPTER = "nav.web.auth.allauth.adapter.NAVMFAAdapter"
+MFA_TOTP_ISSUER = 'NAV'
+MFA_TOTP_TOLERANCE = 1
+
+_allauth_mfa_config = MFAConfigParser()
+MFA_SUPPORTED_TYPES = _allauth_mfa_config.get_MFA_SUPPORTED_TYPES_setting()
+MFA_PASSKEY_LOGIN_ENABLED = _allauth_mfa_config.get_MFA_PASSKEY_LOGIN_ENABLED_setting()
+MFA_PASSKEY_SIGNUP_ENABLED = (
+    _allauth_mfa_config.get_MFA_PASSKEY_SIGNUP_ENABLED_setting()
+)
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = (
+    _allauth_mfa_config.get_MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN_setting()
+)
+
+# SOCIALACCOUNT_AUTO_SIGNUP = True
+# SOCIALACCOUNT_ADAPTER = 'nav.web.auth.allauth.adapter.NAVSocialAccountAdapter'
+
+SOCIALACCOUNT_PROVIDERS = {}
+
+_allauth_social_config = SocialConfigParser()
+_social_providers = _allauth_social_config.generate_SOCIALACCOUNT_PROVIDERS()
+if _social_providers:
+    SOCIALACCOUNT_PROVIDERS.update(_social_providers)
+    INSTALLED_APPS += tuple(_allauth_social_config.get_provider_import_paths())
+
+_allauth_oidc_parser = OIDCConfigParser()
+_oidc_providers = _allauth_oidc_parser.generate_SOCIALACCOUNT_PROVIDERS()
+if _oidc_providers:
+    SOCIALACCOUNT_PROVIDERS.update(_oidc_providers)
+    INSTALLED_APPS += tuple(_allauth_oidc_parser.get_provider_import_paths())

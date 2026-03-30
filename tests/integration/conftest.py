@@ -1,36 +1,49 @@
-import os
 import importlib.util
 import io
 import re
 import shlex
 from itertools import cycle
+from pathlib import Path
 from shutil import which
 import subprocess
 import time
 
 import toml
 import pytest
+from django.contrib.staticfiles.handlers import StaticFilesHandler
 from django.test import Client
+from django.test.testcases import LiveServerThread
 
 
 ########################################################################
 #                                                                      #
-# Set up the required components for an integration test. Components   #
-# such as PostgreSQL and Apache are assumed to already be installed on #
-# the system. The system is assumed to be Debian. See                  #
-# tests/docker/Dockerfile.                                             #
+# Set up the required components for an integration test. PostgreSQL   #
+# is assumed to already be available, with connection details in the   #
+# PG* environment variables.  The connecting role must have CREATEDB   #
+# privileges.                                                          #
 #                                                                      #
 ########################################################################
-
-if os.environ.get('WORKSPACE'):
-    SCRIPT_PATH = os.path.join(os.environ['WORKSPACE'], 'tests/docker/scripts')
-else:
-    SCRIPT_PATH = '/'
-SCRIPT_CREATE_DB = os.path.join(SCRIPT_PATH, 'create-db.sh')
 
 
 def pytest_configure(config):
-    subprocess.check_call([SCRIPT_CREATE_DB])
+    from ..setup_test_config import ensure_config_dir, create_test_database
+
+    ensure_config_dir()
+    create_test_database()
+
+
+@pytest.fixture(scope='session')
+def live_server():
+    """Start a threaded Django live server for integration tests."""
+    server_thread = LiveServerThread('localhost', StaticFilesHandler, port=0)
+    server_thread.daemon = True
+    server_thread.start()
+    server_thread.is_ready.wait()
+    if server_thread.error:
+        raise server_thread.error
+    yield f'http://{server_thread.host}:{server_thread.port}'
+    server_thread.terminate()
+    server_thread.join()
 
 
 ########################################################################
@@ -249,7 +262,7 @@ def _is_django_unittest(request_or_item):
 
 
 @pytest.fixture(scope='function')
-def token():
+def token(db):
     """Creates a write enabled token for API access but without endpoints
 
     Tests should manipulate the endpoints as they see fit.
@@ -286,7 +299,7 @@ def snmpsim():
     """
     snmpsimd = which('snmpsim-command-responder')
     assert snmpsimd, "Could not find snmpsimd.py"
-    workspace = os.getenv('WORKSPACE', os.getenv('HOME', '/source'))
+    workspace = str(Path(__file__).resolve().parent.parent.parent)
     proc = subprocess.Popen(
         [
             snmpsimd,

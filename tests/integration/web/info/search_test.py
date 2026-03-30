@@ -14,18 +14,6 @@ def test_search_for_ip_devices_should_not_crash(client):
     assert response.status_code == 200
 
 
-def test_search_for_rooms_should_not_crash(client):
-    url = reverse('room-search') + '?query=a'
-    response = client.get(url)
-    assert response.status_code == 200
-
-
-def test_search_for_locations_should_not_crash(client):
-    url = reverse('location-search') + '?query=a'
-    response = client.get(url)
-    assert response.status_code == 200
-
-
 def test_search_for_vlans_should_not_crash(client):
     url = reverse('vlan-index') + '?query=a'
     response = client.get(url)
@@ -207,6 +195,106 @@ class TestInfoSearchViews:
         assert response.status_code == 200
         assert template in [t.name for t in response.templates]
 
+    def test_given_alias_for_room_in_info_search_should_redirect_to_room(
+        self, client, room_with_alias
+    ):
+        url = reverse('info-search') + f'?query={room_with_alias.aliases[0]}'
+        response = client.get(url)
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            'room-info', kwargs={'roomid': room_with_alias.pk}
+        )
+
+    def test_given_alias_for_location_in_info_search_should_redirect_to_location(
+        self, client, location_with_alias
+    ):
+        url = reverse('info-search') + f'?query={location_with_alias.aliases[0]}'
+        response = client.get(url)
+
+        assert response.status_code == 302
+        assert response.url == reverse(
+            'location-info', kwargs={'locationid': location_with_alias.pk}
+        )
+
+
+class TestRoomSearchView:
+    def test_given_standard_query_then_should_not_crash(self, client):
+        url = reverse('room-search') + '?query=a'
+        response = client.get(url)
+        assert response.status_code == 200
+
+    def test_given_alias_for_room_then_should_return_room(
+        self, client, room_with_alias
+    ):
+        url = reverse('room-search') + f'?query={room_with_alias.aliases[0]}'
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert room_with_alias.pk in response.content.decode('utf-8')
+
+    def test_given_alias_for_location_then_should_return_room_in_location(
+        self, client, location_with_alias, room_with_alias
+    ):
+        url = reverse('room-search') + f'?query={location_with_alias.aliases[0]}'
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert room_with_alias.pk in response.content.decode('utf-8')
+
+
+class TestLocationSearchView:
+    def test_given_standard_query_then_it_should_not_crash(self, client):
+        url = reverse('location-search') + '?query=a'
+        response = client.get(url)
+        assert response.status_code == 200
+
+    def test_given_alias_for_location_then_it_should_return_location(
+        self, client, location_with_alias
+    ):
+        url = reverse('location-search') + f'?query={location_with_alias.aliases[0]}'
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert location_with_alias.pk in response.content.decode('utf-8')
+
+    def test_given_alias_for_location_then_it_should_return_parent_location(
+        self, client, location_with_alias
+    ):
+        parent_location = Location.objects.create(id="parent_location")
+        location_with_alias.parent = parent_location
+        location_with_alias.save()
+
+        url = reverse('location-search') + f'?query={location_with_alias.aliases[0]}'
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert parent_location.pk in response.content.decode('utf-8')
+
+    def test_when_location_has_multiple_matching_children_then_it_should_not_return_duplicates(  # noqa: E501
+        self, client, location_with_alias
+    ):
+        """
+        Turns out that the way child_locations are joined in the search for locations
+        if we have a locations with multiple child locations where both the id of the
+        parent and the ids of the children match the query without having a distinct()
+        added we get the same parent location returned multiple times
+        """
+        mylocation = Location.objects.get(id="mylocation")
+        mylocation.parent = location_with_alias
+        mylocation.save()
+
+        second_child = Location.objects.create(id='secondlocation')
+        second_child.parent = location_with_alias
+        second_child.save()
+
+        url = reverse('location-search') + '?query=location'
+        response = client.get(url)
+
+        assert response.status_code == 200
+        ids = response.context["locations"].values_list("id", flat=True)
+        assert len(ids) == len(set(ids))
+
 
 class TestIndexSearchPreviewView:
     """Tests for the search preview feature."""
@@ -263,3 +351,21 @@ def create_interface(
     interface = Interface(netbox=netbox, ifname=ifname, ifalias=ifalias, **kwargs)
     interface.save()
     return interface
+
+
+@pytest.fixture
+def room_with_alias(db, location_with_alias):
+    room = Room.objects.create(
+        id='roomwithalias', location_id=location_with_alias.id, aliases=["roomalias"]
+    )
+
+    yield room
+
+
+@pytest.fixture
+def location_with_alias(db):
+    location = Location.objects.create(
+        id='locationwithalias', aliases=["locationalias"]
+    )
+
+    yield location

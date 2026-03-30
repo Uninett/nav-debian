@@ -19,8 +19,10 @@
 from django.urls import path
 from django.urls import include
 from nav.web.api.v1 import urls as v1_urls
+from nav.web.api.v2 import urls as v2_urls
 
 urlpatterns = [
     path('', include((v1_urls, 'api'))),
     path('1/', include((v1_urls, 'api'), namespace='1')),
+    path('2/', include((v2_urls, 'api'), namespace='2')),
 ]

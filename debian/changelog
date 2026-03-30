@@ -1,8 +1,23 @@
-nav (5.17.1-2bookworm1) bookworm; urgency=high
+nav (5.18.0-1+deb12u1) UNRELEASED; urgency=high
 
   * Repackaged for Debian bookworm.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Fri, 27 Feb 2026 10:17:23 +0000
+
+nav (5.18.0-1+deb11u1) bullseye; urgency=medium
+
+  * New upstream release.
+  * Moved to using a uv-based virtualenv for quicker package builds.
+  * Changed package version numbering scheme to be more Debian compliant.
+  * Default to using vim as the in-container editor for package builds.
+  * Ensure shared library caches are updated before service restart.
+    - This should stop certain NAV services from failing on first startup
+      after package install.
+  * Update build environment Node version from 18 to 22.
+  * Ensure psycopg2 driver is built from source using target system libraries.
+  * Ensure host system package cache isn't used inside build containers.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 30 Mar 2026 11:49:29 +0000
 
 nav (5.17.1-1bullseye1) bullseye; urgency=medium
 

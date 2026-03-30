@@ -20,24 +20,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - uses: kenchan0130/actions-system-info@59699597e84e80085a750998045983daa49274c4
-        id: system-info
-
-      - name: "Cache pip packages"
-        uses: actions/cache@v5
-        id: pip-cache
+      - uses: astral-sh/setup-uv@v6
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ steps.system-info.outputs.release }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements/*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ steps.system-info.outputs.release }}-pip-
-
-      - name: "Cache tox environments"
-        uses: actions/cache@v5
-        id: tox-cache
-        with:
-          path: .tox
-          key: ${{ runner.os }}-${{ steps.system-info.outputs.release }}-tox-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt', '**/requirements/*.txt', 'tox.ini') }}
+          cache-dependency-glob: |
+            pyproject.toml
+            **/requirements/*.txt
 
       - name: "Set up Python ${{ matrix.python-version }}"
         uses: actions/setup-python@v6
@@ -58,15 +45,9 @@ jobs:
       - name: "Install test runner dependencies"
         run: |
           set -xe
-          python3 -m pip install --upgrade pip setuptools wheel tox tox-gh-actions coverage virtualenv
+          uv pip install --system tox tox-uv tox-gh-actions coverage
           sudo apt-get install -y nbtscan
 
-      # virtualenv seems to currently be embedding a broken version of
-      # setuptools (2022-03-31).  this ensures these embedded wheels are always
-      # up to date, but can potentially be removed again down the road.
-      - name: "Upgrade embedded virtualenv wheels"
-        run: |
-          virtualenv --upgrade-embed-wheel
 
       - name: "Install libraries needed to build external dependencies"
         run: |
@@ -89,7 +70,7 @@ jobs:
 
       - name: Upload Selenium driver logs (${{ matrix.python-version }})
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-logs-${{ matrix.python-version }}
           path: |
@@ -97,7 +78,7 @@ jobs:
 
       - name: Upload test reports (${{ matrix.python-version }})
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports-${{ matrix.python-version }}
           path: |
@@ -105,7 +86,7 @@ jobs:
 
       - name: Upload core dumps (${{ matrix.python-version }})
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: core-dumps-${{ matrix.python-version }}
           path: |
@@ -142,12 +123,12 @@ jobs:
           npm ci
 
       - name: npm test
-        run: OPENSSL_CONF=/dev/null xvfb-run -a npm test
+        run: OPENSSL_CONF=/dev/null npm test
         working-directory: ./python/nav/web/static/js
 
       - name: Upload JavaScript test reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: javascript-test-reports
           path: |
@@ -169,7 +150,7 @@ jobs:
         run: |
           echo $BASE_SHA > ./extra/base_sha
       - name: Upload PR number file and base SHA file
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: extra
           path: extra/

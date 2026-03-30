@@ -20,12 +20,23 @@ login method.
 
 import logging
 import re
+from copy import copy
 
-from django.contrib.auth import SESSION_KEY as DJANGO_USER_SESSION_KEY
+from django.contrib.auth import (
+    SESSION_KEY as DJANGO_USER_SESSION_KEY,
+    update_session_auth_hash,
+)
 from django.contrib.sessions.backends.base import UpdateError
 from django.core.cache import cache
+from django.core.exceptions import ImproperlyConfigured
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
+from django.utils.functional import SimpleLazyObject
+from django_htmx.http import HttpResponseClientRedirect
 
+from nav.django.defaults import PUBLIC_URLS
 from nav.models.profiles import Account
+from nav.web.auth import get_login_url
+from nav.web.utils import is_ajax
 
 
 _logger = logging.getLogger(__name__)
@@ -47,23 +58,31 @@ def default_account():
 
 def get_account(request):
     """Returns the account associated with the request"""
+    account = None
     try:
-        return request.account
+        account = copy(request.user)
     except AttributeError:
-        pass
-    try:
-        return request.user
-    except AttributeError:
+        try:
+            account = request.account
+        except AttributeError:
+            pass
+
+    if not account or not account.id:
         return default_account()
+    return account
 
 
 def set_account(request, account, cycle_session_id=True):
     """Updates request with new account.
     Cycles the session ID by default to avoid session fixation.
     """
+    old_account_id = request.session.get(DJANGO_USER_SESSION_KEY, None)
     request.session[ACCOUNT_ID_VAR] = account.id
     request.session[DJANGO_USER_SESSION_KEY] = str(account.id)
-    request.account = request.user = account
+    request.account = request._cached_user = account
+    request.user = SimpleLazyObject(lambda: account)
+    if old_account_id and old_account_id != str(account.id):
+        update_session_auth_hash(request, account)
     _logger.debug('Set active account to "%s"', account.login)
     if cycle_session_id:
         request.session.cycle_key()
@@ -80,15 +99,24 @@ def clear_session(request):
         del request.account
     if hasattr(request, "user"):
         del request.user
+    if hasattr(request, "_cached_user"):
+        del request._cached_user
     request.session.flush()
     request.session.save()
 
 
 def ensure_account(request):
-    """Guarantee that valid request.account is set"""
-    session = request.session
+    """Guarantee that valid request.user is set
 
-    account_id = session.get(ACCOUNT_ID_VAR, Account.DEFAULT_ACCOUNT)
+    Translates Django's AnonymousUser to NAV's default_account
+    """
+    if hasattr(request, "user") and request.user.id and not request.user.locked:
+        set_account(request, request.user, cycle_session_id=False)
+        return
+
+    account_id = (
+        request.session.get(DJANGO_USER_SESSION_KEY, Account.DEFAULT_ACCOUNT) or 0
+    )
     account = Account.objects.get(id=account_id)
 
     if account.locked and not account.is_default_account():
@@ -109,19 +137,11 @@ def authorization_not_required(fullpath):
     Should the user be able to decide this? Currently not.
 
     """
-    auth_not_required = [
-        '/api/',
-        '/doc/',  # No auth/different auth system
-        '/about/',
-        '/index/login/',
-        '/index/audit-logging-modal/',
-        '/refresh_session',
-    ]
-    auth_not_required_regex = [r'^/index/dashboard/[^/]+/load/?$']
-    for url in auth_not_required:
+    for url in PUBLIC_URLS:
         if fullpath.startswith(url):
             _logger.debug('authorization_not_required: %s', url)
             return True
+    auth_not_required_regex = [r'^/index/dashboard/[^/]+/load/?$']
     for regex in auth_not_required_regex:
         if re.match(regex, fullpath):
             _logger.debug('authorization_not_required: %s', regex)
@@ -145,3 +165,59 @@ def get_number_of_accounts_with_password_issues() -> int:
         cache.set(PASSWORD_ISSUES_CACHE_KEY, number_of_accounts_with_password_issues)
 
     return number_of_accounts_with_password_issues
+
+
+def authorize_request(request: HttpRequest) -> bool:
+    """Check whether request.user is authorized to visit the request's path
+
+    The paths are checked against python regular expressions stored in
+    a NAV-specific table, nav.models.profiles.Privilege.
+    """
+    if not hasattr(request, "user"):
+        raise ImproperlyConfigured(
+            "The NAV Django authentication middlewares requires Django's "
+            "auth middleware to be installed. Edit your MIDDLEWARE setting "
+            "to insert "
+            "'django.contrib.auth.middleware.AuthenticationMiddleware' "
+            "before 'nav.web.auth.middleware.AuthorizationMiddleware'."
+        )
+    account = get_account(request)
+
+    authorized = authorization_not_required(
+        request.get_full_path()
+    ) or account.has_perm('web_access', request.get_full_path())
+
+    if not authorized:
+        _logger.warning(
+            "User %s denied access to %s",
+            account.get_username(),
+            request.get_full_path(),
+        )
+        return False
+
+    _logger.debug(
+        "User %s granted access to %s",
+        account.get_username(),
+        request.get_full_path(),
+    )
+    return True
+
+
+def redirect_to_login(request: HttpRequest) -> HttpResponse:
+    """Redirects a request to the NAV login page, unless it was detected
+    to be an AJAX request, in which case return a 401 Not Authorized
+    response.
+
+    """
+    if is_ajax(request):
+        return HttpResponse(status=401)
+
+    if request.htmx:
+        if orig_path := request.htmx.current_url_abs_path:
+            new_url = get_login_url(request, path=orig_path)
+            return HttpResponseClientRedirect(new_url)
+        else:
+            return HttpResponse(status=401)
+
+    new_url = get_login_url(request)
+    return HttpResponseRedirect(new_url)

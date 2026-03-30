@@ -36,6 +36,8 @@ from urllib.parse import (
     urlunparse,
 )
 
+from nav.django.settings import LOGIN_URL
+
 
 TIMEOUT = 90  # seconds?
 
@@ -166,6 +168,7 @@ class WebCrawler(object):
                 self.queue.append('%s://%s%s' % (url.scheme, url.netloc, url.path))
 
     def login(self):
+        login_url = urljoin(self.base_url, LOGIN_URL)
         opener = build_opener(HTTPCookieProcessor())
         login_url = urljoin(self.base_url, "/index/login/")
         login_response = opener.open(login_url)
@@ -220,8 +223,8 @@ def _quote_url(url):
 
 
 @pytest.fixture(scope="session")
-def webcrawler(gunicorn, admin_username, admin_password):
-    crawler = WebCrawler(gunicorn, admin_username, admin_password)
+def webcrawler(live_server, admin_username, admin_password):
+    crawler = WebCrawler(live_server, admin_username, admin_password)
     yield crawler
 
 
