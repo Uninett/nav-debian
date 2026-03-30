@@ -17,5 +17,6 @@ docker run \
        --workdir "/deb/$projdir" \
        --env "DEBEMAIL=$DEBEMAIL" \
        --env "DEBFULLNAME=$DEBFULLNAME" \
+       --env "EDITOR=vim" \
        "$TAG" \
        $*
