@@ -1,14 +1,20 @@
-nav (5.18.0-1+deb13u1) trixie; urgency=medium
+nav (5.18.1-1+deb13u1) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Trixie.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 30 Mar 2026 12:02:07 +0000
 
-nav (5.18.0-1+deb12u1) bookworm; urgency=high
+nav (5.18.1-1+deb12u1) bookworm; urgency=high
 
   * Repackaged for Debian bookworm.
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 30 Mar 2026 11:58:29 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 13 May 2026 08:52:46 +0000
+
+nav (5.18.1-1+deb11u1) bullseye; urgency=medium
+
+  * New upstream release.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 13 May 2026 08:51:03 +0000
 
 nav (5.18.0-1+deb11u1) bullseye; urgency=medium
 
