@@ -29,7 +29,7 @@ django-htmx
 # REST framework
 iso8601
 
-pynetsnmp-2>=0.1.10
+pynetsnmp-2>=0.2.0
 
 napalm>=5.1.0,<5.2.0
 
@@ -46,7 +46,7 @@ service-identity==21.1.0
 
 requests
 
-pyjwt>=2.6.0
+pyjwt>=2.12,<3
 distro
 
 django-allauth[mfa,socialaccount]
