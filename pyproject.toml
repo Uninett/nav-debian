@@ -42,7 +42,7 @@ dependencies = [
 
     "iso8601",
 
-    "pynetsnmp-2>=0.1.10",
+    "pynetsnmp-2>=0.2.0",
 
     "napalm>=5.1.0,<5.2.0",
 
@@ -50,7 +50,7 @@ dependencies = [
 
     "requests",
 
-    "pyjwt>=2.6.0",
+    "pyjwt>=2.12,<3",
 
     "distro",
 
@@ -90,7 +90,7 @@ test = [
     "pytest-timeout==2.3.1",
     "pytest-twisted==1.14.3",
     "pytidylib==0.3.2",
-    "snmpsim>=1.0,!=1.1.6",
+    "snmpsim>=1.0,!=1.1.6,!=1.2.2",
     "toml",
     "whisper>=0.9.9",
 ]
