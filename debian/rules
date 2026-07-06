@@ -16,7 +16,9 @@ override_dh_virtualenv:
 	npm install
 	npm run build:sass
 
-	dh_virtualenv --pip-tool /usr/local/bin/uv-pip --extras docs,ldap,gammu --requirements /dev/null --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0"
+	# docs deps live in the 'docs' PEP 735 dependency-group (build-time only),
+	# so install them with uv's --group; ldap and gammu are real extras.
+	dh_virtualenv --pip-tool /usr/local/bin/uv-pip --extras ldap,gammu --requirements /dev/null --extra-pip-arg="--group=docs" --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0"
 
 	# Replace Debian's patched pip (which requires system python3-pip) with upstream pip
 	/usr/local/bin/uv pip install --reinstall --python $(DEBIAN_ROOT)/opt/venvs/nav/bin/python pip
