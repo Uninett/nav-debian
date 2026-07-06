@@ -5,7 +5,7 @@ set -e
 # Can be run in parallel using tmux or individually for specific branches
 
 # Configuration
-BRANCHES=("debian-bullseye" "debian-bookworm" "debian-trixie")
+BRANCHES=("debian-bookworm" "debian-trixie")
 TMUX_SESSION="nav-docker-build"
 
 # Colors for output
@@ -23,7 +23,7 @@ Usage: $0 [OPTIONS]
 Prebuild Docker images for NAV Debian packages.
 
 Options:
-  -b, --branch BRANCH     Build specific branch (bullseye, bookworm, or trixie)
+  -b, --branch BRANCH     Build specific branch (bookworm, or trixie)
   -w, --workdir DIR       Working directory for clones (default: /tmp/nav-docker-prebuild-\$\$)
   -k, --keep              Keep work directory even after successful builds
   -h, --help              Show this help message
@@ -81,9 +81,6 @@ build_single_branch() {
     # Map short name to full branch name
     local branch_full=""
     case $branch_short in
-        bullseye)
-            branch_full="debian-bullseye"
-            ;;
         bookworm)
             branch_full="debian-bookworm"
             ;;
@@ -97,7 +94,7 @@ build_single_branch() {
             ;;
         *)
             echo -e "${RED}Error: Unknown branch '$branch_short'${NC}"
-            echo "Valid branches: bullseye, bookworm, trixie"
+            echo "Valid branches: bookworm, trixie"
             exit 1
             ;;
     esac
@@ -206,7 +203,7 @@ setup_tmux_parallel() {
 #!/usr/bin/env bash
 WORK_DIR="$1"
 KEEP_WORKDIR="$2"
-BRANCHES=("debian-bullseye" "debian-bookworm" "debian-trixie")
+BRANCHES=("debian-bookworm" "debian-trixie")
 
 clear
 echo "NAV Docker Image Prebuild - Overview"

@@ -28,6 +28,7 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.postgres.fields import HStoreField
 from django.core.cache import cache
 from django.db import models, transaction
+from django.db.models import UniqueConstraint
 from django.forms.models import model_to_dict
 from django.urls import reverse
 from django.views.decorators.debug import sensitive_variables
@@ -116,6 +117,7 @@ class Account(AbstractBaseUser):
     password = VarcharField()
     ext_sync = VarcharField(blank=True)
     preferences = HStoreField(default=dict)
+    is_active = models.BooleanField(default=True)
 
     organizations = models.ManyToManyField(
         Organization,
@@ -284,7 +286,7 @@ class Account(AbstractBaseUser):
 
         Copied from nav.db.navprofiles
         """
-        if not self.locked:
+        if self.is_active:
             try:
                 stored_hash = self.password_hash
             except nav.pwhash.InvalidHashStringError:
@@ -303,7 +305,7 @@ class Account(AbstractBaseUser):
 
     def has_old_style_password_hash(self):
         """Returns True if this account has an old-style, insecure password hash"""
-        return self.unlocked_password.startswith("md5")
+        return self.password.startswith("md5")
 
     def has_plaintext_password(self):
         """Returns True if this account appears to contain a plain-text password"""
@@ -349,35 +351,11 @@ class Account(AbstractBaseUser):
         return verified
 
     @property
-    def locked(self):
-        return not self.password or self.password.startswith('!')
-
-    @property
-    def is_active(self):
-        """Returns True if this account is active (i.e. not locked)"""
-        return not self.locked
-
-    @locked.setter
-    def locked(self, value):
-        if not value:
-            self.password = self.password.removeprefix("!")
-        elif not self.password.startswith('!'):
-            self.password = '!' + self.password
-
-    @property
     def password_hash(self):
         """Returns the Account's password as a Hash object"""
         stored_hash = nav.pwhash.Hash()
-        stored_hash.set_hash(self.unlocked_password)
+        stored_hash.set_hash(self.password or '')
         return stored_hash
-
-    @property
-    def unlocked_password(self):
-        """Returns the raw password value, but with any lock status stripped"""
-        if not self.locked:
-            return self.password or ''
-        else:
-            return self.password[1:] if self.password else ''
 
     def get_email_addresses(self):
         return self.alert_addresses.filter(type__name=AlertSender.EMAIL)
@@ -1018,7 +996,12 @@ class Operator(models.Model):
 
     class Meta(object):
         db_table = 'operator'
-        unique_together = (('type', 'match_field'),)
+        constraints = [
+            UniqueConstraint(
+                fields=('type', 'match_field'),
+                name='operator_operator_id_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s match on %s' % (self.get_type_display(), self.match_field)
@@ -1647,7 +1630,12 @@ class NetmapViewCategories(models.Model):
 
     class Meta(object):
         db_table = 'netmap_view_categories'
-        unique_together = (('view', 'category'),)  # Primary key
+        constraints = [
+            UniqueConstraint(
+                fields=('view', 'category'),
+                name='netmap_view_categories_pkey',  # PRIMARY KEY
+            )
+        ]
 
 
 class NetmapViewNodePosition(models.Model):
@@ -1721,7 +1709,6 @@ class AccountDashboard(models.Model):
         data = {
             'name': self.name,
             'num_columns': self.num_columns,
-            'account': self.account_id,
             'widgets': [],
             'version': 1,
         }
@@ -1784,7 +1771,12 @@ class AccountDashboardSubscription(models.Model):
 
     class Meta(object):
         db_table = 'account_dashboard_subscription'
-        unique_together = (('account', 'dashboard'),)
+        constraints = [
+            UniqueConstraint(
+                fields=('account', 'dashboard'),
+                name='unique_account_dashboard_subscription',  # UNIQUE
+            )
+        ]
 
 
 class AccountNavlet(models.Model):

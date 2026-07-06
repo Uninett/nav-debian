@@ -3,6 +3,9 @@ on:
   schedule:
     - cron: '6 6 * * *'
   push:
+    branches:
+      - master
+      - '[1-9][0-9]?.[0-9]+.x'
   pull_request:
 
 jobs:
@@ -12,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: docker compose build
         run: |
@@ -34,10 +37,21 @@ jobs:
         run: |
           docker compose logs
 
+      - name: Check for Slack secret availability (on fork or not)
+        id: slack-secret-check
+        if: failure()
+        shell: bash
+        run: |
+          if [ "${{ secrets.SLACK_WEBHOOK_URL }}" != '' ]; then
+            echo "slack_available=true" >> $GITHUB_OUTPUT;
+          else
+            echo "slack_available=false" >> $GITHUB_OUTPUT;
+          fi
+
       - name: Send GitHub Action trigger data to Slack workflow
         id: slack
-        if: failure()
-        uses: slackapi/slack-github-action@v3.0.1
+        if: ${{ failure() && steps.slack-secret-check.outputs.slack_available == 'true' }}
+        uses: slackapi/slack-github-action@v3.0.3
         with:
           payload: |
             {

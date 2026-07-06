@@ -28,6 +28,7 @@ router.register(r'accountgroup', views.AccountGroupViewSet, basename='accountgro
 router.register(r'rack', views.RackViewSet)
 router.register(r'room', views.RoomViewSet)
 router.register(r'location', views.LocationViewSet)
+router.register(r'organization', views.OrganizationViewSet)
 router.register(
     r'management-profile',
     views.ManagementProfileViewSet,
@@ -50,9 +51,11 @@ router.register(
     views.UnrecognizedNeighborViewSet,
     basename='unrecognized-neighbor',
 )
+router.register(r'gwportprefix', views.GwPortPrefixViewSet, basename='gwportprefix')
 router.register(r'auditlog', auditlogapi.LogEntryViewSet, basename='auditlog')
 router.register(r'module', views.ModuleViewSet, basename='module')
 router.register(r'netboxentity', views.NetboxEntityViewSet, basename='netboxentity')
+router.register(r'maintenance', views.MaintenanceTaskViewSet, basename='maintenance')
 
 
 urlpatterns = [

@@ -86,6 +86,63 @@ Provides access to NAVs interface data
 :Filters: ifname, ifindex, ifoperstatus, netbox, trunk, ifadminstatus, iftype,
           baseport
 
+api/maintenance/
+----------------
+Create a maintenance task with the given components.
+
+Supports GET, POST and DELETE requests:
+
+GET: Returns maintenance tasks.
+
+:Search: description
+
+:Filters: id, description, author, state (scheduled, active, passed, canceled),
+          current, past, future, endless
+
+POST: Returns the created maintenance task or an error. Requires a dict of the form::
+
+  {
+    "start_time": "2025-09-29T11:11:11",
+    "end_time": "2025-09-29T13:11:11",
+    "description": "Changing out old equipment in serverroom",
+    "author": "exampleuser",
+    "components": {
+      "location": ["mylocation", "secondlocation"],
+      "room": ["myroom", "secondroom"],
+      "netbox": [1, 2],
+      "service": [1, 2],
+      "netboxgroup": ["AD", "BACKUP"]
+    }
+  }
+
+Remove the ``end_time`` entry if the maintenance task does not have a determined end
+time yet.
+
+The required fields are ``start_time``, ``description``, ``author`` and ``components``
+with at least one component of the type ``location``, ``room``, ``netbox``, ``service``
+or ``netboxgroup``.
+
+DELETE: Delete maintenance task with given id.
+
+api/gwportprefix/[<gw_ip>]
+--------------------------
+
+Provides read-only access to NAVs gateway port prefix data
+
+:Search: None
+
+:Filters: interface, interface__netbox, prefix, virtual
+
+
+api/organization/[<id>]
+-----------------------
+
+Provides access to NAVs organization data
+
+:Search: description
+
+:Filters: id, parent, description
+
 
 api/netbox/[<id>]
 -----------------
@@ -98,7 +155,7 @@ Provides access to NAVs netbox data
 
 
 api/netboxentity/[<id>]
----------------
+-----------------------
 
 Provides access to NAV's collected physical entities information
 (I.e. physical contents of IP Devices, in most cases collected from `ENTITY-MIB::entPhysicalTable`)

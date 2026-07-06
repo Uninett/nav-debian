@@ -7,7 +7,7 @@ name = "nav"
 description = "Network Administration Visualized - A comprehensive, free Network Management System"
 authors = [{name="Sikt - Norwegian agency for shared services in education and research", email="nav-support@uninett.no"}]
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "GPL-3.0-only"
 keywords = ["nms", "snmp"]
 classifiers = [
@@ -25,20 +25,19 @@ dependencies = [
     "Pillow>3.3.2",
     "qrcode>7.4",
     "pyrad==2.1",
-    "sphinx==7.4.7",
-    "sphinxcontrib-programoutput==0.17",
+    "sphinx==9.0.4",
+    "sphinxcontrib-programoutput",
     "sphinxcontrib-django",
     "Markdown==3.8.1",
 
     "feedparser==6.0.11",
     "dnspython<3.0.0,>=2.1.0",
 
-    "Django>=4.2,<4.3",
+    "Django>=5.2,<5.3",
     "django-filter>=2",
     "djangorestframework>=3.14",
     "django-htmx",
     "django-allauth[mfa,socialaccount]",
-    "pytz",
 
     "iso8601",
 
@@ -52,23 +51,22 @@ dependencies = [
 
     "pyjwt>=2.12,<3",
 
-    "distro",
+    "pydantic>=2.0",
 
-    'tomli; python_version<"3.11"',
+    "distro",
 
     # The following modules are really sub-requirements of Twisted, not of
     # NAV directly.  They may be optional from Twisted's point of view,
     # but they are required for parts of the Twisted library that NAV uses:
     #
     # PyOpenSSL is required for TLS verification during PaloAlto API GET operations
-    "PyOpenSSL==23.3.0",
+    "PyOpenSSL==26.0.0",
     # service-identity is required to make TLS communication libraries shut up about potential MITM attacks
     "service-identity==21.1.0",
 ]
 
 [project.optional-dependencies]
 ldap = ["python-ldap==3.4.5"]  # optional for LDAP authentication, requires libldap (OpenLDAP) to build
-docs = ["sphinx_rtd_theme>=2.0.0"]
 
 [dependency-groups]
 dev = [
@@ -94,6 +92,7 @@ test = [
     "toml",
     "whisper>=0.9.9",
 ]
+docs = ["sphinx_rtd_theme>=2.0.0"]
 
 [project.urls]
 Homepage = "https://nav.uninett.no/"
@@ -112,6 +111,7 @@ maintengine = "nav.bin.maintengine:main"
 nav = "nav.bin.navmain:main"
 navcheckservice = "nav.bin.navcheckservice:main"
 navclean = "nav.bin.navclean:main"
+navdashboard = "nav.bin.navdashboard:main"
 nav_cisco_auth_sessions = "nav.bin.cisco_auth_sessions:main"
 navdf = "nav.bin.navdf:main"
 navdump = "nav.bin.navdump:main"
@@ -146,13 +146,16 @@ platforms = ["any"]
 [tool.setuptools.package-data]
 "nav.web" = ["static/**"]
 
+[tool.setuptools.exclude-package-data]
+"nav.web" = ["static/js/test/**"]
+
 [tool.setuptools_scm]
 
 [tool.setuptools.packages.find]
 where = ["python"]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py311"
 line-length = 88
 include = [
     "python/nav/**/*.py",
@@ -214,3 +217,8 @@ showcontent = true
 directory = "fixed"
 name = "Fixed"
 showcontent = true
+
+[tool.uv]
+exclude-newer = "1 week"
+# pynetsnmp-2 is our own package
+exclude-newer-package = { pynetsnmp-2 = false }

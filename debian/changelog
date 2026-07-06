@@ -1,8 +1,16 @@
-nav (5.18.1-1+deb13u1) trixie; urgency=medium
+nav (5.19.0-1+deb13u1) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Trixie.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 13 May 2026 08:55:34 +0000
+
+nav (5.19.0-1+deb12u1) bookworm; urgency=medium
+
+  * New upstream release.
+    - Add new navdashboard command line program.
+    - Fix broken documentation build.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 06 Jul 2026 13:34:14 +0000
 
 nav (5.18.1-1+deb12u1) bookworm; urgency=high
 

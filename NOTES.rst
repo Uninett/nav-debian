@@ -8,6 +8,77 @@ existing bug reports, go to https://github.com/uninett/nav/issues .
 To see an overview of upcoming release milestones and the issues they resolve,
 please go to https://github.com/uninett/nav/milestones .
 
+Unreleased
+==========
+
+Dependency changes
+------------------
+
+.. IMPORTANT:: NAV 5.19 requires PostgreSQL to be at least version *14*.
+
+.. IMPORTANT:: NAV 5.19 no longer supports Python versions older than *3.11*.
+
+These Python modules are new requirements:
+
+* :mod:`pydantic` (``>=2.0``)
+
+Python modules with changed version requirements:
+
+* :mod:`Django` (``>=4.2,<4.3`` → ``>=5.2,<5.3``)
+* :mod:`PyOpenSSL` (``23.3.0`` → ``26.0.0``)
+* :mod:`Sphinx` (``7.4.7`` → ``9.0.4``)
+
+These Python modules are no longer required:
+
+* :mod:`pytz`
+* :mod:`tomli`
+
+Juniper optical (DOM) threshold values
+--------------------------------------
+
+NAV now collects the alarm and warning thresholds reported by optical
+transceivers on Juniper devices (for RX/TX laser power, TX laser bias
+current and module temperature), registering each as its own sensor. A
+threshold sensor is linked to the reading it applies to and shown on the
+*Sensor details* page, so the transceiver's own limits are on hand when
+deciding what value to use in a threshold rule for that reading.
+
+CAM logging for hybrid switch ports
+-----------------------------------
+
+Switch ports whose only neighbor is an unmanaged device (one registered in NAV
+but with no SNMP or other management profiles) can now optionally log CAM
+records.  Previously, once the topology detector discovered such a neighbor, the
+cam plugin would classify the port as a link port and stop logging forwarding
+table entries — making it invisible to Machine Tracker.
+
+To enable this, add the following to :file:`ipdevpoll.conf`::
+
+    [cam]
+    log_unmanaged_neighbor_macs = yes
+
+When enabled, these ports are treated as *hybrid* ports: their MAC addresses are
+logged for Machine Tracker while adjacency candidates are still created for the
+topology system.  This is useful for locating both the unmanaged device itself
+and any end hosts behind it.
+
+See the ``[cam]`` section in :doc:`/reference/ipdevpoll` for full details.
+
+New REST API endpoints
+----------------------
+
+The REST API has gained the following endpoints:
+
+* ``api/gwportprefix/`` — read-only access to gateway port prefixes.
+* ``api/organization/`` — access to organizations.
+* ``api/maintenance/`` — listing, creating and deleting maintenance tasks.
+
+New navdashboard CLI tool
+-------------------------
+
+A new :program:`navdashboard` command line tool is available for listing,
+exporting and importing dashboards.
+
 NAV 5.18
 ========
 

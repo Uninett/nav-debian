@@ -1,7 +1,7 @@
 name: Check test names
 
 on:
-  pull_request:
+  pull_request_target:
 
 permissions:
   pull-requests: write
@@ -11,15 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     name: Check test naming convention
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
+
+    - name: Fetch PR head
+      run: git fetch origin "+refs/pull/${PR_NUMBER}/head:refs/remotes/pull/head"
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
 
     - name: Check new test names
       id: check
       run: |
-        base="origin/${{ github.event.pull_request.base.ref }}"
-        output=$(python3 checks/check_test_names.py --base "$base" --format markdown 2>&1) && has_violations=false || has_violations=true
+        merge_base=$(git merge-base HEAD refs/remotes/pull/head)
+        output=$(git diff "$merge_base" refs/remotes/pull/head --unified=0 | python3 checks/check_test_names.py --stdin --format markdown 2>&1) && has_violations=false || has_violations=true
         echo "$output"
         {
           echo "body<<BODY_EOF"
@@ -29,7 +34,7 @@ jobs:
         echo "has_violations=$has_violations" >> "$GITHUB_OUTPUT"
 
     - name: Find existing comment
-      uses: peter-evans/find-comment@v3
+      uses: peter-evans/find-comment@v4
       id: find-comment
       with:
         issue-number: ${{ github.event.pull_request.number }}
@@ -38,7 +43,7 @@ jobs:
 
     - name: Post or update comment
       if: steps.check.outputs.has_violations == 'true'
-      uses: peter-evans/create-or-update-comment@v4
+      uses: peter-evans/create-or-update-comment@v5
       with:
         comment-id: ${{ steps.find-comment.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
@@ -49,7 +54,7 @@ jobs:
 
     - name: Change comment to mention resolved violations
       if: steps.check.outputs.has_violations == 'false' && steps.find-comment.outputs.comment-id != ''
-      uses: peter-evans/create-or-update-comment@v4
+      uses: peter-evans/create-or-update-comment@v5
       with:
         comment-id: ${{ steps.find-comment.outputs.comment-id }}
         edit-mode: replace
