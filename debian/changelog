@@ -1,3 +1,11 @@
+nav (5.19.0-1+deb12u1) bookworm; urgency=medium
+
+  * New upstream release.
+    - Add new navdashboard command line program.
+    - Fix broken documentation build.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 06 Jul 2026 13:34:14 +0000
+
 nav (5.18.1-1+deb12u1) bookworm; urgency=high
 
   * Repackaged for Debian bookworm.
