@@ -16,11 +16,11 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.13"]
+        python-version: ["3.11", "3.13"]
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           cache-dependency-glob: |
             pyproject.toml
@@ -57,7 +57,7 @@ jobs:
       - name: "Set up PostgreSQL"
         uses: ankane/setup-postgres@v1
         with:
-          postgres-version: '13'  # minimum NAV requirement
+          postgres-version: '14'  # minimum for Django 5.2
           user: nav
       - name: "Check for Django warnings"
         run: python3 -m tox -e django-warnings
@@ -84,6 +84,14 @@ jobs:
           path: |
             reports/**/*
 
+      - name: "Upload coverage to Codecov"
+        if: github.repository_owner == 'Uninett'
+        uses: codecov/codecov-action@v7
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
       - name: Upload core dumps (${{ matrix.python-version }})
         if: failure()
         uses: actions/upload-artifact@v7
@@ -109,7 +117,7 @@ jobs:
     name: "Test Javascript code"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: browser-actions/setup-chrome@latest
       - uses: browser-actions/setup-firefox@latest
       - run: chrome --version
@@ -133,24 +141,3 @@ jobs:
           name: javascript-test-reports
           path: |
             reports/**/*
-
-  upload-pr-number-base-sha:
-    name: Save PR number and base SHA in artifact
-    runs-on: ubuntu-latest
-    if: ${{ github.event.number && always() }}
-    env:
-      PR_NUMBER: ${{ github.event.number }}
-      BASE_SHA: ${{ github.event.pull_request.base.sha }}
-    steps:
-      - name: Make PR number file
-        run: |
-          mkdir -p ./extra
-          echo $PR_NUMBER > ./extra/pr_number
-      - name: Make base SHA file
-        run: |
-          echo $BASE_SHA > ./extra/base_sha
-      - name: Upload PR number file and base SHA file
-        uses: actions/upload-artifact@v7
-        with:
-          name: extra
-          path: extra/

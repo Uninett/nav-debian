@@ -194,12 +194,9 @@ class UnknownEventSubject(object):
             return fmt.format(self.netbox or "N/A", self.subid)
 
     def _get_description_from_message(self):
-        if not hasattr(self._alert, 'messages'):
+        if not hasattr(self._alert, 'get_short_description'):
             return
-
-        m = self._alert.messages.filter(type='sms', language='en')
-        if m:
-            return m[0].message
+        return self._alert.get_short_description() or None
 
 
 class EventMixIn(object):
@@ -466,7 +463,12 @@ class EventQueueVar(models.Model):
 
     class Meta(object):
         db_table = 'eventqvar'
-        unique_together = (('event_queue', 'variable'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event_queue', 'variable'),
+                name='eventqvar_eventqid_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s=%s' % (self.variable, self.value)
@@ -580,7 +582,12 @@ class AlertType(models.Model):
 
     class Meta(object):
         db_table = 'alerttype'
-        unique_together = (('event_type', 'name'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('event_type', 'name'),
+                name='alerttype_eventalert_unique',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s, of event type %s' % (self.name, self.event_type)
@@ -605,7 +612,12 @@ class AlertQueueMessage(models.Model):
 
     class Meta(object):
         db_table = 'alertqmsg'
-        unique_together = (('alert_queue', 'type', 'language'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('alert_queue', 'type', 'language'),
+                name='alertqmsg_alertqid_msgtype_language_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s message in language %s' % (self.type, self.language)
@@ -628,7 +640,12 @@ class AlertQueueVariable(models.Model):
 
     class Meta(object):
         db_table = 'alertqvar'
-        unique_together = (('alert_queue', 'variable'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('alert_queue', 'variable'),
+                name='alertqvar_alertqid_var_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s=%s' % (self.variable, self.value)
@@ -762,6 +779,32 @@ class AlertHistory(models.Model, EventMixIn):
 
         ack.save()
 
+    def get_short_description(self, language='en'):
+        """Returns a short description of this alert from its messages.
+
+        Tries the following sources in order:
+        1. The SMS message (shortest formatted message)
+        2. The Subject line from the email message
+        3. The alert type description
+        """
+        state = STATE_START if self.end_time is not None else STATE_STATELESS
+        sms = self.messages.filter(type='sms', language=language, state=state).first()
+        if sms:
+            return sms.message
+
+        email = self.messages.filter(
+            type='email', language=language, state=state
+        ).first()
+        if email:
+            for line in email.message.splitlines():
+                if line.startswith('Subject:'):
+                    return line.removeprefix('Subject:').strip()
+
+        if self.alert_type:
+            return self.alert_type.description
+
+        return ""
+
     @transaction.atomic
     def save(self, *args, **kwargs):
         new_object = self.pk is None
@@ -796,7 +839,12 @@ class AlertHistoryMessage(models.Model):
 
     class Meta(object):
         db_table = 'alerthistmsg'
-        unique_together = (('alert_history', 'state', 'type', 'language'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('alert_history', 'state', 'type', 'language'),
+                name='alerthistmsg_alerthistid_state_msgtype_language_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s message in language %s' % (self.type, self.language)
@@ -826,7 +874,12 @@ class AlertHistoryVariable(models.Model):
 
     class Meta(object):
         db_table = 'alerthistvar'
-        unique_together = (('alert_history', 'state', 'variable'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('alert_history', 'state', 'variable'),
+                name='alerthistvar_alerthistid_state_var_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s=%s' % (self.variable, self.value)

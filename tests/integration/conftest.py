@@ -1,12 +1,15 @@
+import importlib.metadata
 import importlib.util
 import io
+import os
 import re
 import shlex
+import subprocess
+import sys
+import time
 from itertools import cycle
 from pathlib import Path
 from shutil import which
-import subprocess
-import time
 
 import toml
 import pytest
@@ -215,12 +218,32 @@ def localhost_using_legacy_db():
 def client(admin_username, admin_password):
     """Provides a Django test Client object already logged in to the web UI as
     an admin"""
-    from django.urls import reverse
-
     client_ = Client()
-    url = reverse('webfront-login')
-    client_.post(url, {'username': admin_username, 'password': admin_password})
+    log_in_client(client_, admin_username, admin_password)
     return client_
+
+
+@pytest.fixture
+def log_in():
+    """Provides a helper for logging a test client in via the real login flow"""
+    return log_in_client
+
+
+def log_in_client(client, username, password):
+    """Logs a Django test client in through NAV's real (allauth) login flow.
+
+    The login URL is resolved from ``settings.LOGIN_URL`` — the same setting the
+    rest of NAV uses to locate its login page — so these tests follow any future
+    change to the configured login path instead of silently exercising an
+    outdated one (which is how the dead legacy login view went untested).
+    """
+    from django.conf import settings
+    from django.shortcuts import resolve_url
+
+    return client.post(
+        resolve_url(settings.LOGIN_URL),
+        {'login': username, 'password': password},
+    )
 
 
 @pytest.fixture(scope='function')
@@ -297,26 +320,87 @@ def snmpsim():
     by the test that declares a dependency to this fixture. Data fixtures are loaded
     from the snmp_fixtures subdirectory.
     """
-    snmpsimd = which('snmpsim-command-responder')
-    assert snmpsimd, "Could not find snmpsimd.py"
     workspace = str(Path(__file__).resolve().parent.parent.parent)
-    proc = subprocess.Popen(
-        [
-            snmpsimd,
-            '--data-dir={}/tests/integration/snmp_fixtures'.format(workspace),
-            '--log-level=error',
-            '--agent-udpv4-endpoint=127.0.0.1:1024',
-        ],
-        env={'HOME': workspace},
-    )
+    command = _build_snmpsim_command(workspace)
+    env = {**os.environ, 'HOME': workspace}
+    proc = subprocess.Popen(command, env=env)
 
     while not _lookfor('0100007F:0400', '/proc/net/udp'):
         print("Still waiting for snmpsimd to listen for queries")
-        proc.poll()
+        if proc.poll() is not None:
+            pytest.fail(
+                f"snmpsim process exited prematurely (exit code {proc.returncode})"
+            )
         time.sleep(0.1)
 
     yield
     proc.kill()
+
+
+def _build_snmpsim_command(workspace):
+    """Returns the command list to start snmpsim-command-responder.
+
+    Prefers running via uvx in an isolated Python 3.11 environment to avoid a
+    known performance regression in snmpsim on Python 3.13+
+    (https://github.com/lextudio/pysnmp/issues/223).  Falls back to a locally
+    installed snmpsim-command-responder if uvx is not available.
+    """
+    data_dir = f'{workspace}/tests/integration/snmp_fixtures'
+    snmpsim_args = [
+        f'--data-dir={data_dir}',
+        '--log-level=error',
+        '--agent-udpv4-endpoint=127.0.0.1:1024',
+    ]
+
+    if which('uvx') and _uv_has_python('3.11'):
+        snmpsim_pkg = _get_installed_snmpsim_spec()
+        return [
+            'uvx',
+            '--python=3.11',
+            f'--from={snmpsim_pkg}',
+            'snmpsim-command-responder',
+        ] + snmpsim_args
+
+    snmpsimd = which('snmpsim-command-responder')
+    if not snmpsimd:
+        pytest.skip("Neither uvx nor snmpsim-command-responder found")
+
+    if sys.version_info >= (3, 13):
+        import warnings
+
+        warnings.warn(
+            "Running snmpsim under Python 3.13+ without uvx. "
+            "This is known to be extremely slow due to a dbm.sqlite3 "
+            "performance regression "
+            "(https://github.com/lextudio/pysnmp/issues/223). "
+            "Expect many SNMP-dependent tests to fail with timeouts. "
+            "Install uv to run snmpsim in an isolated Python 3.11 "
+            "environment automatically.",
+            stacklevel=1,
+        )
+
+    return [snmpsimd] + snmpsim_args
+
+
+def _uv_has_python(version):
+    """Returns True if uv can find the given Python version."""
+    result = subprocess.run(
+        ['uv', 'python', 'find', version],
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
+def _get_installed_snmpsim_spec():
+    """Returns a pip specifier for the locally installed snmpsim version.
+
+    Falls back to an unpinned 'snmpsim' if the package is not installed.
+    """
+    try:
+        version = importlib.metadata.version('snmpsim')
+        return f'snmpsim=={version}'
+    except importlib.metadata.PackageNotFoundError:
+        return 'snmpsim'
 
 
 @pytest.fixture()
@@ -376,3 +460,122 @@ def non_admin_account(db):
     account.save()
     yield account
     account.delete()
+
+
+@pytest.fixture()
+def default_account(db):
+    from nav.models.profiles import Account
+
+    return Account.objects.get(id=Account.DEFAULT_ACCOUNT)
+
+
+@pytest.fixture()
+def netbox_factory(db):
+    """Returns a factory for minimal Netboxes.
+
+    ``myorg``/``myroom`` and the categories are pre-seeded reference data,
+    referenced by id as the other fixtures do.
+    """
+    from nav.models.manage import Netbox
+
+    def _make(sysname, ip, category="SW"):
+        box = Netbox(
+            ip=ip,
+            sysname=sysname,
+            organization_id="myorg",
+            room_id="myroom",
+            category_id=category,
+        )
+        box.save()
+        return box
+
+    return _make
+
+
+@pytest.fixture()
+def interface_factory(db):
+    """Returns a factory for Interfaces with ifindex and oper status set.
+
+    The topology walk sorts by ``ifindex`` (a NULL would raise on the sort) and
+    the templates strike out interfaces that are not operationally up, so both
+    are always set. When ``to_interface`` is given, ``to_netbox`` is derived
+    from it, mirroring how the topology detector records a resolved neighbour.
+    """
+    from nav.models.manage import Interface
+
+    def _make(netbox, ifname, ifindex, oper_up=True, to_interface=None):
+        interface = Interface(
+            netbox=netbox,
+            ifname=ifname,
+            ifdescr=ifname,
+            ifindex=ifindex,
+            ifoperstatus=Interface.OPER_UP if oper_up else Interface.OPER_DOWN,
+            to_netbox=to_interface.netbox if to_interface else None,
+            to_interface=to_interface,
+        )
+        interface.save()
+        return interface
+
+    return _make
+
+
+@pytest.fixture()
+def juniper_aggregate_factory(netbox_factory, interface_factory):
+    """Returns a factory that builds an ``ae0`` MLAG and returns its objects.
+
+    ``ae0`` and its logical unit ``ae0.0`` both bundle the units ``xe-0/2/2.0``
+    and ``xe-0/2/3.0``, which stack over the physical ports ``xe-0/2/2`` and
+    ``xe-0/2/3``. The physicals uplink to two different distribution switches,
+    so the aggregate has no single neighbour of its own. ifindexes are chosen so
+    ``ae0`` sorts first among ``sw``'s roots.
+
+    With ``down_member=True``, ``xe-0/2/3`` is left operationally down; only the
+    physical members carry oper status, so a strike-through test can pin the
+    down state to a single interface.
+    """
+    from nav.models.manage import InterfaceAggregate, InterfaceStack
+
+    def _build(down_member=False):
+        sw = netbox_factory("sw.example.org", "10.0.0.1")
+        dist_a = netbox_factory("dist-a.example.org", "10.0.0.2")
+        dist_b = netbox_factory("dist-b.example.org", "10.0.0.3")
+
+        remote_a = interface_factory(dist_a, "xe-0/0/1", 1)
+        remote_b = interface_factory(dist_b, "xe-0/0/1", 1)
+
+        ae0 = interface_factory(sw, "ae0", 10)
+        ae0_0 = interface_factory(sw, "ae0.0", 11)
+        unit2 = interface_factory(sw, "xe-0/2/2.0", 20)
+        unit3 = interface_factory(sw, "xe-0/2/3.0", 21)
+        phys2 = interface_factory(sw, "xe-0/2/2", 30, to_interface=remote_a)
+        phys3 = interface_factory(
+            sw, "xe-0/2/3", 31, oper_up=not down_member, to_interface=remote_b
+        )
+
+        # Both the aggregate and its logical unit bundle the units (parallel
+        # parents -- the DAG that drives root suppression of ae0.0).
+        for aggregator in (ae0, ae0_0):
+            for unit in (unit2, unit3):
+                InterfaceAggregate(aggregator=aggregator, interface=unit).save()
+
+        # The unit stacks above each unit, and each unit above its physical.
+        for unit in (unit2, unit3):
+            InterfaceStack(higher=ae0_0, lower=unit).save()
+        InterfaceStack(higher=unit2, lower=phys2).save()
+        InterfaceStack(higher=unit3, lower=phys3).save()
+
+        return {
+            "sw": sw,
+            "dist_a": dist_a,
+            "dist_b": dist_b,
+            "ae0": ae0,
+            "ae0_0": ae0_0,
+            "unit2": unit2,
+            "unit3": unit3,
+            "phys2": phys2,
+            "phys3": phys3,
+            "remote_a": remote_a,
+            "remote_b": remote_b,
+        }
+
+    return _build

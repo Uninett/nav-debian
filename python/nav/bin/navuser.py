@@ -30,9 +30,9 @@ bootstrap_django(__file__)
 from nav.models.profiles import Account, AccountGroup
 
 
-def main():
+def main(argv=None):
     """Main program"""
-    args = parse_args()
+    args = parse_args(argv)
 
     args.func(args)
 
@@ -50,7 +50,7 @@ def listusers(args):
         attrs = []
         if account.ext_sync:
             attrs.append(account.ext_sync)
-        if account.locked:
+        if not account.is_active:
             attrs.append('locked')
         attrs = '[%s]' % ','.join(attrs) if attrs else ''
         print(msg.format(login=account.login, name=account.name, attrs=attrs).strip())
@@ -105,6 +105,14 @@ def adminify(args):
 
 def passwd(args):
     account = args.login
+
+    if account.is_default_account():
+        print(
+            "It is not possible to set a password for the default account.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     if sys.stdin.isatty():
         if account.password and not args.noverify:
             password = getpass('(current) NAV password: ', stream=sys.stderr)
@@ -147,23 +155,27 @@ def verify(args):
 
 
 def lock(args):
-    args.login.locked = True
-    if args.login.locked:
-        args.login.save()
-        print("User %s locked" % args.login.login, file=sys.stderr)
-    else:
-        print("Cannot lock %s" % args.login.login, file=sys.stderr)
+    if not args.login.is_active:
+        print("Cannot lock %s, already locked" % args.login.login, file=sys.stderr)
         sys.exit(1)
+
+    args.login.is_active = False
+    args.login.save()
+    print("User %s locked" % args.login.login, file=sys.stderr)
 
 
 def unlock(args):
-    args.login.locked = False
-    if args.login.locked:
-        print("Cannot unlock %s" % args.login.login, file=sys.stderr)
+    if args.login.is_default_account():
+        print("It is not possible to unlock the default account.", file=sys.stderr)
         sys.exit(1)
-    else:
-        args.login.save()
-        print("User %s unlocked" % args.login.login, file=sys.stderr)
+
+    if args.login.is_active:
+        print("Cannot unlock %s, already unlocked" % args.login.login, file=sys.stderr)
+        sys.exit(1)
+
+    args.login.is_active = True
+    args.login.save()
+    print("User %s unlocked" % args.login.login, file=sys.stderr)
 
 
 ##########################
@@ -180,7 +192,7 @@ def usergetter(login):
         raise argparse.ArgumentTypeError("No such user account: %s" % login)
 
 
-def parse_args():
+def parse_args(argv=None):
     """Builds an ArgumentParser and returns parsed program arguments"""
     parser = argparse.ArgumentParser(
         description="Lists and manipulates NAV web user accounts"
@@ -260,7 +272,7 @@ def parse_args():
         'login', type=usergetter, help="The login name of the user"
     )
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 if __name__ == '__main__':

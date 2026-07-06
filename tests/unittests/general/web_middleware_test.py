@@ -21,16 +21,21 @@ from nav.web.webfront.views import _logout_helper
 from nav.models import profiles
 
 
-PLAIN_ACCOUNT = profiles.Account(id=101, login='tim', password='wizard', locked=False)
+PLAIN_ACCOUNT = profiles.Account(id=101, login='tim', password='wizard', is_active=True)
 ANOTHER_PLAIN_ACCOUNT = profiles.Account(
-    id=102, login='tom', password='pa$$w0rd', locked=False
+    id=102, login='tom', password='pa$$w0rd', is_active=True
 )
 SUDO_ACCOUNT = profiles.Account(
-    id=1337, login='bofh', password='alakazam', locked=False
+    id=1337, login='bofh', password='alakazam', is_active=True
 )
-LOCKED_ACCOUNT = profiles.Account(id=42, login='evil', password='haxxor', locked=True)
+LOCKED_ACCOUNT = profiles.Account(
+    id=42, login='evil', password='haxxor', is_active=False
+)
 DEFAULT_ACCOUNT = profiles.Account(
-    id=profiles.Account.DEFAULT_ACCOUNT, login='anonymous', password='bah', locked=False
+    id=profiles.Account.DEFAULT_ACCOUNT,
+    login='anonymous',
+    password='bah',
+    is_active=True,
 )
 
 
@@ -113,9 +118,12 @@ class TestAuthorizationMiddleware(object):
         self,
     ):
         # Golden path!
-        viewfunc = lambda request: None
+        def viewfunc(request):
+            return None
+
         r = RequestFactory()
         fake_request = r.get('/')
+        fake_request.htmx = Mock()
         with patch(
             'nav.web.auth.middleware.authorize_request', return_value=True
         ) as ar:
@@ -131,9 +139,12 @@ class TestAuthorizationMiddleware(object):
     def test_when_explicit_login_required_and_not_authorized_then_it_should_call_redirect_to_login(  # noqa: E501
         self,
     ):
-        viewfunc = lambda request: None
+        def viewfunc(request):
+            return None
+
         r = RequestFactory()
         fake_request = r.get('/')
+        fake_request.htmx = Mock()
         with patch('nav.web.auth.middleware.authorize_request', return_value=False):
             with patch('nav.web.auth.middleware.redirect_to_login') as rtl:
                 AuthorizationMiddleware(lambda x: x).process_view(
@@ -145,10 +156,13 @@ class TestAuthorizationMiddleware(object):
                 rtl.assert_called_once()
 
     def test_when_explicit_login_is_not_required_then_it_should_return_none(self):
-        viewfunc = lambda request: None
+        def viewfunc(request):
+            return None
+
         viewfunc.login_required = False
         r = RequestFactory()
         fake_request = r.get('/')
+        fake_request.htmx = Mock()
         response = AuthorizationMiddleware(lambda x: x).process_view(
             fake_request,
             viewfunc,
@@ -156,6 +170,19 @@ class TestAuthorizationMiddleware(object):
             (),
         )
         assert response is None
+
+    def test_when_htmx_middleware_has_not_run_then_it_should_raise_exception(self):
+        viewfunc = lambda request: None
+        r = RequestFactory()
+        fake_request = r.get('/')
+
+        with pytest.raises(ImproperlyConfigured):
+            AuthorizationMiddleware(lambda x: x).process_view(
+                fake_request,
+                viewfunc,
+                (),
+                (),
+            )
 
 
 class TestRedirectToLogin:

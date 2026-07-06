@@ -36,6 +36,10 @@ from nav.models.api import APIToken, JWTRefreshToken
 from nav.web.auth.sudo import sudo
 from nav.web.auth.utils import get_account
 from nav.web.useradmin import forms
+from nav.web.useradmin.utils import (
+    annotate_accounts_with_2fa_status,
+    is_2fa_globally_enabled,
+)
 from nav.web.jwtgen import generate_refresh_token, hash_token, decode_token
 from nav.config import ConfigurationError
 from nav.django.settings import LOCAL_JWT_IS_CONFIGURED
@@ -46,11 +50,13 @@ DEFAULT_NAVPATH = {'navpath': [('Home', '/'), ('User Administration',)]}
 
 def account_list(request):
     """Controller for displaying the account list"""
-    accounts = Account.objects.all()
+
+    accounts = annotate_accounts_with_2fa_status(Account.objects.all())
     context = {
         'active': {'account_list': 1},
         'accounts': accounts,
         'auditlog_api_parameters': {'object_model': 'account'},
+        'show_2fa_column': is_2fa_globally_enabled(),
     }
     context.update(DEFAULT_NAVPATH)
     return render(request, 'useradmin/account_list.html', context)
@@ -120,7 +126,7 @@ def add_warnings_for_account(account, request):
     :type request: HttpRequest
     """
     if account.id == Account.DEFAULT_ACCOUNT:
-        if account.locked:
+        if not account.is_active:
             messages.warning(
                 request,
                 "This account represents all non-logged in users. Be wary of making "
@@ -133,10 +139,10 @@ def add_warnings_for_account(account, request):
                 " so it can be used to log in. Please LOCK this account immediately",
             )
     else:
-        if account.locked:
+        if not account.is_active:
             messages.warning(request, "This account is locked and cannot log in.")
 
-    if not account.locked and account.has_plaintext_password():
+    if account.is_active and account.has_plaintext_password():
         messages.warning(
             request,
             "This account's password is stored in plain text. Its password should be "

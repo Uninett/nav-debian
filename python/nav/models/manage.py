@@ -27,7 +27,7 @@ from itertools import count, groupby
 import logging
 import math
 import re
-from typing import Optional
+from typing import NamedTuple, Optional
 
 import IPy
 from django.conf import settings
@@ -57,7 +57,7 @@ from nav.models.fields import DateTimeInfinityField, VarcharField, PointField
 from nav.models.fields import CIDRField
 import nav.models.event
 from nav.oids import get_enterprise_id
-import nav.dhcpstats.common
+import nav.dhcpstats.graph
 
 
 _logger = logging.getLogger(__name__)
@@ -199,7 +199,12 @@ class NetboxProfile(models.Model):
 
     class Meta(object):
         db_table = 'netbox_profile'
-        unique_together = (('netbox', 'profile'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'profile'),
+                name='netbox_profile_netboxid_profileid_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return self.netbox.sysname
@@ -551,13 +556,14 @@ class Netbox(models.Model):
         return self.power_supplies_or_fans.filter(physical_class='fan').order_by('name')
 
     def get_system_metrics(self):
-        """Gets a list of available Graphite metrics related to this Netbox,
+        """
+        Gets a list of available Graphite metrics related to this Netbox,
         except for ports and sensors, which are seen as separate.
 
         :returns: A list of dicts describing the metrics, e.g.:
                   {id:"nav.devices.some-gw.cpu.cpu1.loadavg1min",
-                   group="cpu",
-                   suffix="cpu1.loadavg1min"}
+                  group="cpu",
+                  suffix="cpu1.loadavg1min"}
 
         """
         ports_exclude = metric_prefix_for_ports(self.sysname)
@@ -620,7 +626,12 @@ class NetboxInfo(models.Model):
 
     class Meta(object):
         db_table = 'netboxinfo'
-        unique_together = (('netbox', 'key', 'variable', 'value'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'key', 'variable'),
+                name='netboxinfo_uniq',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s="%s"' % (self.variable, self.value)
@@ -743,7 +754,12 @@ class NetboxEntity(models.Model):
 
     class Meta:
         db_table = 'netboxentity'
-        unique_together = (('netbox', 'index'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'source', 'index'),
+                name='netboxentity_netboxid_source_index_unique',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         klass = (self.get_physical_class_display() or '').capitalize()
@@ -839,7 +855,6 @@ class NetboxPrefix(models.Model):
 
     class Meta(object):
         db_table = 'netboxprefix'
-        unique_together = (('netbox', 'prefix'),)
 
     def __str__(self):
         return '%s at %s' % (self.netbox.sysname, self.prefix.net_address)
@@ -942,7 +957,12 @@ class Module(models.Model):
         db_table = 'module'
         verbose_name = 'module'
         ordering = ('netbox', 'module_number', 'name')
-        unique_together = (('netbox', 'name'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'name'),
+                name='module_netboxid_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '{name} at {netbox}'.format(
@@ -1050,7 +1070,12 @@ class Memory(models.Model):
 
     class Meta(object):
         db_table = 'mem'
-        unique_together = (('netbox', 'type', 'device'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'type', 'device'),
+                name='mem_netboxid_memtype_device_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         if self.used is not None and self.size is not None and self.size != 0:
@@ -1332,7 +1357,12 @@ class NetboxCategory(models.Model):
 
     class Meta(object):
         db_table = 'netboxcategory'
-        unique_together = (('netbox', 'category'),)  # Primary key
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'category'),
+                name='netboxcategory_pkey',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s in category %s' % (self.netbox, self.category)
@@ -1355,7 +1385,12 @@ class NetboxType(models.Model):
 
     class Meta(object):
         db_table = 'type'
-        unique_together = (('vendor', 'name'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('vendor', 'name'),
+                name='type_vendorid_typename_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s (%s from %s)' % (self.name, self.description, self.vendor)
@@ -1533,7 +1568,7 @@ class Prefix(models.Model):
         range/pool/subnet intersects this prefix.
         """
         prefix = IPy.IP(self.net_address)
-        return nav.dhcpstats.common.fetch_graph_urls_for_prefixes([prefix])
+        return nav.dhcpstats.graph.fetch_graph_urls_for_prefixes([prefix])
 
 
 class Vlan(models.Model):
@@ -1641,7 +1676,7 @@ class Vlan(models.Model):
         range/pool/subnet intersects this vlan.
         """
         prefixes = [IPy.IP(prefix.net_address) for prefix in self.prefixes.all()]
-        return nav.dhcpstats.common.fetch_graph_urls_for_prefixes(prefixes)
+        return nav.dhcpstats.graph.fetch_graph_urls_for_prefixes(prefixes)
 
 
 class NetType(models.Model):
@@ -1762,7 +1797,12 @@ class SwPortVlan(models.Model):
 
     class Meta(object):
         db_table = 'swportvlan'
-        unique_together = (('interface', 'vlan'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('interface', 'vlan'),
+                name='swportvlan_interfaceid_vlanid_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s, on vlan %s' % (self.interface, self.vlan)
@@ -1843,7 +1883,12 @@ class SwPortBlocked(models.Model):
 
     class Meta(object):
         db_table = 'swportblocked'
-        unique_together = (('interface', 'vlan'),)  # Primary key
+        constraints = [
+            models.UniqueConstraint(
+                fields=('interface', 'vlan'),
+                name='swportblocked_uniq',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%d, at %s' % (self.vlan, self.interface)
@@ -1889,9 +1934,12 @@ class AdjacencyCandidate(models.Model):
 
     class Meta(object):
         db_table = 'adjacency_candidate'
-        unique_together = (
-            ('netbox', 'interface', 'to_netbox', 'to_interface', 'source'),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'interface', 'to_netbox', 'to_interface', 'source'),
+                name='adjacency_candidate_uniq',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%s:%s %s candidate %s:%s' % (
@@ -1921,7 +1969,12 @@ class NetboxVtpVlan(models.Model):
 
     class Meta(object):
         db_table = 'netbox_vtpvlan'
-        unique_together = (('netbox', 'vtp_vlan'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'vtp_vlan'),
+                name='netbox_vtpvlan_netboxid_vtpvlan_key',  # UNIQUE
+            )
+        ]
 
     def __str__(self):
         return '%d, at %s' % (self.vtp_vlan, self.netbox)
@@ -1951,9 +2004,6 @@ class Cam(models.Model):
 
     class Meta(object):
         db_table = 'cam'
-        unique_together = (
-            ('netbox', 'sysname', 'module', 'port', 'mac', 'start_time'),
-        )
 
     def __str__(self):
         return '%s, %s' % (self.mac, self.netbox)
@@ -1961,6 +2011,31 @@ class Cam(models.Model):
 
 #######################################################################
 ### Interfaces and related attributes
+
+
+# Relation between a parent interface and a member contained in it: bundled
+# into a link aggregate, stacked one layer below, or (on Juniper) both at once.
+LAG_RELATION = "lag"
+STACK_RELATION = "stack"
+BOTH_RELATION = "both"
+
+
+class TopologyTreeNode(NamedTuple):
+    """A node in an interface's layered aggregate/stack hierarchy.
+
+    ``is_current`` flags the interface the hierarchy was requested for (the "you
+    are here" row); ``relation`` is how the node is contained in its parent (a
+    ``*_RELATION`` constant, or None for a root).
+    """
+
+    interface: "Interface"
+    is_current: bool
+    relation: Optional[str]
+    members: list["TopologyTreeNode"]
+
+
+# Maps an interface pk to its contained members as (member, relation) pairs.
+TopologyMemberMap = dict[int, list[tuple["Interface", str]]]
 
 
 class Interface(models.Model):
@@ -2172,11 +2247,12 @@ class Interface(models.Model):
         return self.time_since_activity_cache[interval]
 
     def get_port_metrics(self):
-        """Gets a list of available Graphite metrics related to this Interface.
+        """
+        Gets a list of available Graphite metrics related to this Interface.
 
         :returns: A list of dicts describing the metrics, e.g.:
                   {id:"nav.devices.some-gw.ports.gi1_1.ifInOctets",
-                   suffix:"ifInOctets"}
+                  suffix:"ifInOctets"}
 
         """
         base = metric_prefix_for_interface(self.netbox, self.ifname)
@@ -2273,6 +2349,154 @@ class Interface(models.Model):
     def get_bundled_interfaces(self):
         """Returns the interfaces that are bundled on this interface"""
         return Interface.objects.filter(bundled__aggregator=self)
+
+    def get_layered_topology(self) -> list[TopologyTreeNode]:
+        """Returns the aggregate/stack hierarchy this interface belongs to.
+
+        The topology detector records each link on its source-of-truth
+        interface, which for a bundle is below the layer being viewed: an ``ae``
+        sits over logical units that stack over physical ports, and the neighbor
+        lands on the physical. So the aggregate (and any intermediate layer) has
+        no ``to_netbox`` of its own while the topology lives further down.
+
+        The hierarchy is returned as a list of root :class:`TopologyTreeNode`s
+        so the details page can render it from any layer; an interface with no
+        layering yields a single childless root, itself. Containment combines
+        both relations, since which one exposes each hop varies by vendor -- the
+        same walk the #4029 reducer relies on, without shared code.
+        """
+        cluster, members = self._walk_topology_graph()
+        contained = {child.pk for kids in members.values() for child, _ in kids}
+        roots = sorted(
+            (node for pk, node in cluster.items() if pk not in contained),
+            key=lambda iface: iface.ifindex,
+        )
+
+        shown = set()
+        tree = []
+        for root in roots:
+            if self._is_redundant_root(root, members, shown):
+                continue
+            tree.append(self._build_topology_node(root, None, members, shown))
+        return tree
+
+    def _walk_topology_graph(
+        self,
+    ) -> tuple[dict[int, "Interface"], TopologyMemberMap]:
+        """Returns ``(cluster, members)`` for the layered component of self.
+
+        Walks both relations in both directions to collect the connected
+        component. ``cluster`` maps pk to Interface; ``members`` maps pk to its
+        ``(member, relation)`` pairs, sorted by ifindex. Members are fetched once
+        here and reused when building the tree, not re-queried per node; the
+        cluster doubles as the cycle guard.
+        """
+        cluster = {self.pk: self}
+        members = {}
+        queue = [self]
+        while queue:
+            node = queue.pop()
+            node_members = sorted(
+                self._containment_members(node),
+                key=lambda pair: pair[0].ifindex,
+            )
+            members[node.pk] = node_members
+            contained = [member for member, _ in node_members]
+            for iface in contained + self._containment_aggregators(node):
+                if iface.pk not in cluster:
+                    cluster[iface.pk] = iface
+                    queue.append(iface)
+        return cluster, members
+
+    @staticmethod
+    def _containment_members(iface: "Interface") -> list[tuple["Interface", str]]:
+        """Returns ``(member, relation)`` pairs for interfaces below iface.
+
+        Merges bundled members (aggregate) and lower-layer interfaces (stack),
+        deduplicated, tagging each with how it was reached: ``LAG_RELATION``,
+        ``STACK_RELATION``, or ``BOTH_RELATION`` when both.
+        """
+        bundled = {member.pk: member for member in iface.get_bundled_interfaces()}
+        stacked = {member.pk: member for member in iface.below_me()}
+        members = []
+        for pk, member in {**bundled, **stacked}.items():
+            if pk in bundled and pk in stacked:
+                relation = BOTH_RELATION
+            elif pk in bundled:
+                relation = LAG_RELATION
+            else:
+                relation = STACK_RELATION
+            members.append((member, relation))
+        return members
+
+    @staticmethod
+    def _containment_aggregators(iface: "Interface") -> list["Interface"]:
+        """Returns the interfaces directly containing iface, deduplicated.
+
+        The inverse of :meth:`_containment_members`: whatever bundles iface or
+        is stacked above it.
+        """
+        parents = {}
+        aggregators = Interface.objects.filter(aggregators__interface=iface)
+        for parent in list(aggregators) + list(iface.above_me()):
+            parents.setdefault(parent.pk, parent)
+        return list(parents.values())
+
+    def _is_redundant_root(
+        self, root: "Interface", members: TopologyMemberMap, shown: set[int]
+    ) -> bool:
+        """True if root need not be drawn as a separate top of the hierarchy.
+
+        The graph is a DAG: an ``ae`` and its logical unit can both parent the
+        same members, so several parentless nodes would repeat whole subtrees. A
+        root is redundant when it carries no link and all its descendants were
+        already drawn -- except the viewed interface, which is never suppressed.
+        """
+        # to_netbox_id (not to_interface) is the "has a link" test: it is set
+        # for any resolved neighbor, including a device-only one with no port.
+        if root.pk == self.pk or root.to_netbox_id:
+            return False
+        descendants = self._descendant_pks(root, members, set())
+        return descendants <= shown
+
+    def _descendant_pks(
+        self, iface: "Interface", members: TopologyMemberMap, acc: set[int]
+    ) -> set[int]:
+        """Returns the pks of every interface below iface in the hierarchy."""
+        for member, _relation in members[iface.pk]:
+            if member.pk not in acc:
+                acc.add(member.pk)
+                self._descendant_pks(member, members, acc)
+        return acc
+
+    def _build_topology_node(
+        self,
+        iface: "Interface",
+        relation: Optional[str],
+        members: TopologyMemberMap,
+        shown: set[int],
+    ) -> TopologyTreeNode:
+        """Builds iface's TopologyTreeNode, recursing into its members.
+
+        Expands only on first visit; a node re-reached through the DAG becomes a
+        childless reference, avoiding repeated subtrees and guarding cycles.
+        """
+        expand = iface.pk not in shown
+        shown.add(iface.pk)
+        children = (
+            [
+                self._build_topology_node(member, member_relation, members, shown)
+                for member, member_relation in members[iface.pk]
+            ]
+            if expand
+            else []
+        )
+        return TopologyTreeNode(
+            interface=iface,
+            is_current=iface.pk == self.pk,
+            relation=relation,
+            members=children,
+        )
 
     def is_degraded(self):
         """
@@ -2563,6 +2787,13 @@ class Sensor(models.Model):
         (ALERT_TYPE_WARNING, 'An orange warning'),
     )
 
+    THRESHOLD_TYPE_HIGH = 1
+    THRESHOLD_TYPE_LOW = 2
+    THRESHOLD_TYPE_CHOICES = (
+        (THRESHOLD_TYPE_HIGH, 'Threshold for high values'),
+        (THRESHOLD_TYPE_LOW, 'Threshold for low values'),
+    )
+
     id = models.AutoField(db_column='sensorid', primary_key=True)
     netbox = models.ForeignKey(
         Netbox,
@@ -2605,6 +2836,19 @@ class Sensor(models.Model):
     on_state_sys = models.IntegerField(db_column='on_state_sys', null=True)
     alert_type = models.IntegerField(
         db_column='alert_type', choices=ALERT_TYPE_CHOICES, null=True
+    )
+    threshold_type = models.IntegerField(
+        db_column='threshold_type', choices=THRESHOLD_TYPE_CHOICES, null=True
+    )
+    threshold_alert_type = models.IntegerField(
+        db_column='threshold_alert_type', choices=ALERT_TYPE_CHOICES, null=True
+    )
+    threshold_for = models.ForeignKey(
+        'Sensor',
+        on_delete=models.CASCADE,
+        db_column='threshold_for_id',
+        null=True,
+        related_name="thresholds",
     )
 
     class Meta(object):
@@ -2971,7 +3215,12 @@ class POEGroup(models.Model):
 
     class Meta(object):
         db_table = 'poegroup'
-        unique_together = (('netbox', 'index'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('netbox', 'index'),
+                name='poegroup_netboxid_index_key',  # UNIQUE
+            )
+        ]
         ordering = ('index',)
 
 
@@ -3038,5 +3287,10 @@ class POEPort(models.Model):
 
     class Meta(object):
         db_table = 'poeport'
-        unique_together = (('poegroup', 'index'),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=('poegroup', 'index'),
+                name='poeport_poegroupid_index_key',  # UNIQUE
+            )
+        ]
         ordering = ('index',)

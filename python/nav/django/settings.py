@@ -46,11 +46,11 @@ from nav.db import get_connection_parameters
 import nav.buildconf
 from nav.jwtconf import JWTConf, LocalJWTConfig
 from nav.web.security import WebSecurityConfigParser
-from nav.web.auth.allauth import MFAConfigParser, SocialConfigParser, OIDCConfigParser
+from nav.web.auth.allauth.models import read_authentication_config
 from nav.django.utils import get_os_version
 
 
-# Changes to `True` by default in Django 5.0
+# Default changed to `True` in Django 5.0; kept explicit for clarity
 USE_TZ = False
 
 ALLOWED_HOSTS = ['*']
@@ -100,7 +100,7 @@ try:
     DATABASES = {
         'default': {
             'NAME': _name,
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'ENGINE': 'django.db.backends.postgresql',
             'HOST': _host,
             'PORT': _port,
             'USER': _user,
@@ -210,13 +210,18 @@ EMAIL_HOST_USER = NAV_CONFIG.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = NAV_CONFIG.get('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = NAV_CONFIG.get('EMAIL_USE_TLS', 'False') == 'True'
 
-# Date formatting
+# Localization
+# Django's default LANGUAGE_CODE is 'en-us', which maps to the 'en' locale.
+# NAV's custom format module (nav.django.formats.en) relies on this to provide
+# ISO-style date/time defaults.  If you change LANGUAGE_CODE, add a matching
+# format module or accept that locale's built-in date formats.
+LANGUAGE_CODE = 'en-us'
+FORMAT_MODULE_PATH = 'nav.django.formats'
 DATE_FORMAT = 'Y-m-d'
 TIME_FORMAT = 'H:i:s'
 SHORT_TIME_FORMAT = 'H:i'  # Use template filter to access this
 DATETIME_FORMAT = '%s %s' % (DATE_FORMAT, TIME_FORMAT)
 SHORT_DATETIME_FORMAT = '%s %s' % (DATE_FORMAT, SHORT_TIME_FORMAT)
-USE_L10N = False
 
 TIME_ZONE = NAV_CONFIG.get('TIME_ZONE', 'Europe/Oslo')
 DOMAIN_SUFFIX = NAV_CONFIG.get('DOMAIN_SUFFIX', None)
@@ -389,14 +394,13 @@ MFA_ADAPTER = "nav.web.auth.allauth.adapter.NAVMFAAdapter"
 MFA_TOTP_ISSUER = 'NAV'
 MFA_TOTP_TOLERANCE = 1
 
-_allauth_mfa_config = MFAConfigParser()
-MFA_SUPPORTED_TYPES = _allauth_mfa_config.get_MFA_SUPPORTED_TYPES_setting()
-MFA_PASSKEY_LOGIN_ENABLED = _allauth_mfa_config.get_MFA_PASSKEY_LOGIN_ENABLED_setting()
-MFA_PASSKEY_SIGNUP_ENABLED = (
-    _allauth_mfa_config.get_MFA_PASSKEY_SIGNUP_ENABLED_setting()
-)
+_auth_config = read_authentication_config()
+
+MFA_SUPPORTED_TYPES = _auth_config.mfa.get_MFA_SUPPORTED_TYPES_setting()
+MFA_PASSKEY_LOGIN_ENABLED = _auth_config.mfa.get_MFA_PASSKEY_LOGIN_ENABLED_setting()
+MFA_PASSKEY_SIGNUP_ENABLED = _auth_config.mfa.get_MFA_PASSKEY_SIGNUP_ENABLED_setting()
 MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = (
-    _allauth_mfa_config.get_MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN_setting()
+    _auth_config.mfa.get_MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN_setting()
 )
 
 # SOCIALACCOUNT_AUTO_SIGNUP = True
@@ -404,14 +408,12 @@ MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = (
 
 SOCIALACCOUNT_PROVIDERS = {}
 
-_allauth_social_config = SocialConfigParser()
-_social_providers = _allauth_social_config.generate_SOCIALACCOUNT_PROVIDERS()
+_social_providers = _auth_config.social.generate_SOCIALACCOUNT_PROVIDERS()
 if _social_providers:
     SOCIALACCOUNT_PROVIDERS.update(_social_providers)
-    INSTALLED_APPS += tuple(_allauth_social_config.get_provider_import_paths())
+    INSTALLED_APPS += tuple(_auth_config.social.get_provider_import_paths())
 
-_allauth_oidc_parser = OIDCConfigParser()
-_oidc_providers = _allauth_oidc_parser.generate_SOCIALACCOUNT_PROVIDERS()
+_oidc_providers = _auth_config.oidc.generate_SOCIALACCOUNT_PROVIDERS()
 if _oidc_providers:
     SOCIALACCOUNT_PROVIDERS.update(_oidc_providers)
-    INSTALLED_APPS += tuple(_allauth_oidc_parser.get_provider_import_paths())
+    INSTALLED_APPS += tuple(_auth_config.oidc.get_provider_import_paths())

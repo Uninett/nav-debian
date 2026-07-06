@@ -124,7 +124,7 @@ class Navlet(TemplateView):
         """
         Get template name based on navlet mode.
 
-        :param override_mode: Optional\; if provided, overrides the mode (VIEW or EDIT)
+        :param override_mode: Optional; if provided, overrides the mode (VIEW or EDIT)
             sent in the request. If None, uses self.mode. Used to enable the navlet to
             return the correct template in error situations.
         :return: The template name for the specified mode.
@@ -579,7 +579,7 @@ def add_user_navlet_sensor(request):
             preferences = {'sensor_id': sensor.pk, 'title': sensor.netbox.sysname}
         account = get_account(request)
         add_navlet(account, navlet, preferences)
-        return HttpResponse(status=200)
+        return render(request, 'ipdevinfo/frag_added_to_dashboard.html')
 
     return HttpResponse(status=400)
 

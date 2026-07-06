@@ -29,7 +29,7 @@ import iso8601
 import json
 
 from django_filters.rest_framework import DjangoFilterBackend, FilterSet
-from django_filters.filters import ModelMultipleChoiceFilter, CharFilter
+from django_filters.filters import BooleanFilter, CharFilter, ModelMultipleChoiceFilter
 from rest_framework import status, filters, viewsets, exceptions
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import api_view, renderer_classes, action
@@ -50,7 +50,7 @@ import jwt
 
 from nav.django.settings import JWT_PUBLIC_KEY, JWT_NAME, LOCAL_JWT_IS_CONFIGURED
 from nav.macaddress import MacAddress
-from nav.models import manage, event, cabling, rack, profiles
+from nav.models import cabling, event, manage, msgmaint, profiles, rack
 from nav.models.api import JWTRefreshToken
 from nav.models.fields import INFINITY, UNRESOLVED
 from nav.web.auth.utils import get_account
@@ -155,8 +155,10 @@ def get_endpoints(request=None, version=1):
         'arp': reverse_lazy('{}arp-list'.format(prefix), **kwargs),
         'cabling': reverse_lazy('{}cabling-list'.format(prefix), **kwargs),
         'cam': reverse_lazy('{}cam-list'.format(prefix), **kwargs),
+        'gwportprefix': reverse_lazy('{}gwportprefix-list'.format(prefix), **kwargs),
         'interface': reverse_lazy('{}interface-list'.format(prefix), **kwargs),
         'location': reverse_lazy('{}location-list'.format(prefix), **kwargs),
+        'organization': reverse_lazy('{}organization-list'.format(prefix), **kwargs),
         'management_profile': reverse_lazy(
             '{}management-profile-list'.format(prefix), **kwargs
         ),
@@ -178,6 +180,7 @@ def get_endpoints(request=None, version=1):
         'vendor': reverse_lazy('{}vendor'.format(prefix), **kwargs),
         'netboxentity': reverse_lazy('{}netboxentity-list'.format(prefix), **kwargs),
         'jwt_refresh': reverse_lazy('{}jwt-refresh'.format(prefix), **kwargs),
+        'maintenance': reverse_lazy('{}maintenance-list'.format(prefix), **kwargs),
     }
 
 
@@ -394,6 +397,27 @@ class LocationViewSet(
     lookup_value_regex = '[^/]+'
 
 
+class OrganizationViewSet(NAVAPIMixin, viewsets.ModelViewSet):
+    """Lists all organizations
+
+    Search
+    ------
+    Searches in *description*
+
+    Filters
+    -------
+    - id
+    - parent
+    - description
+    """
+
+    queryset = manage.Organization.objects.all()
+    serializer_class = serializers.OrganizationSerializer
+    filterset_fields = ('id', 'parent', 'description')
+    search_fields = ('description',)
+    lookup_value_regex = '[^/]+'
+
+
 class UnrecognizedNeighborViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     """Lists unrecognized neighbors.
 
@@ -411,6 +435,25 @@ class UnrecognizedNeighborViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = serializers.UnrecognizedNeighborSerializer
     filterset_fields = ('netbox', 'source')
     search_fields = ('remote_name',)
+
+
+class GwPortPrefixViewSet(NAVAPIMixin, viewsets.ReadOnlyModelViewSet):
+    """Lists all gateway port prefixes.
+
+    Filters
+    -------
+    - interface
+    - interface__netbox
+    - prefix
+    - virtual
+    """
+
+    queryset = manage.GwPortPrefix.objects.all()
+    serializer_class = serializers.GwPortPrefixSerializer
+    filterset_fields = ('interface', 'interface__netbox', 'prefix', 'virtual')
+    lookup_field = 'gw_ip'
+    lookup_value_regex = '[^/]+(?:/[^/]+)?'
+    ordering = ('gw_ip',)
 
 
 class ManagementProfileViewSet(LoggerMixin, NAVAPIMixin, viewsets.ModelViewSet):
@@ -1545,3 +1588,90 @@ class JWTRefreshViewSet(NAVAPIMixin, APIView):
             'refresh_token': refresh_token,
         }
         return Response(response_data)
+
+
+class MaintenanceTaskFilterSet(FilterSet):
+    """Contains filter logic for maintenance tasks"""
+
+    current = BooleanFilter(method="filter_current")
+    past = BooleanFilter(method="filter_past")
+    future = BooleanFilter(method="filter_future")
+    endless = BooleanFilter(method="filter_endless")
+
+    class Meta:
+        model = msgmaint.MaintenanceTask
+        fields = ('id', 'description', 'author', 'state')
+
+    def filter_current(self, queryset, name, value):
+        current_tasks = queryset.current()
+        if value:
+            return current_tasks
+        else:
+            return queryset.difference(current_tasks)
+
+    def filter_past(self, queryset, name, value):
+        past_tasks = queryset.past()
+        if value:
+            return past_tasks
+        else:
+            return queryset.difference(past_tasks)
+
+    def filter_future(self, queryset, name, value):
+        future_tasks = queryset.future()
+        if value:
+            return future_tasks
+        else:
+            return queryset.difference(future_tasks)
+
+    def filter_endless(self, queryset, name, value):
+        endless_tasks = queryset.endless()
+        if value:
+            return endless_tasks
+        else:
+            return queryset.difference(endless_tasks)
+
+
+class MaintenanceTaskViewSet(NAVAPIMixin, viewsets.ModelViewSet):
+    """Lists all maintenance tasks.
+
+    Search
+    ------
+    Searches in *description*
+
+    Filters
+    -------
+    - id
+    - description
+    - author
+    - state (scheduled, active, passed, canceled)
+    - current
+    - past
+    - future
+    - endless
+    """
+
+    queryset = msgmaint.MaintenanceTask.objects.prefetch_related(
+        "maintenance_components"
+    ).all()
+    serializer_class = serializers.ResponseMaintenanceTaskSerializer
+    filterset_class = MaintenanceTaskFilterSet
+    http_method_names = ['get', 'post', 'head', 'delete']
+    search_fields = ('description',)
+
+    def get_serializer_class(self):
+        if self.action in ("list", "retrieve"):
+            return serializers.ResponseMaintenanceTaskSerializer
+        return serializers.RequestMaintenanceTaskSerializer
+
+    def create(self, request):
+        write_serializer = self.get_serializer(data=request.data)
+        write_serializer.is_valid(raise_exception=True)
+        self.perform_create(write_serializer)
+
+        read_serializer = serializers.ResponseMaintenanceTaskSerializer(
+            write_serializer.instance
+        )
+        headers = self.get_success_headers(read_serializer.data)
+        return Response(
+            read_serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )

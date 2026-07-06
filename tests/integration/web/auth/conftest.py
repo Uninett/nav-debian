@@ -21,14 +21,7 @@ def session_request(db):
 def locked_account(db):
     from nav.models.profiles import Account
 
-    account = Account(login="locked_user")
+    account = Account(login="locked_user", is_active=False)
     account.save()
     yield account
     account.delete()
-
-
-@pytest.fixture()
-def default_account(db):
-    from nav.models.profiles import Account
-
-    return Account.objects.get(id=Account.DEFAULT_ACCOUNT)
