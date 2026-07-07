@@ -1,8 +1,17 @@
-nav (5.19.0-1+deb13u1) trixie; urgency=medium
+nav (5.19.0-1+deb13u2) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Trixie.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 06 Jul 2026 13:36:55 +0000
+
+nav (5.19.0-1+deb12u2) bookworm; urgency=high
+
+  * Pin junos-eznc below 2.8.1 (Debian-only patch).
+    - Restores PortAdmin and the SeedDB connectivity check for Juniper
+      devices registered by an IPv6 address, which broke when junos-eznc
+      2.8.1 started rejecting unbracketed IPv6 literals. See Uninett/nav#4119.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Tue, 07 Jul 2026 12:23:30 +0000
 
 nav (5.19.0-1+deb12u1) bookworm; urgency=medium
 
