@@ -5,7 +5,7 @@ set -e
 # Can be run in parallel using tmux or individually for specific branches
 
 # Configuration
-BRANCHES=("debian-bookworm" "debian-trixie")
+BRANCHES=("debian/bookworm" "debian/trixie")
 TMUX_SESSION="nav-docker-build"
 
 # Colors for output
@@ -82,15 +82,15 @@ build_single_branch() {
     local branch_full=""
     case $branch_short in
         bookworm)
-            branch_full="debian-bookworm"
+            branch_full="debian/bookworm"
             ;;
         trixie)
-            branch_full="debian-trixie"
+            branch_full="debian/trixie"
             ;;
-        debian-*)
+        debian/*)
             # Allow full branch names too
             branch_full="$branch_short"
-            branch_short="${branch_short#debian-}"
+            branch_short="${branch_short#debian/}"
             ;;
         *)
             echo -e "${RED}Error: Unknown branch '$branch_short'${NC}"
@@ -114,8 +114,11 @@ build_single_branch() {
         fi
     fi
 
-    local clone_dir="$work_dir/$branch_full"
-    local log_file="$work_dir/${branch_full}.log"
+    # On-disk paths, log names and docker tags use the codename (branch_short);
+    # branch_full contains a slash (debian/<codename>) and is only safe as a git
+    # ref. The monitor derives clone_dir the same way so the marker files match.
+    local clone_dir="$work_dir/$branch_short"
+    local log_file="$work_dir/${branch_short}.log"
 
     echo -e "${BLUE}=================================================================================${NC}"
     echo -e "${BLUE}Building Docker image for branch: ${GREEN}$branch_full${NC}"
@@ -203,7 +206,7 @@ setup_tmux_parallel() {
 #!/usr/bin/env bash
 WORK_DIR="$1"
 KEEP_WORKDIR="$2"
-BRANCHES=("debian-bookworm" "debian-trixie")
+BRANCHES=("debian/bookworm" "debian/trixie")
 
 clear
 echo "NAV Docker Image Prebuild - Overview"
@@ -235,7 +238,8 @@ while true; do
     failed=0
 
     for branch in "${BRANCHES[@]}"; do
-        clone_dir="$WORK_DIR/$branch"
+        branch_short="${branch#debian/}"
+        clone_dir="$WORK_DIR/$branch_short"
         printf "  %-20s: " "$branch"
 
         if [ -f "$clone_dir/.build-complete" ]; then
@@ -291,7 +295,7 @@ MONITOR_SCRIPT
 
     # Create windows for each branch build
     for branch in "${BRANCHES[@]}"; do
-        local branch_short="${branch#debian-}"
+        local branch_short="${branch#debian/}"
         tmux new-window -t "$TMUX_SESSION" -n "$branch_short"
         # Run the build - the script will keep the window open with exec bash
         tmux send-keys -t "$TMUX_SESSION:$branch_short" "'$script_path' -b '$branch_short' -w '$work_dir'" C-m

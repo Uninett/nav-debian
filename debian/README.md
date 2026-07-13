@@ -9,21 +9,21 @@ This package uses a straight up 3.0 (quilt) format with `dh_virtualenv`.
 
 ## TL;DR
 
-To build NAV 4.9.8 for Debian Stretch:
+To build NAV 5.19.0 for Debian Trixie:
 
     git clone git@github.com:Uninett/nav-debian.git
     cd nav-debian
-    git checkout debian-stretch
+    git checkout debian/trixie
     git remote add upstream git@github.com:Uninett/nav.git
     git fetch --tags upstream
-    git pull upstream 4.9.8
+    git pull upstream 5.19.0
     cd debian
-	./dch.sh -v 4.9.8-1
+	./dch.sh -v 5.19.0-1
     ./build.sh
 
 This clones this repo, tracks the upstream NAV repo in the `upstream` remote,
-pulls and merges the 4.9.8 tag, updated the Debian changelog with a package
-version of `4.9.8-1`, and runs a full package build.
+pulls and merges the 5.19.0 tag, updated the Debian changelog with a package
+version of `5.19.0-1`, and runs a full package build.
 
 ## Build tools
 
