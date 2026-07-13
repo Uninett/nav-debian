@@ -1,0 +1,43 @@
+Reclassify documentation-build and Gammu dependencies
+
+Sphinx and its extensions are only needed to build the documentation
+during packaging, not at runtime, so move them into the 'docs'
+PEP 735 dependency-group alongside the RTD theme. python-gammu is an
+optional *runtime* dependency (SMS dispatching), so declare it as a
+proper extra under [project.optional-dependencies] where
+dh-virtualenv's --extras can install it.
+
+--- nav-debian.orig/pyproject.toml
++++ nav-debian/pyproject.toml
+@@ -25,9 +25,6 @@ dependencies = [
+     "Pillow>3.3.2",
+     "qrcode>7.4",
+     "pyrad==2.1",
+-    "sphinx==9.0.4",
+-    "sphinxcontrib-programoutput",
+-    "sphinxcontrib-django",
+     "Markdown==3.8.1",
+ 
+     "feedparser==6.0.11",
+@@ -67,6 +64,7 @@ dependencies = [
+ 
+ [project.optional-dependencies]
+ ldap = ["python-ldap==3.4.5"]  # optional for LDAP authentication, requires libldap (OpenLDAP) to build
++gammu = ["python-gammu==3.2.4"]  # optional for SMS dispatching via Gammu
+ 
+ [dependency-groups]
+ dev = [
+@@ -92,7 +90,12 @@ test = [
+     "toml",
+     "whisper>=0.9.9",
+ ]
+-docs = ["sphinx_rtd_theme>=2.0.0"]
++docs = [
++    "sphinx==9.0.4",
++    "sphinxcontrib-programoutput",
++    "sphinxcontrib-django",
++    "sphinx_rtd_theme>=2.0.0",
++]
+ 
+ [project.urls]
+ Homepage = "https://nav.uninett.no/"
