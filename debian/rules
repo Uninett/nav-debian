@@ -2,9 +2,15 @@
 package     := nav
 DEBIAN_ROOT := $(CURDIR)/debian/$(package)
 
-# preset version for setuptools_scm to prevent weird version numbers
+# Derive a PEP 440-valid version for setuptools_scm from the Debian upstream
+# version. Master snapshot builds carry a `git describe` changelog version like
+# 5.19.0-4-gb1685b2e2 (kept in that form because gbp resolves the upstream
+# version as a treeish via upstream-tag). That is not valid PEP 440, so
+# translate the -N-gSHA suffix into a post-release + local segment
+# (-> 5.19.0.post4+gb1685b2e2), preserving the commit distance and hash rather
+# than masquerading as the plain release. A leading +local (e.g. +ds) is dropped.
 include /usr/share/dpkg/pkg-info.mk
-VERSION_UPSTREAM = $(shell echo '$(DEB_VERSION_UPSTREAM)' | sed -e 's/\+[^+]*//')
+VERSION_UPSTREAM = $(shell echo '$(DEB_VERSION_UPSTREAM)' | sed -e 's/\+[^+]*//' -e 's/-\([0-9]\{1,\}\)-\(g[0-9a-f]\{1,\}\)/.post\1+\2/')
 export SETUPTOOLS_SCM_PRETEND_VERSION = $(VERSION_UPSTREAM)
 
 %:
