@@ -1,5 +1,5 @@
 #!/bin/sh -x
-TAG=debdev:bullseye
+TAG=debdev:$(sed -n 's/^FROM debian:\([^ ]*\).*/\1/p' Dockerfile)
 projdir=$(basename $(dirname $PWD))
 if [ -n "$NONINTERACTIVE" ]; then
     TTYARGS="--tty"
