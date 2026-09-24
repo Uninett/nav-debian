@@ -27,7 +27,7 @@ dh-virtualenv's --extras can install it.
  
  [dependency-groups]
  dev = [
-@@ -92,7 +90,12 @@ test = [
+@@ -94,7 +92,12 @@ test = [
      "toml",
      "whisper>=0.9.9",
  ]
