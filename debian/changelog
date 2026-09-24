@@ -1,8 +1,15 @@
-nav (5.19.0-1+deb13u2) trixie; urgency=medium
+nav (5.19.1-1+deb13u1) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Trixie.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Tue, 07 Jul 2026 12:28:59 +0000
+
+nav (5.19.1-1+deb12u1) bookworm; urgency=medium
+
+  * New upstream release
+    - Removed patches that are now included upstream
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 24 Sep 2026 12:59:28 +0000
 
 nav (5.19.0-1+deb12u2) bookworm; urgency=high
 

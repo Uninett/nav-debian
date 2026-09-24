@@ -1,4 +1,3 @@
 nav-start-mkdir-var-run
 config-debian-dirs
 reclassify-doc-and-gammu-dependencies
-pin-junos-eznc-below-2.8.1

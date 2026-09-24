@@ -79,6 +79,8 @@ dev = [
 ]
 test = [
     "coverage>=7.0.0",
+    "cryptography>=44.0.1", # snmpsim uses pysnmp which uses cryptography, but only declares it as dev dependency
+    "pysmi>=2.0.0,<3.0.0", # imported by snmpsim.utils, not pulled in by pysnmp
     "mock==2.0.0",
     "pytest>=8.3.3",
     "pytest-metadata==3.1.1",
@@ -222,3 +224,7 @@ showcontent = true
 exclude-newer = "1 week"
 # pynetsnmp-2 is our own package
 exclude-newer-package = { pynetsnmp-2 = false }
+# uv sync/lock ignore constraints.txt (only the pip interface reads it), so the
+# junos-eznc pin from constraints.txt is repeated here to protect uv-based dev
+# environments too. Keep the two in sync. See #4119.
+constraint-dependencies = ["junos-eznc<2.8.1"]
