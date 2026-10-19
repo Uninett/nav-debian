@@ -95,7 +95,10 @@ def netbox_edit(request, netbox_id=None, suggestion=None, action='edit'):
             netbox = netbox_do_save(form)
             messages.add_message(request, messages.SUCCESS, 'IP Device saved')
             account = get_account(request)
-            log_netbox_change(account, old_netbox, netbox)
+            if action == 'copy':
+                log_netbox_change(account, None, netbox)
+            else:
+                log_netbox_change(account, old_netbox, netbox)
             return redirect(reverse('seeddb-netbox-edit', args=[netbox.pk]))
         else:
             messages.add_message(request, messages.ERROR, 'Form was not valid')
@@ -239,8 +242,8 @@ def load_connectivity_test_results(request):
                     "name": profile.name,
                     "status": False,
                     "error_message": (
-                        "Connectivity check not supported for profile with",
-                        f"protocol {profile.get_protocol_display()}",
+                        "Connectivity check not supported for profile with "
+                        f"protocol {profile.get_protocol_display()}"
                     ),
                 }
             )

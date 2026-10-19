@@ -1,8 +1,29 @@
-nav (5.19.1-1+deb13u1) trixie; urgency=medium
+nav (5.19.2-1+deb13u1) UNRELEASED; urgency=medium
 
   * Repackaged for Debian Trixie.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Thu, 24 Sep 2026 13:02:20 +0000
+
+nav (5.19.2-1+deb12u1) bookworm; urgency=high
+
+  * New upstream release, with three important security fixes:
+    - Fixed a SQL injection vulnerability in the report subsystem, where filter and
+      sort fields from a report URL reached the SQL query unescaped. These
+      fields are now quoted as column names; see the release notes for the
+      behaviour change this implies (GHSA-vq8x-6j3p-qqj2)
+    - Fixed a denial-of-service vulnerability in the report subsystem, where a
+      report name in the URL was compiled as a regular expression; a crafted name
+      could raise an error or consume excessive CPU. The name is now matched
+      literally (GHSA-c365-jj25-8rh9)
+    - Fixed cross-site scripting vulnerabilities in the report subsystem.
+      Report cell data, including request-supplied extra column names, reached
+      the browser unescaped, and request-supplied `uri_`/`url_` parameters
+      could inject `javascript:` links. Cell data is now HTML-escaped, and
+      report links and extra columns are taken only from report configuration.
+      See the release notes for the behaviour change this implies.
+      (GHSA-8gqp-wvmf-4hjj)
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 19 Oct 2026 07:40:16 +0000
 
 nav (5.19.1-1+deb12u1) bookworm; urgency=medium
 
