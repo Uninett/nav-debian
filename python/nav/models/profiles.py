@@ -309,6 +309,8 @@ class Account(AbstractBaseUser):
 
     def has_plaintext_password(self):
         """Returns True if this account appears to contain a plain-text password"""
+        if not self.password:
+            return False
         if not self.has_old_style_password_hash():
             try:
                 self.password_hash
@@ -320,7 +322,9 @@ class Account(AbstractBaseUser):
         """Returns True if this account's password is salted hash, but using a
         deprecated hashing method.
         """
-        if not (self.has_plaintext_password() or self.has_old_style_password_hash()):
+        if self.password and not (
+            self.has_plaintext_password() or self.has_old_style_password_hash()
+        ):
             return self.password_hash.method != nav.pwhash.DEFAULT_METHOD
         return False
 
@@ -1734,6 +1738,14 @@ class AccountDashboard(models.Model):
     class Meta(object):
         db_table = 'account_dashboard'
         ordering = ('name',)
+
+        constraints = [
+            # Do not allow empty/whitespace names
+            models.CheckConstraint(
+                condition=~models.Q(name__regex=r"^\s*$"),
+                name="account_dashboard_name_not_blank",
+            ),
+        ]
 
 
 class AccountDefaultDashboard(models.Model):
