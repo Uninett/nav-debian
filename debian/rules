@@ -13,6 +13,15 @@ include /usr/share/dpkg/pkg-info.mk
 VERSION_UPSTREAM = $(shell echo '$(DEB_VERSION_UPSTREAM)' | sed -e 's/\+[^+]*//' -e 's/-\([0-9]\{1,\}\)-\(g[0-9a-f]\{1,\}\)/.post\1+\2/')
 export SETUPTOOLS_SCM_PRETEND_VERSION = $(VERSION_UPSTREAM)
 
+# Upstream's `[tool.uv] exclude-newer = "1 week"` cooldown also applies to the
+# `uv pip` calls below. Move the cutoff forward for packages whose security
+# fixes are too fresh to clear it. A fixed date admits only the reviewed
+# releases, so these are harmless to leave in place once the window passes.
+# certifi/pip: eMudhra/emSign CA distrust (certifi 2026.10.19, pip 26.2.2).
+UV_COOLDOWN_EXEMPTIONS = \
+	--exclude-newer-package=certifi=2026-10-21T00:00:00Z \
+	--exclude-newer-package=pip=2026-10-21T00:00:00Z
+
 %:
 	dh $@ --with quilt --with systemd --with python-virtualenv
 
@@ -24,10 +33,10 @@ override_dh_virtualenv:
 
 	# docs deps live in the 'docs' PEP 735 dependency-group (build-time only),
 	# so install them with uv's --group; ldap and gammu are real extras.
-	dh_virtualenv --pip-tool /usr/local/bin/uv-pip --extras ldap,gammu --requirements /dev/null --extra-pip-arg="--group=docs" --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0"
+	dh_virtualenv --pip-tool /usr/local/bin/uv-pip --extras ldap,gammu --requirements /dev/null --extra-pip-arg="--group=docs" --extra-pip-arg="-cconstraints.txt" --extra-pip-arg "setuptools>=50.2.0" $(addprefix --extra-pip-arg=,$(UV_COOLDOWN_EXEMPTIONS))
 
 	# Replace Debian's patched pip (which requires system python3-pip) with upstream pip
-	/usr/local/bin/uv pip install --reinstall --python $(DEBIAN_ROOT)/opt/venvs/nav/bin/python pip
+	/usr/local/bin/uv pip install --reinstall --python $(DEBIAN_ROOT)/opt/venvs/nav/bin/python $(UV_COOLDOWN_EXEMPTIONS) pip
 	# Fix shebangs: uv writes the build-time path, but dh-virtualenv expects /opt/venvs/nav/...
 	sed -i '1s|#!$(DEBIAN_ROOT)/opt/venvs/nav/|#!/opt/venvs/nav/|' $(DEBIAN_ROOT)/opt/venvs/nav/bin/pip*
 

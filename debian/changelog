@@ -1,8 +1,22 @@
-nav (5.19.2-1+deb13u1) trixie; urgency=high
+nav (5.19.2-1+deb13u2) UNRELEASED; urgency=high
 
   * Repackaged for Debian Trixie.
 
  -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 19 Oct 2026 07:42:49 +0000
+
+nav (5.19.2-1+deb12u2) bookworm; urgency=medium
+
+  * Rebuild to pick up certifi >= 2026.10.19 and pip >= 26.2.2 in the
+    bundled virtualenv.
+    - The previous build shipped certifi 2026.7.22 and pip 26.2.1, which
+      still trust the compromised eMudhra/emSign CA certificates.
+    - NAV's own HTTPS requests (navoui, Kea DHCP statistics) and the
+      virtualenv's pip use these bundles, not the system
+      ca-certificates store.
+    - Exempt both packages from upstream's one-week uv cooldown
+      (exclude-newer), which otherwise holds back the fixed releases.
+
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 21 Oct 2026 08:00:21 +0000
 
 nav (5.19.2-1+deb12u1) bookworm; urgency=high
 
