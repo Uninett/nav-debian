@@ -1,8 +1,8 @@
-nav (5.19.2-1+deb13u2) UNRELEASED; urgency=high
+nav (5.19.2-1+deb13u2) trixie; urgency=high
 
   * Repackaged for Debian Trixie.
 
- -- Morten Brekkevold <morten.brekkevold@sikt.no>  Mon, 19 Oct 2026 07:42:49 +0000
+ -- Morten Brekkevold <morten.brekkevold@sikt.no>  Wed, 21 Oct 2026 08:07:35 +0000
 
 nav (5.19.2-1+deb12u2) bookworm; urgency=medium
 
